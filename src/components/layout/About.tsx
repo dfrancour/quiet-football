@@ -1,3 +1,8 @@
+"use client";
+
+import { X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect } from "react";
 import { ContactLink } from "~/components/layout/ContactLink";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
@@ -19,12 +24,36 @@ function GitHubMark({ className }: { className?: string }) {
 /**
  * What the site is and where its source lives: the mark and a tagline, two
  * short paragraphs, and the disclaimer over the repository and contact links.
+ *
+ * A page of its own, so it can be linked, but it opens and closes like a
+ * panel over the league: the close control sits where the league page's
+ * About control does, and it or Escape goes back to the league in place of
+ * this page, so the browser's back never lands here again.
  */
 export function About() {
+  const router = useRouter();
+  const close = useCallback(() => router.replace(standingsPath()), [router]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [close]);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col px-4 py-6">
-      <header className="flex min-h-8 items-center">
+      <header className="flex min-h-8 items-center justify-between gap-3">
         <SiteMark href={standingsPath()} />
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Close"
+          title="Close (Esc)"
+          className="text-ink-faint hover:text-ink-muted hover:bg-surface-raised flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+        >
+          <X className="size-4" aria-hidden />
+        </button>
       </header>
 
       <article className="flex flex-col">

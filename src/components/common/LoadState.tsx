@@ -19,6 +19,8 @@ const OFFLINE_NOTE = "You're offline. The season will load when you're back.";
 
 interface FrameProps {
   busy?: boolean;
+  /** Whether the page the frame stands in for offers About (the league does). */
+  about?: boolean;
   children: ReactNode;
 }
 
@@ -27,7 +29,7 @@ interface FrameProps {
  * the matter centred beneath, so the frame holds still when the season
  * fades in.
  */
-function Frame({ busy = false, children }: FrameProps) {
+function Frame({ busy = false, about = true, children }: FrameProps) {
   return (
     <div
       aria-busy={busy || undefined}
@@ -35,7 +37,7 @@ function Frame({ busy = false, children }: FrameProps) {
     >
       <header className="flex min-h-8 items-center justify-between gap-3">
         <SiteMark href={standingsPath()} />
-        <AboutLink />
+        {about && <AboutLink />}
       </header>
       <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-24 text-center">
         {children}
@@ -61,7 +63,7 @@ function Mark({ breathing }: { breathing: boolean }) {
 }
 
 /** The page's frame while its season is on the way. */
-export function Loading() {
+export function Loading({ about }: { about?: boolean } = {}) {
   const online = useOnline();
   const now = useNow();
   const [started] = useState(() => Date.now());
@@ -71,7 +73,7 @@ export function Loading() {
       ? "Still waiting on ESPN…"
       : null;
   return (
-    <Frame busy>
+    <Frame busy about={about}>
       <Mark breathing />
       <p aria-live="polite" className="text-ink-faint min-h-4 text-xs">
         {note}
@@ -81,12 +83,18 @@ export function Loading() {
 }
 
 /** Shown when the season could not be fetched, e.g. ESPN unreachable. */
-export function LoadFailed({ error }: { error: Error }) {
+export function LoadFailed({
+  error,
+  about,
+}: {
+  error: Error;
+  about?: boolean;
+}) {
   const client = useQueryClient();
   const online = useOnline();
   const named = error instanceof WeekLoadError ? error : null;
   return (
-    <Frame>
+    <Frame about={about}>
       <Mark breathing={false} />
       <p className="text-ink-muted text-sm">
         {named

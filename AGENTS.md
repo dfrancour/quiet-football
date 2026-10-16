@@ -200,11 +200,11 @@ timed out" are never shown as they are.
 
 Every page shares `SiteHeader`: the site's mark (the possession football, as
 in the favicon) and name on the left, linking home; at the right, in the same
-place on every page, two quiet controls of one size: a circled i to `/about`
-(`AboutLink`) and where the viewer is caught up to. A team page's `AppHeader`
-adds the team's logo, name, record, and a favorite star; below `sm` the team
-takes a row of its own beneath the mark and controls. There is no team
-switcher; teams are picked from the standings.
+place on every page, where the viewer is caught up to and, on the league
+page only, a circled i to `/about` (`AboutLink`), the same size. A team
+page's `AppHeader` adds the team's logo, name, record, and a favorite star;
+below `sm` the team takes a row of its own beneath the mark and controls.
+There is no team switcher; teams are picked from the standings.
 
 ### About page
 
@@ -214,8 +214,11 @@ what the site is, that it is independent of the NFL and ESPN, and links to the r
 `ContactLink` gives the site's email: the address is kept in two halves
 (`CONTACT_USER`, `CONTACT_HOST`) and joined only after hydration, so the
 prerendered HTML reads "Email" with no `href` and carries no address for a
-harvester to lift. It holds no season data and has no header controls. Keep
-it brief.
+harvester to lift. It holds no season data. A page of its own, so it can be
+linked, it still opens and closes like a panel: its one header control is a
+close (X) where the league page's About control sits, and it or Escape
+returns to the league with `router.replace`, so the browser's back never
+lands on About again. Keep it brief.
 
 ### Home page
 

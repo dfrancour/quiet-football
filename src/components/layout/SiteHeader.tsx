@@ -33,15 +33,17 @@ interface SiteHeaderProps {
   currentWeek: number;
   totalWeeks: number;
   onCatchUp: (week: number) => void;
+  /** Whether the way to About is offered; only the league page does. */
+  about?: boolean;
   /** Shown after the site's name, e.g. a team. */
   children?: ReactNode;
 }
 
 /**
  * The bar every page shares: the site's name (linking home), the page's
- * subject, and the controls at the right: About and where the viewer is in
- * the season. On a phone a subject takes a row of its own beneath, so the
- * controls stay top right on every page.
+ * subject, and the controls at the right: where the viewer is in the season
+ * and, on the league page, the way to About. On a phone a subject takes a
+ * row of its own beneath, so the controls stay top right on every page.
  */
 export function SiteHeader({
   through,
@@ -49,6 +51,7 @@ export function SiteHeader({
   currentWeek,
   totalWeeks,
   onCatchUp,
+  about = true,
   children,
 }: SiteHeaderProps) {
   // A page with a subject is one step in from the league.
@@ -72,7 +75,7 @@ export function SiteHeader({
       )}
 
       <div className="order-2 ml-auto flex items-center gap-1 sm:order-3">
-        <AboutLink />
+        {about && <AboutLink />}
         <CaughtUp
           through={through}
           settledThrough={settledThrough}

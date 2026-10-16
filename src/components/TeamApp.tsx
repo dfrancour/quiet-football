@@ -39,8 +39,8 @@ export function TeamApp({ abbreviation }: { abbreviation: string }) {
 
   const error = teams.error ?? season.error;
   if (error && !(teams.data && season.data))
-    return <LoadFailed error={error} />;
-  if (!teams.data || !season.data || !team) return <Loading />;
+    return <LoadFailed error={error} about={false} />;
+  if (!teams.data || !season.data || !team) return <Loading about={false} />;
   return (
     <TeamView
       registry={teams.data}

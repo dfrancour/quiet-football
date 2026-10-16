@@ -35,6 +35,7 @@ export function AppHeader({
       currentWeek={currentWeek}
       totalWeeks={totalWeeks}
       onCatchUp={onCatchUp}
+      about={false}
     >
       <span className="flex min-w-0 items-center gap-3">
         <TeamLogo team={team} size="md" />
