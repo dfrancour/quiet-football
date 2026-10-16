@@ -19,6 +19,7 @@ import {
   teamRegistryFromEspn,
 } from "~/lib/team-fetch";
 import { fetchUpstream } from "~/lib/upstream";
+import { savedWeek, saveWeek } from "~/lib/week-store";
 
 /**
  * Everything the app reads, as TanStack Query options: ESPN and the recap
@@ -48,19 +49,27 @@ export function teamsQuery(season: number) {
   });
 }
 
+/**
+ * One week's scoreboard. A settled week saved by an earlier visit stands in
+ * for ESPN, and a week found settled as it arrives is saved for the next.
+ */
 async function fetchWeek(
   season: number,
   week: number,
   signal: AbortSignal,
 ): Promise<WeekBoard> {
+  const saved = savedWeek(season, week);
   const board = readWeek(
     season,
     week,
-    await fetchUpstream(weekScoreboardUrl(season, week), signal),
+    saved ?? (await fetchUpstream(weekScoreboardUrl(season, week), signal)),
   );
   // Noted as each poll lands, so a delayed broadcast can be shown its moment.
   const at = Date.now();
   for (const game of board.board) noteGameClock(game.gameId, game, at);
+  if (saved === null && weekActivity(board.games, at) === "settled") {
+    saveWeek(season, week, board.payload);
+  }
   return board;
 }
 

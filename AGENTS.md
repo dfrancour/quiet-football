@@ -11,7 +11,8 @@ live, or a kickoff time if upcoming.
 
 It is a static site: every page is prerendered HTML and the browser fetches
 the data itself from ESPN. There is no server, no database and nothing
-persisted beyond the viewer's own choices. `pnpm build` writes `out/`, which
+persisted beyond the viewer's own choices and the weeks already played.
+`pnpm build` writes `out/`, which
 Vercel (or any static host) serves.
 
 ---
@@ -20,13 +21,14 @@ Vercel (or any static host) serves.
 
 The repository carries no data. Everything is fetched from ESPN (and the
 recap dataset, for recaps) by the browser, through TanStack Query, and kept
-only for the session. **Nothing is stored twice**, and nothing is fetched
-unless a page is reading it.
+for the session; only a settled week's scoreboard, which cannot change, is
+kept in `localStorage` for the next visit (`src/lib/week-store.ts`).
+**Nothing is stored twice**, and nothing is fetched unless a page is reading
+it.
 
 | Query (`src/lib/queries.ts`) | Holds                                                   | Fetched again                              |
 | ---------------------------- | ------------------------------------------------------- | ------------------------------------------ |
 | `teams`                      | The 32 teams, with conference, division, color and logo | never in a session                         |
-| `season`                     | Which season the app shows                              | never in a session                         |
 | `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..." |
 | `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | polled while live; once when over          |
 | `playoff-marks`              | ESPN's playoff seeds and clinch codes                   | after 30 minutes                           |
@@ -127,7 +129,7 @@ its policy from that:
 | Activity  | When                                               | Policy                                               |
 | --------- | -------------------------------------------------- | ---------------------------------------------------- |
 | `live`    | a game has kicked off and is not final or canceled | polled every `scoreConfig.livePollMs` while mounted  |
-| `settled` | every game is final or canceled                    | never fetched again                                  |
+| `settled` | every game is final or canceled                    | never fetched again; saved for the next visit        |
 | `ahead`   | anything else: games to come, a round not yet set  | trusted for `aheadStaleMs` (hours), to catch flexing |
 
 Polling runs only while a page is open and visible (Query's default), so a
@@ -136,6 +138,13 @@ control invalidates the selected game's week.
 
 A game's clock is noted as each poll lands (`noteGameClock`), so a delayed
 broadcast can be shown its own moment.
+
+A week found settled as it arrives is saved, trimmed to the schema's fields
+(about 11 KB), under its season and week; `fetchWeek` reads the saved copy
+before asking ESPN, so a return visit fetches only the weeks still in play.
+Storage holds one season: saving a week lets go of any other season's. A
+copy that cannot be read, or was saved under an older `FORMAT`, is dropped
+and fetched; blocked or full storage is simply not saved to.
 
 ### Play-by-play comes from ESPN's summary
 

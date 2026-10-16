@@ -206,7 +206,10 @@ export function orderGames(games: readonly SeasonGame[]): SeasonGame[] {
 export interface WeekBoard {
   season: number;
   week: number;
-  /** ESPN's payload, for a team's live score (`extractTeamScore`). */
+  /**
+   * ESPN's payload trimmed to the fields read, for a team's live score
+   * (`extractTeamScore`) and for saving a settled week (`week-store.ts`).
+   */
   payload: unknown;
   games: SeasonGame[];
   /** Each game's clock and score, for the week view. */
@@ -223,14 +226,15 @@ export function readWeek(
   week: number,
   payload: unknown,
 ): WeekBoard {
-  if (!scoreboardSchema.safeParse(payload).success) {
+  const parsed = scoreboardSchema.safeParse(payload);
+  if (!parsed.success) {
     throw new Error(`ESPN's ${season} week ${week} scoreboard is unreadable`);
   }
   const games = seasonGamesFromScoreboard(payload).games;
   return {
     season,
     week,
-    payload,
+    payload: parsed.data,
     games: playoffRound(regularSeasonWeeks(season), week)
       ? games
       : games.map((game) => ({ ...game, week })),

@@ -9,6 +9,7 @@ function Page({ marks }: { marks: number }) {
   return (
     <div ref={ref} data-testid="body" className={revealClass(revealed)}>
       {Array.from({ length: marks }, (_, i) => (
+        // eslint-disable-next-line @next/next/no-img-element -- a bare mark is what the hook watches
         <img key={i} alt="" src={`https://a.espncdn.com/${i}.png`} />
       ))}
     </div>

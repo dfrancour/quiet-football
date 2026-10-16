@@ -3,9 +3,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSeason, WeekLoadError } from "~/hooks/useLeague";
 import { GAME_ID, TEAMS } from "~/lib/test-utils/fixtures";
 import { queryWrapper, stubFetch } from "~/lib/test-utils/query";
+import { savedWeek, saveWeek } from "~/lib/week-store";
 
-/** A week's scoreboard with one game, or none. */
-function scoreboard(season: number, week: number, games: number) {
+/** A week's scoreboard with one game, or none; final unless told otherwise. */
+function scoreboard(
+  season: number,
+  week: number,
+  games: number,
+  status = { name: "STATUS_FINAL", state: "post" },
+) {
   return {
     season: { year: season, type: 2 },
     week: { number: week },
@@ -15,7 +21,7 @@ function scoreboard(season: number, week: number, games: number) {
       week: { number: week },
       competitions: [
         {
-          status: { type: { name: "STATUS_FINAL", state: "post" } },
+          status: { type: status },
           competitors: [
             { homeAway: "home", team: { id: TEAMS.NO.teamId }, score: "13" },
             { homeAway: "away", team: { id: TEAMS.MIN.teamId }, score: "23" },
@@ -63,6 +69,52 @@ describe("useSeason", () => {
           params(String(url)).week === 1 && params(String(url)).type === 2,
       ),
     ).toHaveLength(1);
+    vi.useRealTimers();
+  });
+
+  it("reads a settled week saved by an earlier visit instead of fetching it", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));
+    saveWeek(2026, 3, scoreboard(2026, 3, 1));
+    const fetchMock = stubFetch((url) => {
+      const { season, type, week } = params(url);
+      return scoreboard(season, week, type === 2 ? 1 : 0);
+    });
+    const { result } = renderHook(() => useSeason(), {
+      wrapper: queryWrapper(),
+    });
+    await waitFor(() => expect(result.current.data).not.toBeNull());
+    expect(result.current.data?.weeks.get(3)?.games).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(21);
+    expect(
+      fetchMock.mock.calls.some(
+        ([url]) =>
+          params(String(url)).week === 3 && params(String(url)).type === 2,
+      ),
+    ).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("saves a week once every game in it is settled, and no sooner", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));
+    stubFetch((url) => {
+      const { season, type, week } = params(url);
+      return week === 7 && type === 2
+        ? scoreboard(season, week, 1, {
+            name: "STATUS_SCHEDULED",
+            state: "pre",
+          })
+        : scoreboard(season, week, type === 2 ? 1 : 0);
+    });
+    const { result } = renderHook(() => useSeason(), {
+      wrapper: queryWrapper(),
+    });
+    await waitFor(() => expect(result.current.data).not.toBeNull());
+    expect(savedWeek(2026, 5)).not.toBeNull();
+    expect(savedWeek(2026, 7)).toBeNull();
+    // A round not yet set has no games, so it is not settled either.
+    expect(savedWeek(2026, 19)).toBeNull();
     vi.useRealTimers();
   });
 
