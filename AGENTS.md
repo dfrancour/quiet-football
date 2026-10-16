@@ -179,7 +179,8 @@ There is no team switcher; teams are picked from the standings. A faint
 ### About page
 
 `/about` (`About`, `src/components/layout/About.tsx`) says in a few lines
-what the site is, that it is independent of the NFL and ESPN, and links to the repository
+what the site is, how recaps are found (linking the dataset, `RECAP_DATASET_URL`),
+that it is independent of the NFL and ESPN, and links to the repository
 (`REPO_URL`) under the GitHub mark, as quietly as a recap link. It holds no
 season data and has no header controls. Keep it brief.
 
