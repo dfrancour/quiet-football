@@ -173,7 +173,15 @@ Every page shares `SiteHeader`: the site's mark (the possession football, as
 in the favicon) and name on the left, linking home; where the viewer is
 caught up to on the right, in the same place on every page. A team
 page's `AppHeader` adds the team's logo, name, record, and a favorite star.
-There is no team switcher; teams are picked from the standings.
+There is no team switcher; teams are picked from the standings. A faint
+**About** link before the week leads to `/about`.
+
+### About page
+
+`/about` (`About`, `src/components/layout/About.tsx`) says in a few lines
+what the site is, that it is independent of the NFL and ESPN, and links to the repository
+(`REPO_URL`) under the GitHub mark, as quietly as a recap link. It holds no
+season data and has no header controls. Keep it brief.
 
 ### Home page
 
@@ -569,6 +577,12 @@ with `public/og.png` (the site's mark, rendered from `icon.svg`) as the card;
 `robots.ts` and `sitemap.ts` (the home page and every team page) are
 metadata routes, prerendered like everything else. Each team page
 titles itself by abbreviation. Keep copy terse.
+
+The site is installable: `manifest.ts` is a metadata route too, and its
+icons (`public/icon-*.png`, plus `app/apple-icon.png` for iOS) are the mark
+from `icon.svg` on the site's background, rendered with sharp; the maskable
+one keeps the mark inside the safe zone. There is no service worker: nothing
+works offline, since every page reads ESPN.
 
 ### Static export
 

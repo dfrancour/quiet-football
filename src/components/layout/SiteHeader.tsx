@@ -2,8 +2,9 @@
 
 import { type ReactNode } from "react";
 import { CaughtUp } from "~/components/common/CaughtUp";
+import Link from "next/link";
 import { SiteMark } from "~/components/layout/SiteMark";
-import { standingsPath } from "~/lib/routes";
+import { aboutPath, standingsPath } from "~/lib/routes";
 
 interface SiteHeaderProps {
   /** The last week the viewer is caught up through; 0 for none. */
@@ -45,7 +46,13 @@ export function SiteHeader({
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
+        <Link
+          href={aboutPath()}
+          className="text-ink-faint hover:text-ink-muted text-xs transition-colors"
+        >
+          About
+        </Link>
         <CaughtUp
           through={through}
           settledThrough={settledThrough}

@@ -36,6 +36,10 @@ describe("SiteHeader", () => {
     expect(
       screen.getByRole("button", { name: "Spoilers hidden" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute(
+      "href",
+      "/about",
+    );
   });
 
   it("opens the season, filled through the week caught up through", () => {

@@ -7,6 +7,10 @@ export function standingsPath(): string {
   return "/";
 }
 
+export function aboutPath(): string {
+  return "/about";
+}
+
 /**
  * A team's page, optionally opened on its game in one week, as `weekParam()`
  * names it (a playoff week by its round).

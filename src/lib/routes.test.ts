@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { standingsPath, teamPath } from "~/lib/routes";
+import { aboutPath, standingsPath, teamPath } from "~/lib/routes";
 
 describe("routes", () => {
   it("names the league and a team, upper-cased", () => {
     expect(standingsPath()).toBe("/");
     expect(teamPath("sea")).toBe("/team/SEA");
+    expect(aboutPath()).toBe("/about");
   });
 
   it("opens a team page on its game in one week, by week rather than id", () => {

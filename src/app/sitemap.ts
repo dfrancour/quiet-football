@@ -1,5 +1,5 @@
 import { type MetadataRoute } from "next";
-import { teamPath } from "~/lib/routes";
+import { aboutPath, teamPath } from "~/lib/routes";
 import { SITE_URL } from "~/lib/site";
 import { TEAM_ABBREVIATIONS } from "~/lib/teams";
 
@@ -9,6 +9,11 @@ export const dynamic = "force-static";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL, changeFrequency: "daily", priority: 1 },
+    {
+      url: `${SITE_URL}${aboutPath()}`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
     ...TEAM_ABBREVIATIONS.map((abbr) => ({
       url: `${SITE_URL}${teamPath(abbr)}`,
       changeFrequency: "daily" as const,
