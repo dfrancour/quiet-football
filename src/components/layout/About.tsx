@@ -44,7 +44,7 @@ export function About() {
             {SITE_NAME}
           </h1>
           <p className="text-ink-muted mt-2.5 text-[1.0625rem] leading-normal">
-            No ads. No odds. No result until you ask for it.
+            No ads. No odds. No spoilers until you ask.
           </p>
         </div>
 
