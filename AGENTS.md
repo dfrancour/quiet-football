@@ -283,13 +283,13 @@ site's mark in the header gains a chevron there, reading as the way back.
 
 `GameDetail` branches on `gamePhase()` of the **selected** game:
 
-| Phase                  | Shows                                                 |
-| ---------------------- | ----------------------------------------------------- |
-| `live`                 | Score row, clock, data age, field, plays              |
-| `final`                | Score row, field, plays; recap icon in the top row    |
-| `pregame`              | Countdown, kickoff details                            |
-| `upcoming`             | When and where, and nothing else                      |
-| `postponed`/`canceled` | The status and the original details                   |
+| Phase                  | Shows                                              |
+| ---------------------- | -------------------------------------------------- |
+| `live`                 | Score row, clock, data age, field, plays           |
+| `final`                | Score row, field, plays; recap icon in the top row |
+| `pregame`              | Countdown, kickoff details                         |
+| `upcoming`             | When and on what, and nothing else                 |
+| `postponed`/`canceled` | The status and the original details                |
 
 Live and final panels lead with `ScoreRow`: away left, home right, matching
 the field's end zones. It names the teams, so there is no separate matchup
@@ -306,7 +306,8 @@ The panel's inset (`Panel`) is as wide as those controls' hit areas, since the
 column scrolls sideways if anything pokes past it.
 
 Keep the upcoming-game panel minimal: no score placeholders or empty recap
-slots.
+slots. Every panel's details are one line, kickoff and network; the venue is
+not shown.
 
 ### Selection is derived
 

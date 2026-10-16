@@ -101,9 +101,9 @@ function Dot() {
 }
 
 /**
- * When, on what, and where, as one line: a footnote under a game that has
- * been played, and `leading` for a game to come, where it is what there is to
- * say. Each part stays whole as the line wraps.
+ * When and on what, as one line: a footnote under a game that has been
+ * played, and `leading` for a game to come, where it is what there is to say.
+ * No venue: the matchup says who is home.
  */
 function Meta({
   game,
@@ -113,7 +113,6 @@ function Meta({
   leading?: boolean;
 }) {
   const timeZone = useTimeZone();
-  const venue = game.venue.name;
   return (
     <p
       className={cn(
@@ -129,15 +128,6 @@ function Meta({
         <>
           <Dot />
           <span className="whitespace-nowrap">{game.broadcast}</span>
-        </>
-      )}
-      {venue && (
-        <>
-          <Dot />
-          <span>
-            {venue}
-            {game.venue.city && `, ${game.venue.city}`}
-          </span>
         </>
       )}
     </p>
