@@ -199,11 +199,12 @@ timed out" are never shown as they are.
 ### Header
 
 Every page shares `SiteHeader`: the site's mark (the possession football, as
-in the favicon) and name on the left, linking home; where the viewer is
-caught up to on the right, in the same place on every page. A team
-page's `AppHeader` adds the team's logo, name, record, and a favorite star.
-There is no team switcher; teams are picked from the standings. A faint
-**About** link before the week leads to `/about`.
+in the favicon) and name on the left, linking home; at the right, in the same
+place on every page, two quiet controls of one size: a circled i to `/about`
+(`AboutLink`) and where the viewer is caught up to. A team page's `AppHeader`
+adds the team's logo, name, record, and a favorite star; below `sm` the team
+takes a row of its own beneath the mark and controls. There is no team
+switcher; teams are picked from the standings.
 
 ### About page
 
@@ -219,10 +220,13 @@ it brief.
 ### Home page
 
 `/` shows the week's games (under a week chooser) beside the standings, or
-beside the bracket when the week is a playoff round. Below `lg` they stack,
-games first. Section headings are screen-reader only. The chooser lists the
-regular season's weeks on one line and, beneath, each playoff round once its
-games are known, so neither line scrolls at full width.
+beside the bracket when the week is a playoff round. Below `lg` there is room
+for one: a two-way switch under the header, Schedule or Standings
+(Bracket in a playoff round), shows one or the other (`PaneSwitch`), never
+both stacked. Section headings are screen-reader only.
+The chooser lists the regular season's weeks on one line (two rows of nine
+below `sm`) and, beneath, each playoff round once its games are known, so
+neither line scrolls at full width.
 
 The standings are laid out NFC and AFC side by side, North, East, South, West
 down each, and show each team's record, ESPN's seed inside the field and its
@@ -267,6 +271,12 @@ one line — week (or round), opponent, date, result — with playoff games afte
 the regular season, and the selection is marked with a rule at the row's edge,
 not a fill. There are no tabs and no archive view; a
 final game's panel links to its recap.
+
+Below `md` the game has the page to itself and the schedule is a menu
+(`ScheduleSwitcher`): a bar above the panel names the selected game and opens
+the same `ScheduleSelector` as a sheet from the bottom; picking a game closes
+it. The game and the schedule are never on screen together on a phone. The
+site's mark in the header gains a chevron there, reading as the way back.
 
 `GameDetail` branches on `gamePhase()` of the **selected** game:
 
@@ -458,8 +468,10 @@ Always visible: kickoff dates, team logos, and whether a game is `Final` or
 `LIVE`. Every schedule row shows its date; only the result column reacts to
 being caught up.
 
-The header names the week (`CaughtUp`: "Through Week 7") over a native
-picker: any week up to `settledThrough()` (the last week with every game in
+The header names the week (`CaughtUp`: "Through Week 7") over a strip of the
+season's weeks, a popover from `sm` up and below it a sheet (`Sheet`, shared
+with the team page's schedule) with the weeks in rows of nine so each is a
+fingertip wide, closing on a pick: any week up to `settledThrough()` (the last week with every game in
 it and before it final or canceled, so a week still being played is never
 offered), or none, which hides everything again. The week is **stored, not
 relative**: when the league moves on, the viewer stays where they were. The
@@ -530,8 +542,10 @@ play, the game is seen to the end.
 Tapping the covered score skips ahead: on a finished game it
 sees the game to the end (`finishGame()`); on a live one it joins at the newest
 play. Partway through a live game, the panel's **Live** label does the same.
-Add no button or caption for either; the hover state is the only hint. A recap
-is watched outside the app and moves nothing.
+Add no button for either: with a pointer the hover state is the only hint, and
+a touch screen (`pointer-coarse`) gets one faint line under the row saying a
+covered score can be tapped. A recap is watched outside the app and moves
+nothing.
 
 The place reveals nothing unseen, so it does not expire.
 
@@ -579,8 +593,16 @@ exists, and other subscribers are still notified once a second.
 
 On a team page from `md` up, the page is exactly the viewport and does not
 scroll: the header is fixed, and the schedule rail and detail panel scroll
-independently, with the selected week kept in view. Below `md` they stack with
-the detail panel **first** and the page scrolls normally.
+independently, with the selected week kept in view. Below `md` the page
+scrolls normally and the field and its transport stick to the top, so a
+replay can be followed from anywhere in the feed.
+
+The site is meant to be installed on a phone, so it is laid out for touch:
+every control has at least about 36px to tap (padding past the glyph, not a
+bigger glyph), controls set `touch-action: manipulation` so quick repeated
+taps never zoom, nothing depends on hover or a `title` tooltip for meaning,
+and the root `main` pads by the safe-area insets so an installed page is not
+under the notch or home indicator.
 
 ### Dark-only; logos from ESPN's CDN
 

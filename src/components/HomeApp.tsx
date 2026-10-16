@@ -52,10 +52,49 @@ interface HomeViewProps {
   marks: PlayoffMarks | null;
 }
 
+type Pane = "games" | "table";
+
+/** Below `lg`, one of the two at a time, chosen here. */
+function PaneSwitch({
+  pane,
+  tableName,
+  onChange,
+}: {
+  pane: Pane;
+  tableName: string;
+  onChange: (pane: Pane) => void;
+}) {
+  const tab = (value: Pane, name: string) => (
+    <button
+      type="button"
+      aria-pressed={pane === value}
+      onClick={() => onChange(value)}
+      className={cn(
+        "flex-1 cursor-pointer rounded-md py-2 text-sm font-semibold transition-colors",
+        pane === value
+          ? "bg-surface-raised text-ink"
+          : "text-ink-faint hover:text-ink-muted",
+      )}
+    >
+      {name}
+    </button>
+  );
+  return (
+    <div
+      role="group"
+      aria-label="Show"
+      className="border-edge flex gap-1 rounded-lg border p-1 lg:hidden"
+    >
+      {tab("games", "Schedule")}
+      {tab("table", tableName)}
+    </div>
+  );
+}
+
 /**
  * The week's games beside the standings, or the bracket for a playoff week.
  * Hovering a game highlights its teams in the standings, and vice versa. Below
- * `lg` they stack, games first.
+ * `lg` there is room for one: a switch above shows the games or the table.
  */
 function HomeView({ registry, data, marks }: HomeViewProps) {
   const { season: seasonFile, weeks } = data;
@@ -114,6 +153,10 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
     through > 0 ? Math.min(currentWeek, through + 1) : currentWeek,
   );
   const isPlayoffWeek = playoffRound(totalWeeks, week) !== null;
+  const [pane, setPane] = useState<Pane>("games");
+  const tableName = isPlayoffWeek ? "Bracket" : "Standings";
+  // From lg up both are shown; below, the one chosen.
+  const paneClass = (value: Pane) => cn(pane !== value && "max-lg:hidden");
 
   // The body comes in whole, marks and all, under the header already there.
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -121,10 +164,9 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">
-      {/* The page title and the schedule heading are for screen readers only.
-          Stacked below `lg`, the second section is labelled so the step from
-          the week's games into the standings or bracket is marked; side by
-          side, each column names itself. */}
+      {/* The page title and the section headings are for screen readers
+          only: side by side, each column names itself, and below `lg` the
+          switch does. */}
       <h1 className="sr-only">{season} NFL Season</h1>
       <SiteHeader
         through={through}
@@ -137,11 +179,12 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
       <div
         ref={bodyRef}
         className={cn(
-          "grid grid-cols-[minmax(0,1fr)] items-start gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,32rem)_minmax(0,1fr)]",
+          "grid grid-cols-[minmax(0,1fr)] items-start gap-x-12 gap-y-5 lg:grid-cols-[minmax(0,32rem)_minmax(0,1fr)]",
           revealClass(revealed),
         )}
       >
-        <section aria-labelledby="schedule">
+        <PaneSwitch pane={pane} tableName={tableName} onChange={setPane} />
+        <section aria-labelledby="schedule" className={paneClass("games")}>
           <h2 id="schedule" className="sr-only">
             Schedule
           </h2>
@@ -162,11 +205,11 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
         </section>
 
         {isPlayoffWeek ? (
-          <section aria-labelledby="bracket" className="lg:sticky lg:top-6">
-            <h2
-              id="bracket"
-              className="text-ink-muted mb-3 text-xs font-semibold tracking-[0.14em] lg:sr-only"
-            >
+          <section
+            aria-labelledby="bracket"
+            className={cn("lg:sticky lg:top-6", paneClass("table"))}
+          >
+            <h2 id="bracket" className="sr-only">
               Playoff bracket
             </h2>
             <Bracket
@@ -178,11 +221,11 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
             />
           </section>
         ) : (
-          <section aria-labelledby="standings" className="lg:sticky lg:top-6">
-            <h2
-              id="standings"
-              className="text-ink-muted mb-3 text-xs font-semibold tracking-[0.14em] lg:sr-only"
-            >
+          <section
+            aria-labelledby="standings"
+            className={cn("lg:sticky lg:top-6", paneClass("table"))}
+          >
+            <h2 id="standings" className="sr-only">
               Standings
             </h2>
             <StandingsTables

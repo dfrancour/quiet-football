@@ -18,14 +18,14 @@ import { type Team } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
 
 const CONTROL =
-  "text-ink-faint hover:text-ink-muted inline-flex cursor-pointer items-center gap-1.5 text-xs whitespace-nowrap transition-colors";
+  "text-ink-faint hover:text-ink-muted -my-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md py-2 text-xs whitespace-nowrap transition-colors";
 
 /** The leading watch action: unframed, a shade brighter than the rest. */
 const PRIMARY =
-  "text-ink-muted hover:text-ink inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold whitespace-nowrap transition-colors";
+  "text-ink-muted hover:text-ink -my-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md py-2 text-xs font-semibold whitespace-nowrap transition-colors";
 
 const TRANSPORT =
-  "text-ink-muted hover:text-ink hover:bg-surface-raised inline-flex size-7 cursor-pointer items-center justify-center rounded-md transition-colors disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
+  "text-ink-muted hover:text-ink hover:bg-surface-raised inline-flex size-9 cursor-pointer items-center justify-center rounded-md transition-colors select-none disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
 
 function Caption({
   play,
@@ -88,7 +88,7 @@ function Transport({
 }) {
   const { running, live, speed, atStart, atEnd } = replay;
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="-my-1 flex items-center gap-0.5">
       <button
         type="button"
         onClick={() => replay.step(-1)}
@@ -97,7 +97,7 @@ function Transport({
         aria-label="Step back"
         title="Step back (←)"
       >
-        <StepBack className="size-3.5" aria-hidden />
+        <StepBack className="size-4" aria-hidden />
       </button>
       <button
         type="button"
@@ -107,9 +107,9 @@ function Transport({
         title={running ? "Pause" : "Play"}
       >
         {running ? (
-          <Pause className="size-3.5" aria-hidden />
+          <Pause className="size-4" aria-hidden />
         ) : (
-          <Play className="size-3.5" aria-hidden />
+          <Play className="size-4" aria-hidden />
         )}
       </button>
       <button
@@ -120,7 +120,7 @@ function Transport({
         aria-label="Step forward"
         title="Step forward (→)"
       >
-        <StepForward className="size-3.5" aria-hidden />
+        <StepForward className="size-4" aria-hidden />
       </button>
       {!live ? (
         <button
@@ -303,7 +303,9 @@ export function GamePlays({
 
   return (
     <>
-      <div className="mt-4 space-y-2">
+      {/* Below md the page scrolls, not the feed: the field and its
+          controls stay put so a replay can be followed from anywhere in it. */}
+      <div className="bg-surface mt-4 space-y-2 max-md:sticky max-md:top-[env(safe-area-inset-top)] max-md:z-10 max-md:-mx-1 max-md:px-1 max-md:pb-2">
         <FieldView
           home={home}
           away={away}

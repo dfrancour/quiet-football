@@ -7,6 +7,7 @@ import { LoadFailed, Loading } from "~/components/common/LoadState";
 import { GameDetail } from "~/components/game/GameDetail";
 import { AppHeader } from "~/components/layout/AppHeader";
 import { ScheduleSelector } from "~/components/schedule/ScheduleSelector";
+import { ScheduleSwitcher } from "~/components/schedule/ScheduleSwitcher";
 import { useSeason, useTeams, type SeasonData } from "~/hooks/useLeague";
 import { useNow } from "~/hooks/useNow";
 import { usePlayByPlay } from "~/hooks/usePlayByPlay";
@@ -164,8 +165,9 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   }, [expanded]);
 
   return (
-    // From md up the page is the viewport and each column scrolls on its own;
-    // below md they stack and the page scrolls.
+    // From md up the page is the viewport, the schedule a rail beside the
+    // game, and each column scrolls on its own. Below md the game has the
+    // page to itself, the schedule is a menu above it, and the page scrolls.
     <div
       className={cn(
         "mx-auto flex w-full flex-col gap-6 px-4 md:h-dvh",
@@ -194,7 +196,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
         )}
       >
         {!expanded && (
-          <div className="md:border-edge order-2 md:order-1 md:flex md:max-h-full md:flex-col md:border-r md:pr-5">
+          <div className="border-edge hidden md:flex md:max-h-full md:flex-col md:border-r md:pr-5">
             <ScheduleSelector
               schedule={schedule}
               selectedGameId={selectedGameId}
@@ -205,7 +207,18 @@ function TeamView({ registry, data, team }: TeamViewProps) {
           </div>
         )}
 
-        <div className="order-1 md:order-2 md:flex md:max-h-full md:flex-col md:overflow-y-auto md:overscroll-contain">
+        <div className="md:flex md:max-h-full md:flex-col md:overflow-y-auto md:overscroll-contain">
+          {!expanded && (
+            <div className="mb-4 md:hidden">
+              <ScheduleSwitcher
+                schedule={schedule}
+                selectedGame={selectedGame}
+                onSelect={setPickedGameId}
+                isShown={spoilers.isShown}
+                now={now}
+              />
+            </div>
+          )}
           <GameDetail
             game={selectedGame}
             now={now}

@@ -100,7 +100,7 @@ function DivisionTable({
                 : team.teamId === favoriteTeamId && "bg-accent/10",
             )}
           >
-            <th scope="row" className="py-1.5 pr-2 pl-1 text-left font-normal">
+            <th scope="row" className="py-2 pr-2 pl-1 text-left font-normal">
               {/* The overlay makes the whole row one target and ring. */}
               <Link
                 href={teamPath(team.abbreviation)}
@@ -113,12 +113,12 @@ function DivisionTable({
                 )}
               </Link>
             </th>
-            <td className="w-4 py-1.5 text-right font-mono text-xs tabular-nums">
+            <td className="w-4 py-2 text-right font-mono text-xs tabular-nums">
               {showSpoilers &&
                 mark?.seed != null &&
                 mark.seed <= PLAYOFF_SEEDS && <SeedFigure seed={mark.seed} />}
             </td>
-            <td className="text-ink-muted py-1.5 pr-1 text-right font-mono text-xs whitespace-nowrap tabular-nums">
+            <td className="text-ink-muted py-2 pr-1 text-right font-mono text-xs whitespace-nowrap tabular-nums">
               <span className="sr-only">Record </span>
               {showSpoilers ? formatRecord(record) : <Redacted chars={3} />}
             </td>

@@ -182,7 +182,7 @@ function TeamCell({
 }
 
 const teamCellClass =
-  "has-[a:hover]:bg-surface-sunken relative py-1.5 transition-colors";
+  "has-[a:hover]:bg-surface-sunken relative py-2 transition-colors";
 
 /** The slot's time, on the first row of games kicking off together. */
 function SlotTime({ slot }: { slot: Slot }) {
@@ -350,9 +350,9 @@ function WeekButton({
       }
       onClick={() => onChange(entry)}
       className={cn(
-        "relative shrink-0 cursor-pointer rounded-md pt-1 pb-1.5 text-center font-mono text-xs tabular-nums transition-colors",
+        "relative shrink-0 cursor-pointer rounded-md pt-2 pb-2.5 text-center font-mono text-xs tabular-nums transition-colors",
         // A round's name is wider than a week's number.
-        round ? "px-1.5" : "min-w-6 flex-1",
+        round ? "px-2" : "min-w-7 flex-1",
         entry === week
           ? "text-ink font-semibold"
           : cn(
@@ -423,9 +423,10 @@ function WeekChooser({
 
   return (
     <div role="group" aria-label="Week" className="flex min-w-0 flex-col">
+      {/* On a phone the line would clip: two rows of nine instead. */}
       <div
         ref={trackRef}
-        className="relative flex min-w-0 gap-0.5 overflow-x-auto overscroll-contain"
+        className="relative grid min-w-0 grid-cols-9 gap-0.5 overflow-x-auto overscroll-contain sm:flex"
       >
         {regular.map(button)}
       </div>

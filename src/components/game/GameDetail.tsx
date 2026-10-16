@@ -196,7 +196,7 @@ function LiveLabel({
       onClick={onFollow}
       className={cn(
         className,
-        "-m-1 cursor-pointer rounded p-1 hover:brightness-125",
+        "-m-2 cursor-pointer rounded-md p-2 hover:brightness-125",
       )}
       aria-label={`${weekLabel(game)}, live: watch from the newest play`}
       title="Watch live"
@@ -229,7 +229,7 @@ function Eyebrow({
         <button
           type="button"
           onClick={onToggleExpanded}
-          className="text-ink-faint hover:text-ink -m-1 shrink-0 cursor-pointer rounded p-1 transition-colors"
+          className="text-ink-faint hover:text-ink -m-2 shrink-0 cursor-pointer rounded-md p-2 transition-colors"
           aria-label={label}
           aria-pressed={expanded}
           title={expanded ? `${label} (Esc)` : label}

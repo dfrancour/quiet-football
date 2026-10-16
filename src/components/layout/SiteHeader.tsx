@@ -1,19 +1,25 @@
 "use client";
 
+import { Info } from "lucide-react";
 import { type ReactNode } from "react";
 import { CaughtUp } from "~/components/common/CaughtUp";
 import Link from "next/link";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { aboutPath, standingsPath } from "~/lib/routes";
 
-/** The faint way to `/about`, before the week on every page. */
+/**
+ * The way to `/about`: a circled i, drawn and sized like the spoiler control
+ * beside it so the two read as one group of quiet controls.
+ */
 export function AboutLink() {
   return (
     <Link
       href={aboutPath()}
-      className="text-ink-faint hover:text-ink-muted text-xs transition-colors"
+      aria-label="About"
+      title="About"
+      className="text-ink-faint hover:text-ink-muted hover:bg-surface-raised flex size-8 shrink-0 items-center justify-center rounded-md transition-colors"
     >
-      About
+      <Info className="size-4" aria-hidden />
     </Link>
   );
 }
@@ -33,7 +39,9 @@ interface SiteHeaderProps {
 
 /**
  * The bar every page shares: the site's name (linking home), the page's
- * subject, and where the viewer is in the season at the right.
+ * subject, and the controls at the right: About and where the viewer is in
+ * the season. On a phone a subject takes a row of its own beneath, so the
+ * controls stay top right on every page.
  */
 export function SiteHeader({
   through,
@@ -43,22 +51,27 @@ export function SiteHeader({
   onCatchUp,
   children,
 }: SiteHeaderProps) {
+  // A page with a subject is one step in from the league.
+  const back = children !== undefined && children !== null;
   return (
     // Fixed height, so the bar matches with or without a team in it.
-    <header className="flex min-h-8 flex-wrap items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <SiteMark href={standingsPath()} />
-        {children && (
-          <>
-            <span className="text-ink-faint shrink-0" aria-hidden>
-              /
-            </span>
+    <header className="flex min-h-8 flex-wrap items-center gap-x-3 gap-y-3">
+      <SiteMark href={standingsPath()} back={back} />
+      {children && (
+        <>
+          <span
+            className="text-ink-faint hidden shrink-0 sm:inline"
+            aria-hidden
+          >
+            /
+          </span>
+          <div className="order-3 flex min-w-0 basis-full items-center sm:order-2 sm:flex-1 sm:basis-auto">
             {children}
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
-      <div className="flex items-center gap-4">
+      <div className="order-2 ml-auto flex items-center gap-1 sm:order-3">
         <AboutLink />
         <CaughtUp
           through={through}

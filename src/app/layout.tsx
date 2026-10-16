@@ -25,6 +25,13 @@ export const metadata: Metadata = {
     images: ["/og.png"],
   },
   robots: { index: true, follow: true },
+  // Installed on iOS: standalone, with the status bar over the page's own
+  // background (the safe-area padding keeps the header out from under it).
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: SITE_NAME,
+  },
 };
 
 export const viewport: Viewport = {

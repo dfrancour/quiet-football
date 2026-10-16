@@ -15,7 +15,7 @@ export function FavoriteStar({ abbreviation }: { abbreviation: string }) {
       aria-pressed={favorite}
       onClick={() => setFavorite(favorite ? null : abbreviation)}
       className={cn(
-        "-m-1 shrink-0 cursor-pointer rounded-md p-1 transition-colors",
+        "-m-2 shrink-0 cursor-pointer rounded-md p-2 transition-colors",
         favorite ? "text-ink-muted" : "text-ink-faint/60 hover:text-ink-muted",
       )}
     >

@@ -24,7 +24,11 @@ export function Redacted({
         type="button"
         onClick={onReveal}
         aria-label={revealLabel}
-        className={cn("redacted redacted-reveal", className)}
+        // A fingertip is wider than the bar; the inset reaches past it.
+        className={cn(
+          "redacted redacted-reveal relative before:absolute before:-inset-3 before:content-['']",
+          className,
+        )}
         style={style}
       />
     );

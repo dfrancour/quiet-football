@@ -157,7 +157,7 @@ export function ScheduleSelector({
           return (
             <li
               key={`bye-${row.week}`}
-              className="flex items-center gap-3 py-1.5 pr-1 pl-3"
+              className="flex items-center gap-3 py-2 pr-1 pl-3"
             >
               <span
                 className={cn(
@@ -186,7 +186,7 @@ export function ScheduleSelector({
               onClick={() => onSelect(game.gameId)}
               aria-current={isSelected ? "true" : undefined}
               className={cn(
-                "relative flex w-full cursor-pointer items-center gap-3 rounded-sm py-1.5 pr-1 pl-3 text-left transition-colors",
+                "relative flex w-full cursor-pointer items-center gap-3 rounded-sm py-2 pr-1 pl-3 text-left transition-colors",
                 isSelected
                   ? "before:bg-accent-strong before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full"
                   : "hover:bg-surface-raised/60",
