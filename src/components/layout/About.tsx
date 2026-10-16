@@ -51,7 +51,7 @@ export function About() {
         {/* A covered score's hatch, as a rule. */}
         <div className="hatched mx-auto h-1.5 w-40 rounded-full" aria-hidden />
 
-        <div className="text-ink-muted mx-auto mt-9 flex w-full max-w-[34rem] flex-col gap-4 text-[0.9375rem] leading-relaxed">
+        <div className="text-ink-muted mx-auto mt-9 flex w-full max-w-[34rem] flex-col gap-4 text-center text-[0.9375rem] leading-relaxed">
           <p>
             An NFL season browser for anyone watching on their own time. Pick a
             week, catch up at your own pace, and watch a game play by play
@@ -64,7 +64,7 @@ export function About() {
           </p>
         </div>
 
-        <footer className="border-edge text-ink-faint mx-auto mt-9 flex w-full max-w-[34rem] flex-col gap-4 border-t pt-5 text-xs leading-relaxed sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+        <footer className="border-edge text-ink-faint mx-auto mt-9 flex w-full max-w-[34rem] flex-col items-center gap-4 border-t pt-5 text-center text-xs leading-relaxed">
           <p>
             {SITE_NAME} is an independent project. It is not affiliated with,
             endorsed by or sponsored by the National Football League, its teams
@@ -74,7 +74,7 @@ export function About() {
             href={REPO_URL}
             target="_blank"
             rel="noreferrer noopener"
-            className="hover:text-ink-muted inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors"
+            className="hover:text-ink-muted inline-flex items-center gap-1.5 transition-colors"
           >
             <GitHubMark className="size-3" />
             Source on GitHub
