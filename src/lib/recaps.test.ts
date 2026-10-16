@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { youtubeIdSchema } from "~/lib/recap-dataset";
-import { findRecap, youtubeSearchUrl, youtubeWatchUrl } from "~/lib/recaps";
-import { TEAMS, makeRecaps, makeTeamGame } from "~/lib/test-utils/fixtures";
+import { findRecap, youtubeWatchUrl } from "~/lib/recaps";
+import { makeRecaps } from "~/lib/test-utils/fixtures";
 
 const VIDEO_ID = "abcDEF12_-3";
 
@@ -42,13 +42,5 @@ describe("youtube urls", () => {
     expect(youtubeWatchUrl(VIDEO_ID)).toBe(
       `https://www.youtube.com/watch?v=${VIDEO_ID}`,
     );
-  });
-
-  it("builds a search url naming both teams and the week", () => {
-    const url = youtubeSearchUrl(makeTeamGame(), TEAMS.MIN, 2026);
-    expect(url).toContain("New+Orleans+Saints");
-    expect(url).toContain("Minnesota+Vikings");
-    expect(url).toContain("week+5");
-    expect(url).toContain("2026");
   });
 });

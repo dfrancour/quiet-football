@@ -228,8 +228,8 @@ for one: a two-way switch under the header, Schedule or Standings
 (Bracket in a playoff round), shows one or the other (`PaneSwitch`), never
 both stacked. Section headings are screen-reader only.
 The chooser lists the regular season's weeks on one line (two rows of nine
-below `sm`) and, beneath, each playoff round once its games are known, so
-neither line scrolls at full width.
+below `sm`) and, beneath, each playoff round once its games are known. The
+weeks share the line's width, so neither line ever scrolls.
 
 The standings are laid out NFC and AFC side by side, North, East, South, West
 down each, and show each team's record, ESPN's seed inside the field and its
@@ -273,7 +273,7 @@ directly on the page (no cards) with a hairline between. Each schedule row is
 one line — week (or round), opponent, date, result — with playoff games after
 the regular season, and the selection is marked with a rule at the row's edge,
 not a fill. There are no tabs and no archive view; a
-final game's panel links to its recap.
+final game's panel links to its recap from its top row.
 
 Below `md` the game has the page to itself and the schedule is a menu
 (`ScheduleSwitcher`): a bar above the panel names the selected game and opens
@@ -286,7 +286,7 @@ site's mark in the header gains a chevron there, reading as the way back.
 | Phase                  | Shows                                                 |
 | ---------------------- | ----------------------------------------------------- |
 | `live`                 | Score row, clock, data age, field, plays              |
-| `final`                | Score row, field, plays; recap link in the bottom bar |
+| `final`                | Score row, field, plays; recap icon in the top row    |
 | `pregame`              | Countdown, kickoff details                            |
 | `upcoming`             | When and where, and nothing else                      |
 | `postponed`/`canceled` | The status and the original details                   |
@@ -301,7 +301,9 @@ the scoreboard calls them; a tie gets none.
 
 Every panel has a full-screen control in its top row that hides the header and
 schedule, and on a live or final panel the bottom bar too; Escape or the same
-control exits.
+control exits. A final game with a recap linked has a YouTube icon beside it.
+The panel's inset (`Panel`) is as wide as those controls' hit areas, since the
+column scrolls sideways if anything pokes past it.
 
 Keep the upcoming-game panel minimal: no score placeholders or empty recap
 slots.
@@ -429,10 +431,11 @@ The dataset's reader is loose (only the fields used), so a field the dataset
 adds never breaks it. It records titles verbatim, spoilers included; the app
 never shows one.
 
-A final game's panel carries `RecapLink` at the end of its bottom bar:
-**Watch recap** (out to YouTube, since the NFL blocks embedding) once linked,
-a YouTube search until then. While the selected game is final, recent and
-unlinked, `useRecaps` re-reads the file every two minutes.
+A final game's panel carries `RecapLink` in its top row, beside the
+full-screen control: a YouTube icon, out to YouTube since the NFL blocks
+embedding, drawn only once the dataset has linked a recap. Until then there is
+nothing, not a search. While the selected game is final, recent and unlinked,
+`useRecaps` re-reads the file every two minutes.
 
 ## Other invariants
 

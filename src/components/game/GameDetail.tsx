@@ -33,7 +33,7 @@ import {
 import { playsInOrder } from "~/lib/plays";
 import { formatDateTime } from "~/lib/dates";
 import { type PlayByPlay } from "~/lib/plays.schema";
-import { findRecap, type RecapsFile } from "~/lib/recaps";
+import { findRecap, type Recap, type RecapsFile } from "~/lib/recaps";
 import { type LiveScore, type SituationState } from "~/lib/score.schema";
 import {
   formatAge,
@@ -55,7 +55,6 @@ interface GameDetailProps {
   /** Null until the clock mounts; the panel waits rather than guess. */
   now: number | null;
   team: Team;
-  season: number;
   score: LiveScore | null;
   scoreError: string | null;
   /** When the score last arrived, for the freshness readout. */
@@ -215,8 +214,11 @@ function Eyebrow({
   children,
   expanded,
   onToggleExpanded,
+  recap = null,
 }: {
   children: ReactNode;
+  /** A finished game's recap, once the dataset has one. */
+  recap?: Recap | null;
 } & ExpandControl) {
   const Icon = expanded ? Minimize2 : Maximize2;
   const label = expanded ? "Exit full screen" : "Full screen";
@@ -225,6 +227,7 @@ function Eyebrow({
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
         {children}
       </div>
+      {recap && <RecapLink recap={recap} />}
       {onToggleExpanded && (
         <button
           type="button"
@@ -248,8 +251,9 @@ function Panel({
   className?: string;
   children: ReactNode;
 }) {
-  // The inset keeps the top row's oversized hit areas inside the column.
-  return <section className={cn("px-1", className)}>{children}</section>;
+  // The inset holds the top row's oversized hit areas (8px past their glyphs)
+  // inside the column, which scrolls sideways if anything pokes out.
+  return <section className={cn("px-2", className)}>{children}</section>;
 }
 
 /**
@@ -265,7 +269,6 @@ export function GameDetail({
   game,
   now,
   team,
-  season,
   score,
   scoreError,
   scoreUpdatedAt = null,
@@ -504,7 +507,7 @@ export function GameDetail({
     // As the live panel: from md up the play feed scrolls.
     return (
       <Panel className="md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain">
-        <Eyebrow {...expand}>
+        <Eyebrow {...expand} recap={findRecap(recaps, game.gameId)}>
           <span className="label-eyebrow">
             {weekLabel(game)}
             {/* The row stands at a play; the game itself is over. */}
@@ -563,14 +566,8 @@ export function GameDetail({
         )}
 
         {!expanded && (
-          <div className="border-edge mt-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-1.5 border-t pt-3">
+          <div className="border-edge mt-4 border-t pt-3">
             <Meta game={game} />
-            <RecapLink
-              recap={findRecap(recaps, game.gameId)}
-              game={game}
-              team={team}
-              season={season}
-            />
           </div>
         )}
       </Panel>

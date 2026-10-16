@@ -305,7 +305,7 @@ export function GamePlays({
     <>
       {/* Below md the page scrolls, not the feed: the field and its
           controls stay put so a replay can be followed from anywhere in it. */}
-      <div className="bg-surface mt-4 space-y-2 max-md:sticky max-md:top-[env(safe-area-inset-top)] max-md:z-10 max-md:-mx-1 max-md:px-1 max-md:pb-2">
+      <div className="bg-surface mt-4 space-y-2 max-md:sticky max-md:top-[env(safe-area-inset-top)] max-md:z-10 max-md:-mx-2 max-md:px-2 max-md:pb-2">
         <FieldView
           home={home}
           away={away}

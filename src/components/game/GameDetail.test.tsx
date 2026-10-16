@@ -72,7 +72,6 @@ function renderDetail(
       game={finalGame}
       now={AFTER_GAME_MS}
       team={TEAMS.MIN}
-      season={2026}
       score={liveScore}
       scoreError={null}
       showSpoilers={false}
@@ -93,17 +92,15 @@ describe("GameDetail selection states", () => {
     expect(screen.getByText(/No games on the calendar/)).toBeInTheDocument();
   });
 
-  it("offers a YouTube search beside a played game until its recap is linked", () => {
+  it("offers no recap for a played game until one is linked", () => {
     renderDetail();
     expect(screen.getByText("Week 5")).toBeInTheDocument();
     expect(screen.getByText("Final")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /Search YouTube/ }),
-    ).toHaveAttribute("href", expect.stringContaining("youtube.com/results"));
-    expect(screen.queryByRole("button", { name: /recap/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /recap/i })).toBeNull();
+    expect(screen.queryByText(/YouTube/)).toBeNull();
   });
 
-  it("links out to a recap once one is found", () => {
+  it("links out to a recap, as an icon in the top row, once one is found", () => {
     renderDetail({
       recaps: makeRecaps({
         [finalGame.gameId]: {
@@ -986,7 +983,6 @@ describe("GameDetail watching with spoilers hidden", () => {
       game: finalGame,
       now: AFTER_GAME_MS,
       team: TEAMS.MIN,
-      season: 2026,
       score: liveScore,
       scoreError: null,
       recaps: makeRecaps(),
@@ -1004,7 +1000,6 @@ describe("GameDetail watching with spoilers hidden", () => {
       game: finalGame,
       now: AFTER_GAME_MS,
       team: TEAMS.MIN,
-      season: 2026,
       score: liveScore,
       scoreError: null,
       recaps: makeRecaps(),

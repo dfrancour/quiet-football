@@ -1,7 +1,3 @@
-import { weekLabel } from "~/lib/schedule";
-import { type TeamGame } from "~/lib/team-view";
-import { type Team } from "~/lib/teams.schema";
-
 /**
  * A game's recap, keyed by game, not team; the week is joined from the game.
  * No title: a title can give the result away, and nothing may show one.
@@ -24,22 +20,4 @@ export function findRecap(file: RecapsFile, gameId: string): Recap | null {
 
 export function youtubeWatchUrl(youtubeId: string): string {
   return `https://www.youtube.com/watch?v=${youtubeId}`;
-}
-
-/** Fallback for a game with no recap linked yet. */
-export function youtubeSearchUrl(
-  game: TeamGame,
-  team: Team,
-  season: number,
-): string {
-  const query = [
-    game.opponent.displayName,
-    team.displayName,
-    "game highlights",
-    String(season),
-    weekLabel(game).toLowerCase(),
-  ].join(" ");
-
-  const params = new URLSearchParams({ search_query: query });
-  return `https://www.youtube.com/results?${params.toString()}`;
 }

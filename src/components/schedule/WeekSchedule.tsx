@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 import { Redacted } from "~/components/common/Redacted";
 import { CoveredTeam } from "~/components/playoffs/CoveredTeam";
 import { TeamLogo } from "~/components/team/TeamLogo";
@@ -352,7 +351,7 @@ function WeekButton({
       className={cn(
         "relative shrink-0 cursor-pointer rounded-md pt-2 pb-2.5 text-center font-mono text-xs tabular-nums transition-colors",
         // A round's name is wider than a week's number.
-        round ? "px-2" : "min-w-7 flex-1",
+        round ? "px-2" : "min-w-0 flex-1",
         entry === week
           ? "text-ink font-semibold"
           : cn(
@@ -377,7 +376,7 @@ function WeekButton({
 
 /**
  * The regular season's weeks on one line and, once set, the playoff rounds on
- * a line beneath, so neither has to scroll at full width.
+ * a line beneath; neither ever scrolls.
  */
 function WeekChooser({
   week,
@@ -392,7 +391,6 @@ function WeekChooser({
   totalWeeks: number;
   onChange: (week: number) => void;
 }) {
-  const trackRef = useRef<HTMLDivElement>(null);
   const regular = weeks.filter((entry) => entry <= totalWeeks);
   const rounds = weeks.filter((entry) => entry > totalWeeks);
   const button = (entry: number) => (
@@ -406,28 +404,11 @@ function WeekChooser({
     />
   );
 
-  // Keep the chosen week in view by scrolling the strip, not the page.
-  useEffect(() => {
-    const track = trackRef.current;
-    const chosen = track?.querySelector<HTMLElement>("[aria-pressed=true]");
-    if (!track || !chosen || track.scrollWidth <= track.clientWidth) return;
-
-    // The track is positioned, so offsets are measured from its left edge.
-    const left = chosen.offsetLeft;
-    const right = left + chosen.offsetWidth;
-    if (left < track.scrollLeft) track.scrollLeft = left;
-    else if (right > track.scrollLeft + track.clientWidth) {
-      track.scrollLeft = right - track.clientWidth;
-    }
-  }, [week]);
-
   return (
     <div role="group" aria-label="Week" className="flex min-w-0 flex-col">
-      {/* On a phone the line would clip: two rows of nine instead. */}
-      <div
-        ref={trackRef}
-        className="relative grid min-w-0 grid-cols-9 gap-0.5 overflow-x-auto overscroll-contain sm:flex"
-      >
+      {/* The weeks share the line, however narrow; nothing scrolls sideways.
+          On a phone a line would be too tight to tap: two rows of nine. */}
+      <div className="grid min-w-0 grid-cols-9 gap-px sm:flex">
         {regular.map(button)}
       </div>
       {rounds.length > 0 && (

@@ -223,7 +223,6 @@ function TeamView({ registry, data, team }: TeamViewProps) {
             game={selectedGame}
             now={now}
             team={schedule.team}
-            season={season}
             score={score}
             scoreError={selectedWeek?.error?.message ?? null}
             scoreUpdatedAt={selectedWeek ? selectedWeek.updatedAt : null}
