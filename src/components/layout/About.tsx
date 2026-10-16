@@ -55,7 +55,7 @@ export function About() {
           <p>
             An NFL season browser for anyone watching on their own time. Pick a
             week, catch up at your own pace, and watch a game play by play
-            without being told how it ends, then watch the recap.
+            without being told how it ends.
           </p>
           <p>
             It is a static site. Your browser reads ESPN&rsquo;s public
