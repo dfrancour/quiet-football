@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { About } from "~/components/layout/About";
-import { RECAP_DATASET_URL, REPO_URL } from "~/lib/site";
+import { REPO_URL } from "~/lib/site";
 
 describe("About", () => {
-  it("leads home and links out to the source and the recap dataset", () => {
+  it("leads home and links out to the source", () => {
     render(<About />);
     expect(
       screen.getByRole("link", { name: "Quiet Football" }),

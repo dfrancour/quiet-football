@@ -6,6 +6,3 @@ export const SITE_DESCRIPTION =
 
 /** Where the source lives. */
 export const REPO_URL = "https://github.com/dfrancour/quiet-football";
-/** The recap dataset's repository, where a game's recap is decided. */
-export const RECAP_DATASET_URL =
-  "https://github.com/dfrancour/quiet-football-recap-data";

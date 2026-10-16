@@ -1,7 +1,7 @@
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
 import { standingsPath } from "~/lib/routes";
-import { RECAP_DATASET_URL, REPO_URL, SITE_NAME } from "~/lib/site";
+import { REPO_URL, SITE_NAME } from "~/lib/site";
 
 /** The GitHub mark, drawn inline so it stays the brand's own shape. */
 function GitHubMark({ className }: { className?: string }) {
@@ -55,26 +55,12 @@ export function About() {
           <p>
             An NFL season browser for anyone watching on their own time. Pick a
             week, catch up at your own pace, and watch a game play by play
-            without being told how it ends.
+            without being told how it ends, then watch the recap.
           </p>
           <p>
             It is a static site. Your browser reads ESPN&rsquo;s public
             scoreboard directly, and nothing is kept beyond your own choices,
             which stay in your browser.
-          </p>
-          <p>
-            Once a game is over, its panel links to the NFL&rsquo;s recap on
-            YouTube, with no thumbnail or title, since either can give the
-            result away. Which video is a game&rsquo;s recap is decided by an{" "}
-            <a
-              href={RECAP_DATASET_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-ink hover:text-accent-strong underline underline-offset-4 transition-colors"
-            >
-              open dataset
-            </a>
-            , kept in step with the season.
           </p>
         </div>
 
