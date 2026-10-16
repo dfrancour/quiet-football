@@ -344,14 +344,8 @@ export function GameDetail({
     );
   }
 
-  if (now === null) {
-    return (
-      <section>
-        <div className="bg-surface-sunken mb-4 h-3 w-28 animate-pulse rounded" />
-        <div className="bg-surface-sunken h-20 w-full animate-pulse rounded" />
-      </section>
-    );
-  }
+  // Before the clock's first tick: the panel's room, and nothing in it yet.
+  if (now === null) return <section aria-busy className="min-h-32" />;
 
   const phase = broadcastPhase(gamePhase(game, now), broadcastClock);
   const { gameId: selectedId } = game;

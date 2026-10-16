@@ -62,7 +62,11 @@
   .redacted {
     @apply inline-block rounded-[0.2em] align-[-0.06em];
     height: 0.8em;
-    background-color: color-mix(in oklch, var(--color-ink-faint) 30%, transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--color-ink-faint) 30%,
+      transparent
+    );
     background-image: repeating-linear-gradient(
       135deg,
       transparent 0 0.18em,
@@ -76,7 +80,11 @@
 
   /* A week whose results are covered, hatched as a hidden figure is. */
   .hatched {
-    background-color: color-mix(in oklch, var(--color-ink-faint) 30%, transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--color-ink-faint) 30%,
+      transparent
+    );
     background-image: repeating-linear-gradient(
       135deg,
       transparent 0 0.18em,
@@ -85,7 +93,11 @@
   }
 
   .redacted-reveal:hover {
-    background-color: color-mix(in oklch, var(--color-ink-faint) 45%, transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--color-ink-faint) 45%,
+      transparent
+    );
   }
 }
 
@@ -103,6 +115,21 @@
 
 .animate-pulse-dot {
   animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* The site's mark while the season is on the way: a slow breath. */
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.animate-breathe {
+  animation: breathe 2.4s ease-in-out infinite;
 }
 
 /* A replayed snap: the bar grows from the line of scrimmage while the ball
@@ -191,6 +218,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-dot,
+  .animate-breathe,
   .animate-field-draw,
   .animate-field-run,
   .animate-field-kick,

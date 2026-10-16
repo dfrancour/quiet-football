@@ -6,7 +6,7 @@ import { fetchPlayoffMarks } from "~/lib/playoff-marks";
 import { extractPlayByPlay, SUMMARY_URL, summaryIsFinal } from "~/lib/plays";
 import { type PlayByPlay } from "~/lib/plays.schema";
 import { fetchRecapDataset } from "~/lib/recap-dataset";
-import { currentSeason, seasonWeeks } from "~/lib/season-calendar";
+import { seasonWeeks } from "~/lib/season-calendar";
 import {
   readWeek,
   weekActivity,
@@ -90,28 +90,6 @@ export function weekQuery(season: number, week: number) {
         ? scoreConfig.livePollMs
         : false;
     },
-  });
-}
-
-/**
- * The season the app shows: the current one, or between March and the
- * schedule's release in May, when ESPN has none, the one before. Week 1 is
- * fetched to find out, and handed to its own query so it is not fetched twice.
- */
-export function seasonYearQuery() {
-  return queryOptions({
-    queryKey: ["season"],
-    queryFn: async ({ signal, client }) => {
-      const current = currentSeason(Date.now());
-      for (const season of [current, current - 1]) {
-        const week = await fetchWeek(season, 1, signal);
-        client.setQueryData(weekQuery(season, 1).queryKey, week);
-        if (week.games.length > 0) return season;
-      }
-      throw new Error(`ESPN has no schedule for ${current} or ${current - 1}`);
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
   });
 }
 

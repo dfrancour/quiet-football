@@ -41,6 +41,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        {/* Every page reads ESPN as soon as it hydrates; open the connections while the script loads. */}
+        <link
+          rel="preconnect"
+          href="https://site.api.espn.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="preconnect" href="https://a.espncdn.com" />
         <Providers>
           <main className="min-h-screen">{children}</main>
         </Providers>

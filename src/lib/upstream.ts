@@ -4,7 +4,8 @@
  * the query layer's (`queries.ts`).
  */
 
-const TIMEOUT_MS = 15_000;
+/** ESPN answers in well under a second when it is up; a hang is told apart quickly. */
+const TIMEOUT_MS = 8_000;
 
 export class UpstreamError extends Error {
   constructor(
@@ -27,6 +28,27 @@ export function isPermanentFailure(error: unknown): boolean {
     error.status >= 400 &&
     error.status < 500
   );
+}
+
+/**
+ * A failure in the viewer's terms. A refused connection and a bot-block 403
+ * without CORS headers both reach the browser as a bare `TypeError`.
+ */
+export function describeFailure(error: unknown): string {
+  if (error instanceof UpstreamError) return error.message;
+  // A `DOMException`, which is not an `Error` in every realm.
+  if (errorName(error) === "TimeoutError")
+    return "ESPN did not answer in time.";
+  if (error instanceof TypeError) {
+    return "ESPN could not be reached. Check your connection; a content blocker may be in the way.";
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorName(error: unknown): string | null {
+  return typeof error === "object" && error !== null && "name" in error
+    ? String(error.name)
+    : null;
 }
 
 /** A JSON body, or an `UpstreamError` naming the status. */

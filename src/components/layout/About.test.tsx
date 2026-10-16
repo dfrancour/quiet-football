@@ -12,6 +12,9 @@ describe("About", () => {
     expect(
       screen.getByRole("link", { name: "Source on GitHub" }),
     ).toHaveAttribute("href", REPO_URL);
+    expect(
+      screen.getByRole("link", { name: "contact@quiet-football.com" }),
+    ).toHaveAttribute("href", "mailto:contact@quiet-football.com");
     expect(screen.getByText(/not affiliated with/)).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import { ContactLink } from "~/components/layout/ContactLink";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
 import { standingsPath } from "~/lib/routes";
@@ -17,7 +18,7 @@ function GitHubMark({ className }: { className?: string }) {
 
 /**
  * What the site is and where its source lives: the mark and a tagline, two
- * short paragraphs, and the disclaimer beside the repository link.
+ * short paragraphs, and the disclaimer over the repository and contact links.
  */
 export function About() {
   return (
@@ -70,15 +71,18 @@ export function About() {
             endorsed by or sponsored by the National Football League, its teams
             or ESPN. Team names and logos belong to their respective owners.
           </p>
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="hover:text-ink-muted inline-flex items-center gap-1.5 transition-colors"
-          >
-            <GitHubMark className="size-3" />
-            Source on GitHub
-          </a>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-ink-muted inline-flex items-center gap-1.5 transition-colors"
+            >
+              <GitHubMark className="size-3" />
+              Source on GitHub
+            </a>
+            <ContactLink className="hover:text-ink-muted inline-flex items-center gap-1.5 transition-colors" />
+          </div>
         </footer>
       </article>
     </div>

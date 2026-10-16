@@ -6,6 +6,18 @@ import Link from "next/link";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { aboutPath, standingsPath } from "~/lib/routes";
 
+/** The faint way to `/about`, before the week on every page. */
+export function AboutLink() {
+  return (
+    <Link
+      href={aboutPath()}
+      className="text-ink-faint hover:text-ink-muted text-xs transition-colors"
+    >
+      About
+    </Link>
+  );
+}
+
 interface SiteHeaderProps {
   /** The last week the viewer is caught up through; 0 for none. */
   through: number;
@@ -47,12 +59,7 @@ export function SiteHeader({
       </div>
 
       <div className="flex items-center gap-4">
-        <Link
-          href={aboutPath()}
-          className="text-ink-faint hover:text-ink-muted text-xs transition-colors"
-        >
-          About
-        </Link>
+        <AboutLink />
         <CaughtUp
           through={through}
           settledThrough={settledThrough}

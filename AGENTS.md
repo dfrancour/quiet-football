@@ -63,8 +63,9 @@ one the game was fetched under, which ESPN keeps on a postponed game.
 
 The app shows one season: the current one (`currentSeason()`), or between
 March and the schedule's release in May, when ESPN has none, the one before.
-`seasonYearQuery` fetches week 1 to decide and hands it to that week's query
-so it is not fetched twice. There is no season picker and no `?season=`.
+`useSeason()` fetches every week of the current season at once, waiting on
+nothing first; only when its week 1 arrives empty does it read the season
+before. There is no season picker and no `?season=`.
 
 ### Playoff games are weeks after the regular season
 
@@ -151,21 +152,40 @@ summary said so, `usePlayByPlay` reads it once more for the last plays.
 `src/lib/upstream.ts` is the only code that calls ESPN or the recap dataset.
 Every endpoint used answers cross-origin requests (ESPN's `teams` endpoint
 does not, which is why the registry comes from the standings), so the
-browser calls them directly; it adds a timeout and turns a bad status into
-an `UpstreamError`. Caching and retries belong to the query layer. If ESPN
+browser calls them directly; it adds a timeout (8 seconds; ESPN answers in
+well under one) and turns a bad status into an `UpstreamError`. Caching and
+retries belong to the query layer. The root layout preconnects to ESPN's API
+and logo hosts so the connections are open by the time the script runs. If ESPN
 ever stops allowing cross-origin reads, the fix is one proxy in front of
 `site.api.espn.com` behind this module, or a slim committed data file for
 what changes slowly, not a server.
 
 Logos are not fetched through it: `Team.logo` is ESPN's CDN URL and
-`TeamLogo` loads it directly.
+`TeamLogo` loads it directly, at the size it is drawn.
 
 ### Loading and failure
 
-A page renders `Loading` (the site's frame with a pulse) until the teams and
-every week have arrived, and `LoadFailed` with a retry if any of them cannot
-be read after Query's retries. Nothing about a season is drawn until all of
-it is there, so a half-loaded page can never show a result out of order.
+A page renders `Loading` until the teams and every week have arrived, and
+`LoadFailed` with a retry if any of them cannot be read after Query's one
+retry. Both are the same frame: the header every page shares (the site's
+mark, About) and, centred beneath, the mark breathing while the season is on
+the way, or the failure. No grey bars stand in for content. Nothing about a
+season is drawn until all of it is there, so a half-loaded page can never
+show a result out of order.
+
+When the season arrives, the header stays where it was and the page's body
+comes in whole: `useRevealed()` holds it unseen until the marks in it have
+decoded (giving up after 400 ms, so a slow logo never holds the season) and
+fades it in. A mark that lands later fades into its box on its own
+(`TeamLogo`), rather than popping. Nothing else is animated in.
+
+The mark says "Still waiting on ESPN" after a few seconds, and either view
+says so when the browser is offline (`useOnline`, Query's `onlineManager`,
+told the browser's state on start so a page opened offline waits and loads
+on its own). A failed week is named (`WeekLoadError`), and the cause is put
+in the viewer's terms by `describeFailure()`: the browser's bare "Failed to
+fetch" (a refused connection, or a 403 with no CORS headers) and "signal
+timed out" are never shown as they are.
 
 ### Header
 
@@ -180,8 +200,12 @@ There is no team switcher; teams are picked from the standings. A faint
 
 `/about` (`About`, `src/components/layout/About.tsx`) says in a few lines
 what the site is, that it is independent of the NFL and ESPN, and links to the repository
-(`REPO_URL`) under the GitHub mark, as quietly as a recap link. It holds no
-season data and has no header controls. Keep it brief.
+(`REPO_URL`) under the GitHub mark, as quietly as a recap link. Beside it,
+`ContactLink` gives the site's email: the address is kept in two halves
+(`CONTACT_USER`, `CONTACT_HOST`) and joined only after hydration, so the
+prerendered HTML reads "Email" with no `href` and carries no address for a
+harvester to lift. It holds no season data and has no header controls. Keep
+it brief.
 
 ### Home page
 
@@ -563,7 +587,11 @@ the background.
 
 Render logos through `TeamLogo`, not `<img>`: it reserves the box for a team
 with no logo so rows do not shift, and keeps the logo decorative unless
-`labelled` is passed.
+`labelled` is passed. It asks ESPN's resizer (`logoAt()`) for a 96px copy of
+the mark, one file per team shared by every box and page: the originals are
+500px (Green Bay's 4096), a couple of megabytes for a page that draws them
+at 20px, and the CDN caches them for minutes where it keeps the small ones
+for a day.
 
 ### Analytics and discoverability
 

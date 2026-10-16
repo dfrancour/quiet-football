@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoadFailed, Loading } from "~/components/common/LoadState";
 import { GameDetail } from "~/components/game/GameDetail";
 import { AppHeader } from "~/components/layout/AppHeader";
@@ -11,6 +11,7 @@ import { useSeason, useTeams, type SeasonData } from "~/hooks/useLeague";
 import { useNow } from "~/hooks/useNow";
 import { usePlayByPlay } from "~/hooks/usePlayByPlay";
 import { useRecaps } from "~/hooks/useRecaps";
+import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
 import { weekQuery } from "~/lib/queries";
 import { standingsPath } from "~/lib/routes";
@@ -147,6 +148,10 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     selectedIsLive,
   );
 
+  // The body comes in whole, marks and all, under the header already there.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const revealed = useRevealed(bodyRef);
+
   useEffect(() => {
     if (!expanded) return;
 
@@ -181,9 +186,11 @@ function TeamView({ registry, data, team }: TeamViewProps) {
       )}
 
       <div
+        ref={bodyRef}
         className={cn(
           "grid items-start gap-x-8 gap-y-6 md:min-h-0 md:flex-1 md:grid-rows-[minmax(0,1fr)]",
           !expanded && "md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]",
+          revealClass(revealed),
         )}
       >
         {!expanded && (

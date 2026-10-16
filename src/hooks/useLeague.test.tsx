@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useSeason } from "~/hooks/useLeague";
+import { useSeason, WeekLoadError } from "~/hooks/useLeague";
 import { GAME_ID, TEAMS } from "~/lib/test-utils/fixtures";
 import { queryWrapper, stubFetch } from "~/lib/test-utils/query";
 
@@ -81,13 +81,63 @@ describe("useSeason", () => {
     vi.useRealTimers();
   });
 
-  it("reports a season that cannot be loaded", async () => {
-    stubFetch(() => new Response(null, { status: 503 }));
+  it("fetches every week at once, waiting on nothing first", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));
+    const fetchMock = stubFetch((url) => {
+      const { season, week, type } = params(url);
+      return scoreboard(season, week, type === 2 ? 1 : 0);
+    });
+    renderHook(() => useSeason(), { wrapper: queryWrapper() });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(22));
+    vi.useRealTimers();
+  });
+
+  it("names the week that cannot be loaded, and why", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));
+    stubFetch((url) => {
+      const { season, week, type } = params(url);
+      if (type === 2 && week === 7) return new Response(null, { status: 503 });
+      return scoreboard(season, week, type === 2 ? 1 : 0);
+    });
     const { result } = renderHook(() => useSeason(), {
       wrapper: queryWrapper(),
     });
     await waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeInstanceOf(WeekLoadError);
+    expect(result.current.error?.message).toBe("Week 7 could not be loaded");
+    expect((result.current.error as WeekLoadError).cause.message).toMatch(
+      /503/,
+    );
+    vi.useRealTimers();
+  });
+
+  it("reports the season, not a week, when more than one week fails", async () => {
+    stubFetch(() => new Response(null, { status: 503 }));
+    const { result } = renderHook(() => useSeason(), {
+      wrapper: queryWrapper(),
+    });
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.error).not.toBeInstanceOf(WeekLoadError);
     expect(result.current.error?.message).toMatch(/503/);
+  });
+
+  it("reports a season ESPN has for neither year", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2027-04-01T12:00:00Z"));
+    stubFetch((url) => {
+      const { season, week } = params(url);
+      return scoreboard(season, week, 0);
+    });
+    const { result } = renderHook(() => useSeason(), {
+      wrapper: queryWrapper(),
+    });
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.error?.message).toMatch(
+      /no schedule for 2027 or 2026/,
+    );
+    vi.useRealTimers();
   });
 });

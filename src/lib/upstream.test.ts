@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  describeFailure,
   fetchUpstream,
   isPermanentFailure,
   UpstreamError,
@@ -39,5 +40,22 @@ describe("isPermanentFailure", () => {
     expect(isPermanentFailure(new UpstreamError("x", 503))).toBe(false);
     expect(isPermanentFailure(new UpstreamError("x"))).toBe(false);
     expect(isPermanentFailure(new TypeError("Failed to fetch"))).toBe(false);
+  });
+});
+
+describe("describeFailure", () => {
+  it("puts the browser's bare errors in the viewer's terms", () => {
+    expect(describeFailure(new TypeError("Failed to fetch"))).toMatch(
+      /could not be reached/,
+    );
+    expect(
+      describeFailure(new DOMException("signal timed out", "TimeoutError")),
+    ).toMatch(/did not answer in time/);
+    expect(
+      describeFailure(new UpstreamError("example.test responded 503", 503)),
+    ).toBe("example.test responded 503");
+    expect(describeFailure(new Error("ESPN has no schedule"))).toBe(
+      "ESPN has no schedule",
+    );
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { LoadFailed, Loading } from "~/components/common/LoadState";
 import { SiteHeader } from "~/components/layout/SiteHeader";
 import { Bracket } from "~/components/playoffs/Bracket";
@@ -16,6 +16,7 @@ import {
   useTeams,
   type SeasonData,
 } from "~/hooks/useLeague";
+import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
 import { type PlayoffMarks } from "~/lib/playoff-marks.schema";
 import { buildBracket } from "~/lib/playoffs";
@@ -23,6 +24,7 @@ import { playoffRound } from "~/lib/season-calendar";
 import { buildStandings } from "~/lib/standings";
 import { teamByAbbreviation } from "~/lib/teams";
 import { type TeamRegistry } from "~/lib/teams.schema";
+import { cn } from "~/lib/utils";
 import { buildLeagueGames, currentWeekNow, settledThrough } from "~/lib/week";
 
 /** The league: the week's games and the standings, once both have loaded. */
@@ -113,6 +115,10 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
   );
   const isPlayoffWeek = playoffRound(totalWeeks, week) !== null;
 
+  // The body comes in whole, marks and all, under the header already there.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const revealed = useRevealed(bodyRef);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">
       {/* The page title and the schedule heading are for screen readers only.
@@ -128,7 +134,13 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
         onCatchUp={spoilers.catchUp}
       />
 
-      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,32rem)_minmax(0,1fr)]">
+      <div
+        ref={bodyRef}
+        className={cn(
+          "grid grid-cols-[minmax(0,1fr)] items-start gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,32rem)_minmax(0,1fr)]",
+          revealClass(revealed),
+        )}
+      >
         <section aria-labelledby="schedule">
           <h2 id="schedule" className="sr-only">
             Schedule
