@@ -1,0 +1,53 @@
+{
+  "name": "quiet-football",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A static NFL season browser: schedule, standings, play-by-play, live scores and recaps, with no result shown until asked",
+  "scripts": {
+    "build": "next build --webpack",
+    "check": "eslint . && tsc --noEmit && pnpm run test:run",
+    "dev": "next dev --webpack",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs}\" --cache",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs}\" --cache",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "pre-push": "pnpm run format:check && pnpm run check && pnpm run build",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.104.1",
+    "@vercel/analytics": "2.0.1",
+    "@vercel/speed-insights": "2.0.0",
+    "clsx": "2.1.1",
+    "lucide-react": "0.563.0",
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.18",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "25.0.10",
+    "@types/react": "19.2.10",
+    "@types/react-dom": "19.2.3",
+    "@vitest/ui": "4.0.18",
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.1.6",
+    "jsdom": "27.4.0",
+    "postcss": "8.5.6",
+    "prettier": "3.8.1",
+    "prettier-plugin-tailwindcss": "0.7.2",
+    "tailwindcss": "4.1.18",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.54.0",
+    "vitest": "4.0.18"
+  },
+  "packageManager": "pnpm@11.10.0"
+}

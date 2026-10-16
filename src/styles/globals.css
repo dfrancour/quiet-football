@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/* Dark-only by design; there is no theme toggle. */
+@theme {
+  --default-transition-duration: 200ms;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+
+  --color-surface: oklch(16% 0.014 300);
+  --color-surface-raised: oklch(21% 0.017 300);
+  --color-surface-sunken: oklch(12% 0.012 300);
+  --color-edge: oklch(30% 0.02 300);
+  --color-edge-strong: oklch(40% 0.025 300);
+
+  --color-ink: oklch(96% 0.004 300);
+  --color-ink-muted: oklch(72% 0.014 300);
+  --color-ink-faint: oklch(55% 0.016 300);
+
+  --color-accent: oklch(55% 0.19 305);
+  --color-accent-strong: oklch(63% 0.21 305);
+  --color-accent-dim: oklch(32% 0.12 305);
+
+  --color-gold: oklch(84% 0.15 88);
+  --color-live: oklch(64% 0.21 25);
+  --color-win: oklch(72% 0.15 155);
+  --color-loss: oklch(66% 0.17 25);
+
+  /* Broadcast conventions: blue line of scrimmage, yellow line to gain. */
+  --color-turf: oklch(35% 0.045 158);
+  --color-scrimmage: oklch(72% 0.12 245);
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-surface text-ink font-sans antialiased;
+  }
+
+  /* Keep focus rings visible for keyboard users without ringing every click. */
+  :focus-visible {
+    @apply outline-accent-strong outline-2 outline-offset-2;
+  }
+}
+
+@layer components {
+  .label-eyebrow {
+    @apply text-ink-faint text-xs font-semibold tracking-[0.14em] uppercase;
+  }
+
+  .stat-figure {
+    @apply font-mono text-4xl font-semibold tabular-nums;
+  }
+
+  /* A hidden figure: a hatched bar, never a glyph that could pass for a
+     value. */
+  .redacted {
+    @apply inline-block rounded-[0.2em] align-[-0.06em];
+    height: 0.8em;
+    background-color: color-mix(in oklch, var(--color-ink-faint) 30%, transparent);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 0.18em,
+      color-mix(in oklch, var(--color-ink) 7%, transparent) 0.18em 0.3em
+    );
+  }
+
+  .redacted-reveal {
+    @apply cursor-pointer transition-colors;
+  }
+
+  /* A week whose results are covered, hatched as a hidden figure is. */
+  .hatched {
+    background-color: color-mix(in oklch, var(--color-ink-faint) 30%, transparent);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 0.18em,
+      color-mix(in oklch, var(--color-ink) 7%, transparent) 0.18em 0.3em
+    );
+  }
+
+  .redacted-reveal:hover {
+    background-color: color-mix(in oklch, var(--color-ink-faint) 45%, transparent);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* A replayed snap: the bar grows from the line of scrimmage while the ball
+   runs to where the play ended. */
+@keyframes field-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes field-run {
+  from {
+    transform: translateX(var(--run-dx));
+  }
+}
+
+/* A kick traces its arc, and the ball comes down once it has. */
+@keyframes field-kick {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes field-land {
+  from {
+    opacity: 0;
+  }
+}
+
+/* A score: the end zone flares, then settles lit. */
+@keyframes field-light {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* A returned kick: the ball comes down as the arc lands, then runs back with
+   the return, which waits for the arc before it grows. */
+@keyframes field-return {
+  0%,
+  50% {
+    opacity: 0;
+    transform: translateX(var(--run-dx));
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(var(--run-dx));
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-field-return {
+  animation: field-return 2.2s linear both;
+}
+
+.animate-field-kick {
+  animation: field-kick 1.1s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+.animate-field-land {
+  animation: field-land 250ms ease-out 1s both;
+}
+
+.animate-field-light {
+  animation: field-light 900ms ease-out forwards;
+}
+
+.animate-field-draw {
+  transform-box: fill-box;
+  animation: field-draw 1.1s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+.animate-field-run {
+  animation: field-run 1.1s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-dot,
+  .animate-field-draw,
+  .animate-field-run,
+  .animate-field-kick,
+  .animate-field-land,
+  .animate-field-return,
+  .animate-field-light {
+    animation: none;
+  }
+}

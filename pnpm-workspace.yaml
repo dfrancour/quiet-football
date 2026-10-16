@@ -1,0 +1,12 @@
+# Rejects packages published less than 7 days ago, to dodge a fresh compromise.
+minimumReleaseAge: 10080
+
+# Build scripts are blocked by default; these two need to run:
+#   esbuild        - vitest transform pipeline
+#   unrs-resolver  - eslint-plugin-import TypeScript resolution
+# sharp ships with Next for image optimization, which is off (images are
+# unoptimized), so its build is refused rather than left pending.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+  sharp: false

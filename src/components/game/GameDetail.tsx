@@ -1,0 +1,615 @@
+"use client";
+
+import { useMemo, type ReactNode } from "react";
+import {
+  CalendarClock,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  RefreshCw,
+  Tv,
+} from "lucide-react";
+import { FieldView } from "~/components/game/FieldView";
+import {
+  ScoreRow,
+  figuresAt,
+  sideStanding,
+  sides,
+} from "~/components/game/ScoreRow";
+import { GamePlays } from "~/components/game/GamePlays";
+import { RecapLink } from "~/components/recap/RecapLink";
+import { TeamLogo } from "~/components/team/TeamLogo";
+import {
+  useBroadcastClock,
+  useBroadcastDelay,
+  useBroadcastDrives,
+} from "~/hooks/useBroadcast";
+import { useReplay } from "~/hooks/useReplay";
+import { useTimeZone } from "~/hooks/useTimeZone";
+import {
+  useKeepWatchProgress,
+  useWatchProgress,
+} from "~/hooks/useWatchProgress";
+import { playsInOrder } from "~/lib/plays";
+import { formatDateTime } from "~/lib/dates";
+import { type PlayByPlay } from "~/lib/plays.schema";
+import { findRecap, type RecapsFile } from "~/lib/recaps";
+import { type LiveScore, type SituationState } from "~/lib/score.schema";
+import {
+  formatAge,
+  formatRecord,
+  formatCountdown,
+  gamePhase,
+  matchupLabel,
+  weekLabel,
+} from "~/lib/schedule";
+import { broadcastPhase, cycleBroadcastDelay } from "~/lib/broadcast-delay";
+import { maskedScore, spoilerSafeClock } from "~/lib/spoilers";
+import { type TeamGame } from "~/lib/team-view";
+import { type Team } from "~/lib/teams.schema";
+import { cn } from "~/lib/utils";
+import { finishGame } from "~/lib/watch-progress";
+
+interface GameDetailProps {
+  game: TeamGame | null;
+  /** Null until the clock mounts; the panel waits rather than guess. */
+  now: number | null;
+  team: Team;
+  season: number;
+  score: LiveScore | null;
+  scoreError: string | null;
+  /** When the score last arrived, for the freshness readout. */
+  scoreUpdatedAt?: number | null;
+  onRefreshScore?: () => void;
+  /** Caught up through its week; a game seen to the end is shown too. */
+  showSpoilers: boolean;
+  /** Records reveal earlier results. Defaults to `showSpoilers`. */
+  showRecords?: boolean;
+  recaps: RecapsFile;
+  /** With spoilers hidden, shown only as far as the viewer has watched. */
+  playByPlay?: PlayByPlay | null;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
+}
+
+function Matchup({ game, team }: { game: TeamGame; team: Team }) {
+  const { away, home } = sides(game, team);
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex shrink-0 items-center gap-1">
+        <TeamLogo team={away} size="lg" />
+        <span className="text-ink-faint font-mono text-xs" aria-hidden>
+          at
+        </span>
+        <TeamLogo team={home} size="lg" />
+      </span>
+
+      <div className="min-w-0">
+        <p className="text-ink text-2xl font-semibold">{matchupLabel(game)}</p>
+        <p className="text-ink-muted mt-0.5 text-sm">
+          {game.opponent.displayName}
+          {game.neutralSite && " · neutral site"}
+        </p>
+        <p className="sr-only">
+          {team.displayName}, {weekLabel(game)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Meta({ game }: { game: TeamGame }) {
+  const timeZone = useTimeZone();
+  const venue = game.venue.name;
+  return (
+    <dl className="text-ink-faint flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs">
+      <div className="flex items-center gap-2">
+        <CalendarClock className="size-3.5 shrink-0" aria-hidden />
+        <dt className="sr-only">Kickoff</dt>
+        <dd>{formatDateTime(game.kickoff, timeZone) ?? "Date TBD"}</dd>
+      </div>
+      {game.broadcast && (
+        <div className="flex items-center gap-2">
+          <Tv className="size-3.5 shrink-0" aria-hidden />
+          <dt className="sr-only">Broadcast</dt>
+          <dd>{game.broadcast}</dd>
+        </div>
+      )}
+      {venue && (
+        <div className="flex items-center gap-2">
+          <MapPin className="size-3.5 shrink-0" aria-hidden />
+          <dt className="sr-only">Venue</dt>
+          <dd>
+            {venue}
+            {game.venue.city && `, ${game.venue.city}`}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
+/**
+ * Field and last play from the scoreboard alone, before play-by-play arrives.
+ * A spoiler; the caller renders it only when spoilers are shown.
+ */
+function Situation({
+  situation,
+  game,
+  team,
+}: {
+  situation: SituationState;
+  game: TeamGame;
+  team: Team;
+}) {
+  const { downDistance, isRedZone, field, lastPlay, drive } = situation;
+  const { away, home } = sides(game, team);
+
+  return (
+    <div className="mt-4 space-y-2">
+      {downDistance && (
+        <p className="flex items-center gap-2">
+          <span className="text-ink text-sm font-semibold tabular-nums">
+            {downDistance}
+          </span>
+          {isRedZone && (
+            <span className="text-live label-eyebrow">Red zone</span>
+          )}
+        </p>
+      )}
+      <FieldView home={home} away={away} field={field} />
+      {lastPlay && <p className="text-ink-muted text-sm">{lastPlay}</p>}
+      {drive && <p className="text-ink-faint text-xs tabular-nums">{drive}</p>}
+    </div>
+  );
+}
+
+/**
+ * With the result hidden, the label is the way back to the newest play; the
+ * hover state is the only hint. `clock` is the game's own, for when the score
+ * row stands at an earlier play.
+ */
+function LiveLabel({
+  game,
+  clock,
+  onFollow,
+}: {
+  game: TeamGame;
+  clock: string | null;
+  onFollow?: () => void;
+}) {
+  const label = (
+    <>
+      <span className="bg-live animate-pulse-dot size-2 shrink-0 rounded-full" />
+      <span className="label-eyebrow text-live">
+        {weekLabel(game)} · Live
+        {clock && <span className="tabular-nums"> · {clock}</span>}
+      </span>
+    </>
+  );
+  const className = "text-live flex items-center gap-2 whitespace-nowrap";
+  if (!onFollow) return <span className={className}>{label}</span>;
+  return (
+    <button
+      type="button"
+      onClick={onFollow}
+      className={cn(
+        className,
+        "-m-1 cursor-pointer rounded p-1 hover:brightness-125",
+      )}
+      aria-label={`${weekLabel(game)}, live: watch from the newest play`}
+      title="Watch live"
+    >
+      {label}
+    </button>
+  );
+}
+
+interface ExpandControl {
+  expanded: boolean;
+  onToggleExpanded?: () => void;
+}
+
+function Eyebrow({
+  children,
+  expanded,
+  onToggleExpanded,
+}: {
+  children: ReactNode;
+} & ExpandControl) {
+  const Icon = expanded ? Minimize2 : Maximize2;
+  const label = expanded ? "Exit full screen" : "Full screen";
+  return (
+    <div className="mb-4 flex items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+        {children}
+      </div>
+      {onToggleExpanded && (
+        <button
+          type="button"
+          onClick={onToggleExpanded}
+          className="text-ink-faint hover:text-ink -m-1 shrink-0 cursor-pointer rounded p-1 transition-colors"
+          aria-label={label}
+          aria-pressed={expanded}
+          title={expanded ? `${label} (Esc)` : label}
+        >
+          <Icon className="size-4" aria-hidden />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Panel({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  // The inset keeps the top row's oversized hit areas inside the column.
+  return <section className={cn("px-1", className)}>{children}</section>;
+}
+
+/**
+ * Everything shown about the selected game, branched on its phase.
+ *
+ * Nothing reveals a result the viewer has not seen, including which side is
+ * emphasized: hidden, a game is shown as far as the viewer's place in it.
+ * Following a live game is being at its newest play, and pausing leaves the
+ * place where it stopped. Tapping the covered score sees a finished game to
+ * the end, or joins a live one at its newest play.
+ */
+export function GameDetail({
+  game,
+  now,
+  team,
+  season,
+  score,
+  scoreError,
+  scoreUpdatedAt = null,
+  onRefreshScore,
+  showSpoilers: caughtUp,
+  showRecords = caughtUp,
+  recaps,
+  playByPlay = null,
+  expanded = false,
+  onToggleExpanded,
+}: GameDetailProps) {
+  const expand = { expanded, onToggleExpanded };
+  const gameId = game?.gameId ?? null;
+  const allDrives =
+    game && playByPlay?.gameId === game.gameId ? playByPlay.drives : null;
+  const allPlays = useMemo(() => playsInOrder(allDrives ?? []), [allDrives]);
+
+  // A viewer matching a broadcast holds the game back: its plays, its clock,
+  // and its end.
+  const delayMs = useBroadcastDelay(gameId);
+  const broadcastClock = useBroadcastClock(gameId, delayMs);
+  const ongoing =
+    game !== null &&
+    now !== null &&
+    broadcastPhase(gamePhase(game, now), broadcastClock) === "live";
+
+  // With spoilers hidden, a game is open only as far as it has been watched.
+  const stored = useWatchProgress(gameId, allPlays);
+  const showSpoilers = caughtUp || stored?.finished === true;
+  const drives = useBroadcastDrives(
+    allDrives,
+    delayMs,
+    ongoing,
+    stored?.playId ?? null,
+  );
+  const plays = useMemo(() => playsInOrder(drives ?? []), [drives]);
+  const replay = useReplay(
+    gameId,
+    drives,
+    ongoing,
+    showSpoilers ? null : (stored?.playId ?? null),
+    delayMs,
+  );
+  const seenThrough = useKeepWatchProgress(
+    gameId,
+    plays,
+    stored,
+    showSpoilers ? null : replay.revealedId,
+    !ongoing,
+  );
+  const limit = showSpoilers ? undefined : seenThrough;
+
+  // The row stands at the play on the field, or with spoilers hidden, where
+  // the viewer left off.
+  const atPlace = plays.find((play) => play.id === limit) ?? null;
+  const shownPlay = replay.play ?? atPlace;
+  const shownThrough = replay.play ? replay.revealedId : (atPlace?.id ?? null);
+  const watched =
+    game && drives && shownPlay
+      ? figuresAt(
+          game,
+          drives,
+          shownPlay,
+          shownThrough,
+          !ongoing && shownThrough === plays.at(-1)?.id,
+        )
+      : null;
+
+  if (!game) {
+    return (
+      <section>
+        <p className="text-ink-muted text-sm">
+          No games on the calendar for this season.
+        </p>
+      </section>
+    );
+  }
+
+  if (now === null) {
+    return (
+      <section>
+        <div className="bg-surface-sunken mb-4 h-3 w-28 animate-pulse rounded" />
+        <div className="bg-surface-sunken h-20 w-full animate-pulse rounded" />
+      </section>
+    );
+  }
+
+  const phase = broadcastPhase(gamePhase(game, now), broadcastClock);
+  const { gameId: selectedId } = game;
+  const onReveal = showSpoilers
+    ? undefined
+    : phase === "final"
+      ? () => finishGame(selectedId)
+      : phase === "live" && plays.length > 0
+        ? replay.follow
+        : undefined;
+
+  if (phase === "postponed" || phase === "canceled") {
+    return (
+      <Panel>
+        <Eyebrow {...expand}>
+          <span className="label-eyebrow">{weekLabel(game)}</span>
+          <span className="text-loss text-xs font-semibold capitalize">
+            {phase}
+          </span>
+        </Eyebrow>
+        <Matchup game={game} team={team} />
+        <div className="border-edge mt-4 border-t pt-3">
+          <Meta game={game} />
+        </div>
+      </Panel>
+    );
+  }
+
+  if (phase === "live") {
+    const matchesLiveScore = score?.gameId === game.gameId;
+    const activeScore = matchesLiveScore ? score : null;
+    // The game's own clock, as of the viewer's broadcast.
+    const gameClock = broadcastClock ?? activeScore;
+    const teamScore = activeScore?.team.score ?? null;
+    const opponentScore = activeScore?.opponent.score ?? null;
+    // The scoreboard calls a game over before the stored season catches up.
+    const standing = sideStanding(
+      showSpoilers ? teamScore : null,
+      showSpoilers ? opponentScore : null,
+      gameClock?.completed === true,
+    );
+    const situation = showSpoilers ? (activeScore?.situation ?? null) : null;
+    const followed = {
+      record: showRecords ? formatRecord(game.recordsBefore.team) : null,
+      ...standing.followed,
+      display: maskedScore(teamScore, showSpoilers),
+      hasBall: situation?.possession === "team",
+      timeouts: situation?.timeouts.team ?? null,
+    };
+    const opposing = {
+      record: showRecords ? formatRecord(game.recordsBefore.opponent) : null,
+      ...standing.opposing,
+      display: maskedScore(opponentScore, showSpoilers),
+      hasBall: situation?.possession === "opponent",
+      timeouts: situation?.timeouts.opponent ?? null,
+    };
+    const updatedMs =
+      activeScore && scoreUpdatedAt !== null ? scoreUpdatedAt : Number.NaN;
+
+    // From md up the play feed scrolls; the panel scrolls only as a fallback.
+    return (
+      <Panel className="md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain">
+        <Eyebrow {...expand}>
+          <LiveLabel
+            game={game}
+            // The row stands at a play; the game itself is here.
+            clock={
+              watched && gameClock
+                ? spoilerSafeClock(gameClock, showSpoilers)
+                : null
+            }
+            onFollow={onReveal}
+          />
+          {!Number.isNaN(updatedMs) && (
+            <button
+              type="button"
+              onClick={onRefreshScore}
+              disabled={!onRefreshScore}
+              className="text-ink-faint hover:text-ink-muted flex cursor-pointer items-center gap-1 font-mono text-xs whitespace-nowrap transition-colors disabled:cursor-default"
+              title="Refresh now"
+            >
+              <RefreshCw className="size-3" aria-hidden />
+              <span className="hidden sm:inline">Updated</span>
+              {formatAge(now - updatedMs)}
+            </button>
+          )}
+        </Eyebrow>
+
+        <ScoreRow
+          game={game}
+          team={team}
+          followed={{ ...followed, ...watched?.followed }}
+          opposing={{ ...opposing, ...watched?.opposing }}
+          status={
+            <span className="text-ink">
+              {watched?.status ??
+                (gameClock
+                  ? spoilerSafeClock(gameClock, showSpoilers)
+                  : "In progress")}
+            </span>
+          }
+          onReveal={onReveal}
+          periods={
+            watched?.periods ??
+            (showSpoilers && activeScore
+              ? {
+                  followed: activeScore.team.periods,
+                  opposing: activeScore.opponent.periods,
+                }
+              : null)
+          }
+        />
+
+        {drives ? (
+          <GamePlays
+            drives={drives}
+            {...sides(game, team)}
+            replay={replay}
+            ongoing
+            situation={situation}
+            delay={{
+              seconds: delayMs / 1000,
+              onCycle: () => cycleBroadcastDelay(selectedId),
+            }}
+            seenThrough={limit}
+          />
+        ) : (
+          situation && (
+            <Situation situation={situation} game={game} team={team} />
+          )
+        )}
+
+        {scoreError && showSpoilers && (
+          <p className="text-ink-faint mt-2 text-xs">
+            Score may be stale: {scoreError}
+          </p>
+        )}
+
+        {!expanded && (
+          <div className="border-edge mt-4 border-t pt-3">
+            <Meta game={game} />
+          </div>
+        )}
+      </Panel>
+    );
+  }
+
+  if (phase === "final") {
+    const result = game.result;
+    const standing = sideStanding(
+      showSpoilers ? (result?.teamScore ?? null) : null,
+      showSpoilers ? (result?.opponentScore ?? null) : null,
+      true,
+    );
+
+    // As the live panel: from md up the play feed scrolls.
+    return (
+      <Panel className="md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain">
+        <Eyebrow {...expand}>
+          <span className="label-eyebrow">
+            {weekLabel(game)}
+            {/* The row stands at a play; the game itself is over. */}
+            {watched && " · Final"}
+          </span>
+        </Eyebrow>
+
+        <div className="mb-4">
+          <ScoreRow
+            game={game}
+            team={team}
+            followed={{
+              record: showRecords
+                ? formatRecord(game.recordsBefore.team)
+                : null,
+              ...standing.followed,
+              display: maskedScore(result?.teamScore ?? null, showSpoilers),
+              ...watched?.followed,
+            }}
+            opposing={{
+              record: showRecords
+                ? formatRecord(game.recordsBefore.opponent)
+                : null,
+              ...standing.opposing,
+              display: maskedScore(result?.opponentScore ?? null, showSpoilers),
+              ...watched?.opposing,
+            }}
+            status={
+              watched ? (
+                <span className="text-ink">{watched.status}</span>
+              ) : (
+                <span className="text-ink-muted">Final</span>
+              )
+            }
+            onReveal={onReveal}
+            periods={
+              watched?.periods ??
+              (showSpoilers && game.periods
+                ? {
+                    followed: game.periods.team,
+                    opposing: game.periods.opponent,
+                  }
+                : null)
+            }
+          />
+        </div>
+
+        {drives && (
+          <GamePlays
+            drives={drives}
+            {...sides(game, team)}
+            replay={replay}
+            ongoing={false}
+            seenThrough={limit}
+          />
+        )}
+
+        {!expanded && (
+          <div className="border-edge mt-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-1.5 border-t pt-3">
+            <Meta game={game} />
+            <RecapLink
+              recap={findRecap(recaps, game.gameId)}
+              game={game}
+              team={team}
+              season={season}
+            />
+          </div>
+        )}
+      </Panel>
+    );
+  }
+
+  // Upcoming and pregame: when and where only.
+  const countdown = formatCountdown(Date.parse(game.kickoff) - now);
+  const isPregame = phase === "pregame";
+
+  return (
+    <Panel>
+      <Eyebrow {...expand}>
+        <span className="label-eyebrow">
+          {isPregame ? "Kickoff soon" : weekLabel(game)}
+        </span>
+        {countdown && (
+          <span
+            className={cn(
+              "font-mono text-xs",
+              isPregame ? "text-gold" : "text-ink-muted",
+            )}
+          >
+            in {countdown}
+          </span>
+        )}
+      </Eyebrow>
+
+      <Matchup game={game} team={team} />
+
+      <div className="border-edge mt-4 border-t pt-3">
+        <Meta game={game} />
+      </div>
+    </Panel>
+  );
+}

@@ -1,0 +1,359 @@
+"use client";
+
+import { Pause, Play, RotateCcw, StepBack, StepForward } from "lucide-react";
+import { FieldView } from "~/components/game/FieldView";
+import { PlayFeed, playTime } from "~/components/game/PlayFeed";
+import { type ReplayControls } from "~/hooks/useReplay";
+import { nextBroadcastDelay } from "~/lib/broadcast-delay";
+import {
+  currentSet,
+  drivesThrough,
+  fieldAtPlay,
+  withDriveSpots,
+  type PlayOnField,
+} from "~/lib/plays";
+import { type Drive, type Play as GamePlay } from "~/lib/plays.schema";
+import { type SituationState } from "~/lib/score.schema";
+import { type Team } from "~/lib/teams.schema";
+import { cn } from "~/lib/utils";
+
+const CONTROL =
+  "text-ink-faint hover:text-ink-muted inline-flex cursor-pointer items-center gap-1.5 text-xs whitespace-nowrap transition-colors";
+
+/** The leading watch action: unframed, a shade brighter than the rest. */
+const PRIMARY =
+  "text-ink-muted hover:text-ink inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold whitespace-nowrap transition-colors";
+
+const TRANSPORT =
+  "text-ink-muted hover:text-ink hover:bg-surface-raised inline-flex size-7 cursor-pointer items-center justify-center rounded-md transition-colors disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
+
+function Caption({
+  play,
+  situation,
+}: {
+  play: GamePlay | null;
+  situation: SituationState | null;
+}) {
+  if (play) {
+    const label =
+      play.downDistance ?? (play.kind === "stoppage" ? play.text : null);
+    return (
+      <p className="flex min-w-0 items-baseline gap-2">
+        {label && (
+          <span className="text-ink truncate text-sm font-semibold tabular-nums">
+            {label}
+          </span>
+        )}
+        <span className="text-ink-faint font-mono text-xs tabular-nums">
+          {playTime(play)}
+        </span>
+      </p>
+    );
+  }
+  if (situation) {
+    return (
+      <p className="flex items-center gap-2">
+        {situation.downDistance && (
+          <span className="text-ink text-sm font-semibold tabular-nums">
+            {situation.downDistance}
+          </span>
+        )}
+        {situation.isRedZone && (
+          <span className="text-live label-eyebrow">Red zone</span>
+        )}
+      </p>
+    );
+  }
+  // Placeholder keeps the controls right-aligned.
+  return <span aria-hidden />;
+}
+
+/** How far a live game is held back, to match a broadcast. */
+interface BroadcastDelay {
+  seconds: number;
+  onCycle: () => void;
+}
+
+/**
+ * Step, play or pause, and speed. Paused, the frame stays on the field to
+ * browse from. Caught up with a live game there is no speed to choose; the
+ * same place holds the delay instead.
+ */
+function Transport({
+  replay,
+  delay,
+}: {
+  replay: ReplayControls;
+  delay?: BroadcastDelay;
+}) {
+  const { running, live, speed, atStart, atEnd } = replay;
+  return (
+    <div className="flex items-center gap-0.5">
+      <button
+        type="button"
+        onClick={() => replay.step(-1)}
+        disabled={atStart}
+        className={TRANSPORT}
+        aria-label="Step back"
+        title="Step back (←)"
+      >
+        <StepBack className="size-3.5" aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={running ? replay.pause : replay.run}
+        className={TRANSPORT}
+        aria-label={running ? "Pause" : "Play"}
+        title={running ? "Pause" : "Play"}
+      >
+        {running ? (
+          <Pause className="size-3.5" aria-hidden />
+        ) : (
+          <Play className="size-3.5" aria-hidden />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => replay.step(1)}
+        disabled={atEnd}
+        className={TRANSPORT}
+        aria-label="Step forward"
+        title="Step forward (→)"
+      >
+        <StepForward className="size-3.5" aria-hidden />
+      </button>
+      {!live ? (
+        <button
+          type="button"
+          onClick={replay.cycleSpeed}
+          className={cn(TRANSPORT, "w-auto px-1.5 font-mono text-xs")}
+          aria-label={`Speed ${speed}×`}
+          title="Change speed"
+        >
+          {speed}×
+        </button>
+      ) : (
+        delay && (
+          <button
+            type="button"
+            onClick={delay.onCycle}
+            className={cn(TRANSPORT, "w-auto px-1.5 font-mono text-xs")}
+            aria-label={`Delay ${delay.seconds}s`}
+            title={
+              nextBroadcastDelay(delay.seconds) > 0
+                ? `Add ${nextBroadcastDelay(delay.seconds)}s delay`
+                : "Remove delay"
+            }
+          >
+            +{delay.seconds}s
+          </button>
+        )
+      )}
+    </div>
+  );
+}
+
+/**
+ * Entry points into watching, with nothing on the field. With the result
+ * hidden: unwatched leads with kickoff, partway with resume.
+ */
+function WatchActions({
+  replay,
+  limited,
+  seen,
+}: {
+  replay: ReplayControls;
+  limited: boolean;
+  seen: string | null;
+}) {
+  if (limited && seen !== null) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => replay.resume(null)}
+          className={CONTROL}
+        >
+          <RotateCcw className="size-3.5" aria-hidden />
+          From kickoff
+        </button>
+        <button
+          type="button"
+          onClick={() => replay.resume(seen)}
+          className={PRIMARY}
+        >
+          <Play className="size-3.5" aria-hidden />
+          Resume
+        </button>
+      </>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => replay.resume(null)}
+      className={limited ? PRIMARY : CONTROL}
+    >
+      <Play className="size-3.5" aria-hidden />
+      Watch from kickoff
+    </button>
+  );
+}
+
+/**
+ * Screen-reader announcement of the play on the field: possession and down
+ * while lined up, the full play once played. Mounted throughout, so a screen
+ * reader is already listening when the first play is announced.
+ */
+function Announcement({
+  play,
+  offense,
+  stage,
+}: {
+  play: GamePlay | null;
+  offense: Team | null;
+  stage: ReplayControls["stage"];
+}) {
+  return (
+    <p aria-live="polite" className="sr-only">
+      {play === null
+        ? ""
+        : stage === "snap"
+          ? [offense && `${offense.abbreviation} ball`, play.downDistance]
+              .filter(Boolean)
+              .join(", ")
+          : play.text}
+    </p>
+  );
+}
+
+/**
+ * The field and play-by-play as one control: picking a play puts it on the
+ * field, stepping moves it a frame at a time, and playing steps on its own.
+ * Paused, the frame stays on the field to browse from.
+ *
+ * With nothing on the field, a live field follows the scoreboard; a finished
+ * one waits for a pick.
+ *
+ * While playing, the feed reads newest first and holds back each play until
+ * its result is out.
+ *
+ * With spoilers hidden the caller passes `seenThrough`, the viewer's place;
+ * the feed shows nothing past it. A game seen to the end is no longer hidden.
+ */
+export function GamePlays({
+  drives,
+  home,
+  away,
+  replay,
+  ongoing,
+  situation = null,
+  seenThrough,
+  delay,
+}: {
+  drives: Drive[];
+  home: Team;
+  away: Team;
+  replay: ReplayControls;
+  /** Live: feed reads newest first and the field follows the ball. */
+  ongoing: boolean;
+  situation?: SituationState | null;
+  /**
+   * Last play seen while the result is hidden; null before anything is
+   * watched. Undefined leaves the whole game open.
+   */
+  seenThrough?: string | null;
+  /** A live game's broadcast delay, offered once caught up with it. */
+  delay?: BroadcastDelay;
+}) {
+  const { play, running, stage, revealedId } = replay;
+  const limited = seenThrough !== undefined;
+  const seen = seenThrough ?? null;
+  // With nothing on the field, it rests where the viewer left off.
+  const resting =
+    play === null && limited && seen !== null
+      ? (drives.flatMap((drive) => drive.plays).find(({ id }) => id === seen) ??
+        null)
+      : null;
+  const onField = play ?? resting;
+  const liveField = situation?.field ?? null;
+  const driveOf = (playId: string | null) =>
+    drives.find((drive) => drive.plays.some(({ id }) => id === playId)) ?? null;
+  const offenseSide = driveOf(play?.id ?? null)?.offense;
+  const offense =
+    offenseSide === "home" ? home : offenseSide === "away" ? away : null;
+
+  const shown: PlayOnField = onField
+    ? fieldAtPlay(drives, onField.id, play ? stage : "result")
+    : liveField
+      ? {
+          field: withDriveSpots(liveField, drives),
+          set: currentSet(liveField, drives),
+          kick: null,
+          scoredBy: null,
+        }
+      : { field: null, set: [], kick: null, scoredBy: null };
+  // A kick stands for the play on its own; the snaps before it fade back.
+  const shownPlayId = shown.kick?.id ?? shown.set.at(-1)?.id ?? null;
+
+  const onSelect = (playId: string) => {
+    if (!running && playId === play?.id) replay.clear();
+    else replay.select(playId);
+  };
+
+  return (
+    <>
+      <div className="mt-4 space-y-2">
+        <FieldView
+          home={home}
+          away={away}
+          field={shown.field}
+          set={shown.set}
+          kick={shown.kick}
+          scoredBy={shown.scoredBy}
+          focusId={onField && !(play && stage === "snap") ? shownPlayId : null}
+          drawFocus={
+            stage === "result" && play !== null && shownPlayId === play.id
+          }
+          linedUp={
+            stage === "snap" && play?.kind === "snap" && play.start !== null
+          }
+        />
+        <Announcement play={play} offense={offense} stage={stage} />
+        <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <Caption play={onField} situation={ongoing ? situation : null} />
+          <div className="flex items-center gap-4">
+            {play !== null || running ? (
+              <Transport replay={replay} delay={delay} />
+            ) : (
+              <WatchActions replay={replay} limited={limited} seen={seen} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <PlayFeed
+        drives={
+          running
+            ? revealedId === null
+              ? []
+              : drivesThrough(drives, revealedId)
+            : !limited
+              ? drives
+              : seen === null
+                ? []
+                : drivesThrough(drives, seen)
+        }
+        home={home}
+        away={away}
+        // A game watched partway reads like one under way.
+        newestFirst={ongoing || running || limited}
+        selectedId={play ? revealedId : (resting?.id ?? null)}
+        onSelect={onSelect}
+        following={
+          running ? { driveId: driveOf(revealedId)?.id ?? null } : undefined
+        }
+      />
+    </>
+  );
+}
