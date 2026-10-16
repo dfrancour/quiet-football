@@ -1,4 +1,5 @@
 import { SiteMark } from "~/components/layout/SiteMark";
+import { FootballMark } from "~/components/score/Football";
 import { standingsPath } from "~/lib/routes";
 import { REPO_URL, SITE_NAME } from "~/lib/site";
 
@@ -14,41 +15,71 @@ function GitHubMark({ className }: { className?: string }) {
   );
 }
 
-/** What the site is and where its source lives. */
+/**
+ * What the site is and where its source lives: the mark and a tagline, two
+ * short paragraphs, and the disclaimer beside the repository link.
+ */
 export function About() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col px-4 py-6">
       <header className="flex min-h-8 items-center">
         <SiteMark href={standingsPath()} />
       </header>
 
-      <article className="text-ink-muted flex max-w-prose flex-col gap-4 text-sm leading-relaxed">
-        <h1 className="text-ink text-lg font-semibold tracking-tight">About</h1>
-        <p>
-          {SITE_NAME} is an NFL season browser with no ads, no betting lines and
-          no result shown until you ask for it. Pick a week, catch up at your
-          own pace, and watch a game play by play without being told how it
-          ends.
-        </p>
-        <p>
-          It is a static site. Your browser reads ESPN&rsquo;s public scoreboard
-          directly, and nothing is kept beyond your own choices, which stay in
-          your browser.
-        </p>
-        <p className="text-ink-faint text-xs">
-          {SITE_NAME} is an independent project. It is not affiliated with,
-          endorsed by or sponsored by the National Football League, its teams or
-          ESPN. Team names and logos belong to their respective owners.
-        </p>
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="text-ink-faint hover:text-ink-muted inline-flex items-center gap-1.5 self-start text-xs transition-colors"
-        >
-          <GitHubMark className="size-3" />
-          Source on GitHub
-        </a>
+      <article className="flex flex-col">
+        <div className="flex flex-col items-center pt-14 pb-9 text-center">
+          <svg
+            viewBox="0 0 52 32"
+            className="text-ink-muted h-16 w-26 fill-current"
+            aria-hidden
+          >
+            <FootballMark
+              cx={26}
+              cy={16}
+              radius={24}
+              className="fill-current"
+            />
+          </svg>
+          <h1 className="text-ink mt-5 text-[1.75rem] font-semibold tracking-tight">
+            {SITE_NAME}
+          </h1>
+          <p className="text-ink-muted mt-2.5 text-[1.0625rem] leading-normal">
+            No ads. No odds. No result until you ask for it.
+          </p>
+        </div>
+
+        {/* A covered score's hatch, as a rule. */}
+        <div className="hatched mx-auto h-1.5 w-40 rounded-full" aria-hidden />
+
+        <div className="text-ink-muted mx-auto mt-9 flex w-full max-w-[34rem] flex-col gap-4 text-[0.9375rem] leading-relaxed">
+          <p>
+            An NFL season browser for anyone watching on their own time. Pick a
+            week, catch up at your own pace, and watch a game play by play
+            without being told how it ends.
+          </p>
+          <p>
+            It is a static site. Your browser reads ESPN&rsquo;s public
+            scoreboard directly, and nothing is kept beyond your own choices,
+            which stay in your browser.
+          </p>
+        </div>
+
+        <footer className="border-edge text-ink-faint mx-auto mt-9 flex w-full max-w-[34rem] flex-col gap-4 border-t pt-5 text-xs leading-relaxed sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+          <p>
+            {SITE_NAME} is an independent project. It is not affiliated with,
+            endorsed by or sponsored by the National Football League, its teams
+            or ESPN. Team names and logos belong to their respective owners.
+          </p>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="hover:text-ink-muted inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors"
+          >
+            <GitHubMark className="size-3" />
+            Source on GitHub
+          </a>
+        </footer>
       </article>
     </div>
   );

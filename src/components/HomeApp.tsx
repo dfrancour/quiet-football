@@ -115,7 +115,10 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">
-      {/* Section headings are for screen readers only. */}
+      {/* The page title and the schedule heading are for screen readers only.
+          Stacked below `lg`, the second section is labelled so the step from
+          the week's games into the standings or bracket is marked; side by
+          side, each column names itself. */}
       <h1 className="sr-only">{season} NFL Season</h1>
       <SiteHeader
         through={through}
@@ -148,7 +151,10 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
 
         {isPlayoffWeek ? (
           <section aria-labelledby="bracket" className="lg:sticky lg:top-6">
-            <h2 id="bracket" className="sr-only">
+            <h2
+              id="bracket"
+              className="text-ink-muted mb-3 text-xs font-semibold tracking-[0.14em] lg:sr-only"
+            >
               Playoff bracket
             </h2>
             <Bracket
@@ -161,7 +167,10 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
           </section>
         ) : (
           <section aria-labelledby="standings" className="lg:sticky lg:top-6">
-            <h2 id="standings" className="sr-only">
+            <h2
+              id="standings"
+              className="text-ink-muted mb-3 text-xs font-semibold tracking-[0.14em] lg:sr-only"
+            >
               Standings
             </h2>
             <StandingsTables
