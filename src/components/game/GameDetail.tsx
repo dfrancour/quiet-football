@@ -1,14 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import {
-  CalendarClock,
-  MapPin,
-  Maximize2,
-  Minimize2,
-  RefreshCw,
-  Tv,
-} from "lucide-react";
+import { Maximize2, Minimize2, RefreshCw } from "lucide-react";
 import { FieldView } from "~/components/game/FieldView";
 import {
   ScoreRow,
@@ -98,34 +91,56 @@ function Matchup({ game, team }: { game: TeamGame; team: Team }) {
   );
 }
 
-function Meta({ game }: { game: TeamGame }) {
+/** A middle dot between a footnote's parts. */
+function Dot() {
+  return (
+    <span aria-hidden className="mx-1.5">
+      ·
+    </span>
+  );
+}
+
+/**
+ * When, on what, and where, as one line: a footnote under a game that has
+ * been played, and `leading` for a game to come, where it is what there is to
+ * say. Each part stays whole as the line wraps.
+ */
+function Meta({
+  game,
+  leading = false,
+}: {
+  game: TeamGame;
+  leading?: boolean;
+}) {
   const timeZone = useTimeZone();
   const venue = game.venue.name;
   return (
-    <dl className="text-ink-faint flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs">
-      <div className="flex items-center gap-2">
-        <CalendarClock className="size-3.5 shrink-0" aria-hidden />
-        <dt className="sr-only">Kickoff</dt>
-        <dd>{formatDateTime(game.kickoff, timeZone) ?? "Date TBD"}</dd>
-      </div>
+    <p
+      className={cn(
+        "leading-relaxed",
+        leading ? "text-ink-muted text-sm" : "text-ink-faint text-xs",
+      )}
+    >
+      <span className="whitespace-nowrap">
+        <span className="sr-only">Kickoff </span>
+        {formatDateTime(game.kickoff, timeZone) ?? "Date TBD"}
+      </span>
       {game.broadcast && (
-        <div className="flex items-center gap-2">
-          <Tv className="size-3.5 shrink-0" aria-hidden />
-          <dt className="sr-only">Broadcast</dt>
-          <dd>{game.broadcast}</dd>
-        </div>
+        <>
+          <Dot />
+          <span className="whitespace-nowrap">{game.broadcast}</span>
+        </>
       )}
       {venue && (
-        <div className="flex items-center gap-2">
-          <MapPin className="size-3.5 shrink-0" aria-hidden />
-          <dt className="sr-only">Venue</dt>
-          <dd>
+        <>
+          <Dot />
+          <span>
             {venue}
             {game.venue.city && `, ${game.venue.city}`}
-          </dd>
-        </div>
+          </span>
+        </>
       )}
-    </dl>
+    </p>
   );
 }
 
@@ -599,7 +614,7 @@ export function GameDetail({
       <Matchup game={game} team={team} />
 
       <div className="border-edge mt-4 border-t pt-3">
-        <Meta game={game} />
+        <Meta game={game} leading />
       </div>
     </Panel>
   );
