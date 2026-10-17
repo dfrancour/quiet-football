@@ -373,9 +373,11 @@ export function GamePlays({
           }
         />
         <Announcement play={play} offense={offense} stage={stage} />
-        <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        {/* A phone gets the caption over the controls, every play alike,
+            so they never jump rows as the caption's length changes. */}
+        <div className="flex min-h-7 flex-col gap-y-1 sm:flex-row sm:items-center sm:justify-between sm:gap-x-3">
           <Caption play={onField} situation={ongoing ? situation : null} />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 self-end sm:self-auto">
             {play !== null || running ? (
               <Transport replay={replay} delay={delay} over={!ongoing} />
             ) : (
