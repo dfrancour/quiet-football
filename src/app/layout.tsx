@@ -56,7 +56,7 @@ export default function RootLayout({
         />
         <link rel="preconnect" href="https://a.espncdn.com" />
         <Providers>
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-dvh">{children}</main>
         </Providers>
         <VercelAnalytics />
       </body>

@@ -65,6 +65,12 @@
   }
 }
 
+/* The viewport inside `main`'s safe-area padding: a page this tall fills the
+   screen without scrolling it. */
+@utility h-viewport {
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
 @layer components {
   .label-eyebrow {
     @apply text-ink-faint text-xs font-semibold tracking-[0.14em] uppercase;

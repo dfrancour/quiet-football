@@ -226,7 +226,9 @@ lands on About again. Keep it brief.
 beside the bracket when the week is a playoff round. Below `lg` there is room
 for one: a two-way switch under the header, Schedule or Standings
 (Bracket in a playoff round), shows one or the other (`PaneSwitch`), never
-both stacked. Section headings are screen-reader only.
+both stacked. There the page is exactly the viewport and does not scroll:
+the header and switch stay put and the pane shown scrolls beneath them.
+Section headings are screen-reader only.
 The chooser lists the regular season's weeks on one line (two rows of nine
 below `sm`) and, beneath, each playoff round once its games are known. The
 weeks share the line's width, so neither line ever scrolls.

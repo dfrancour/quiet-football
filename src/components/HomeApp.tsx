@@ -83,7 +83,7 @@ function PaneSwitch({
     <div
       role="group"
       aria-label="Show"
-      className="border-edge flex gap-1 rounded-lg border p-1 lg:hidden"
+      className="border-edge flex shrink-0 gap-1 rounded-lg border p-1 lg:hidden"
     >
       {tab("games", "Schedule")}
       {tab("table", tableName)}
@@ -94,7 +94,9 @@ function PaneSwitch({
 /**
  * The week's games beside the standings, or the bracket for a playoff week.
  * Hovering a game highlights its teams in the standings, and vice versa. Below
- * `lg` there is room for one: a switch above shows the games or the table.
+ * `lg` there is room for one: a switch above shows the games or the table,
+ * and the page is the viewport, with only the one shown scrolling beneath the
+ * header and switch.
  */
 function HomeView({ registry, data, marks }: HomeViewProps) {
   const { season: seasonFile, weeks } = data;
@@ -155,15 +157,20 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
   const isPlayoffWeek = playoffRound(totalWeeks, week) !== null;
   const [pane, setPane] = useState<Pane>("games");
   const tableName = isPlayoffWeek ? "Bracket" : "Standings";
-  // From lg up both are shown; below, the one chosen.
-  const paneClass = (value: Pane) => cn(pane !== value && "max-lg:hidden");
+  // From lg up both are shown and the page scrolls; below, the one chosen,
+  // scrolling on its own.
+  const paneClass = (value: Pane) =>
+    cn(
+      "max-lg:relative max-lg:min-h-0 max-lg:self-stretch max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:pb-6",
+      pane !== value && "max-lg:hidden",
+    );
 
   // The body comes in whole, marks and all, under the header already there.
   const bodyRef = useRef<HTMLDivElement>(null);
   const revealed = useRevealed(bodyRef);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">
+    <div className="max-lg:h-viewport mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-6 lg:pb-6">
       {/* The page title and the section headings are for screen readers
           only: side by side, each column names itself, and below `lg` the
           switch does. */}
@@ -179,7 +186,7 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
       <div
         ref={bodyRef}
         className={cn(
-          "grid grid-cols-[minmax(0,1fr)] items-start gap-x-12 gap-y-5 lg:grid-cols-[minmax(0,32rem)_minmax(0,1fr)]",
+          "grid grid-cols-[minmax(0,1fr)] items-start gap-x-12 gap-y-5 max-lg:min-h-0 max-lg:flex-1 max-lg:grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,32rem)_minmax(0,1fr)]",
           revealClass(revealed),
         )}
       >
