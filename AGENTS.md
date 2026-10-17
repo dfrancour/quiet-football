@@ -578,6 +578,15 @@ It is kept per season in `localStorage` (`catchUpThrough()` in
 page in place. Everything else the viewer chose is keyed by game id. It names
 only weeks the viewer said they were done with, so it does not expire.
 
+A first visit lands on a page of covered results that says nothing about
+why, so the strip opens by itself once the season is in, its status line
+reading "Pick the last week you've seen"; closing it or picking a week ends
+that for good (`spoilers-introduced`, `src/lib/first-run.ts`, not per
+season). A viewer already caught up through a week has found the control
+and is not shown it. That is the one line of guidance the site has: no
+tour, and nothing added to the page body. With nothing caught up the
+control is the brighter of its two states, so it reads as the way in.
+
 Masking is a matter of what is drawn, not what is fetched: the browser holds
 the whole season so uncovering a game needs no request, and anyone can read
 ESPN's answers in the network panel. That is accepted; they are public

@@ -10,8 +10,10 @@ import {
 } from "react";
 import { Sheet } from "~/components/common/Sheet";
 import { useDismiss } from "~/hooks/useDismiss";
+import { useIntroduced } from "~/hooks/useIntroduced";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
 import { type PartialWeek } from "~/hooks/useSpoilers";
+import { markIntroduced } from "~/lib/first-run";
 import {
   playoffRound,
   ROUND_ABBREVIATIONS,
@@ -62,6 +64,11 @@ const WIDE = "(min-width: 40rem)";
  * is hatched again until tapped. On a phone the strip comes up as a sheet,
  * its weeks in rows of nine so each is a fingertip wide, and closes on a
  * pick.
+ *
+ * A first visit opens the strip by itself, asking for the last week seen,
+ * since a page of covered results says nothing about why; closing it or
+ * picking a week ends that for good (`first-run.ts`). A viewer already
+ * caught up through a week has found the control, and is not shown it.
  */
 export function CaughtUp({
   through,
@@ -71,7 +78,7 @@ export function CaughtUp({
   partial,
   onCatchUp,
 }: CaughtUpProps) {
-  const [open, setOpen] = useState(false);
+  const [opened, setOpened] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
   // The week just picked, shown until the page catches up with it.
   const [pending, setPending] = useState<{ week: number; from: number } | null>(
@@ -92,16 +99,24 @@ export function CaughtUp({
   const furthest = partial?.week ?? reachable;
   const Icon = committed > 0 ? Eye : EyeOff;
 
-  const close = useCallback(() => setOpen(false), []);
+  // Open by itself on a first visit, until closed or a week is picked.
+  const introducing = !useIntroduced() && through === 0;
+  const open = opened || introducing;
+
+  const close = useCallback(() => {
+    setOpened(false);
+    markIntroduced();
+  }, []);
   // The popover closes on a press outside; the sheet sees to itself.
   useDismiss(rootRef, open && wide, close);
   const closeSheet = useCallback(() => {
-    setOpen(false);
+    close();
     controlRef.current?.focus();
-  }, []);
+  }, [close]);
 
   const choose = (week: number) => {
     setPreview(null);
+    markIntroduced();
     if (!wide) closeSheet();
     if (week === committed || (week === partial?.week && intoPartial)) return;
     // The week in progress catches up through every settled week first.
@@ -225,7 +240,9 @@ export function CaughtUp({
         ? `Caught up through ${name(partial.week)}`
         : committed > 0
           ? `Caught up through ${name(committed)}`
-          : "Spoilers hidden"
+          : introducing
+            ? "Pick the last week you've seen"
+            : "Spoilers hidden"
       : preview === 0
         ? "Hide all spoilers"
         : preview > committed
@@ -241,8 +258,12 @@ export function CaughtUp({
         ? settledThrough
         : null;
 
+  // With nothing caught up the control is the page's one way in, so it is
+  // the brighter of its two states, not the fainter.
   const tone =
-    committed > 0 ? "text-ink-muted" : "text-ink-faint hover:text-ink-muted";
+    committed > 0
+      ? "text-ink-muted hover:text-ink"
+      : "text-ink-muted hover:text-ink font-semibold";
 
   // The strip and its actions, the same in the popover and the sheet.
   const strip = (
@@ -317,7 +338,7 @@ export function CaughtUp({
         type="button"
         aria-expanded={open}
         aria-haspopup={wide ? undefined : "dialog"}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => (open ? close() : setOpened(true))}
         className={cn(
           "hover:bg-surface-raised inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap transition-colors",
           tone,

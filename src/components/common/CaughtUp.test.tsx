@@ -1,7 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CaughtUp } from "~/components/common/CaughtUp";
+import {
+  getIntroduced,
+  markIntroduced,
+  resetIntroducedCache,
+} from "~/lib/first-run";
 
 /** A phone: no media query matches. */
 function narrow() {
@@ -13,7 +18,18 @@ function narrow() {
   }));
 }
 
-afterEach(() => vi.unstubAllGlobals());
+// A viewer who has seen the strip, except where a first visit is the point.
+beforeEach(() => markIntroduced());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  window.localStorage.clear();
+  resetIntroducedCache();
+});
+
+function firstVisit() {
+  window.localStorage.clear();
+  resetIntroducedCache();
+}
 
 function renderControl(
   through = 3,
@@ -125,5 +141,53 @@ describe("CaughtUp with a week in progress", () => {
       screen.getByRole("button", { name: "Catch up through Week 8 so far" }),
     );
     expect(onCatchUp).toHaveBeenCalledWith(8);
+  });
+});
+
+describe("CaughtUp on a first visit", () => {
+  it("opens by itself, asks for the last week seen, and ends with a pick", async () => {
+    firstVisit();
+    const user = userEvent.setup();
+    const onCatchUp = renderControl(0);
+    const strip = screen.getByRole("group", { name: "Caught up through" });
+    expect(within(strip).getByRole("status")).toHaveTextContent(
+      "Pick the last week you've seen",
+    );
+    expect(
+      screen.getByRole("button", { name: "Spoilers hidden" }),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(
+      within(strip).getByRole("button", { name: "Through Week 5" }),
+    );
+    expect(onCatchUp).toHaveBeenCalledWith(5);
+    expect(getIntroduced()).toBe(true);
+  });
+
+  it("ends when closed without a pick, and never opens by itself again", async () => {
+    firstVisit();
+    const user = userEvent.setup();
+    const onCatchUp = renderControl(0);
+    expect(
+      screen.getByRole("group", { name: "Caught up through" }),
+    ).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("group", { name: "Caught up through" }),
+    ).not.toBeInTheDocument();
+    expect(onCatchUp).not.toHaveBeenCalled();
+    expect(getIntroduced()).toBe(true);
+    // The control still opens the strip, now saying only what it is.
+    await user.click(screen.getByRole("button", { name: "Spoilers hidden" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Spoilers hidden");
+  });
+
+  it("is not shown to a viewer already caught up through a week", () => {
+    firstVisit();
+    renderControl(3);
+    expect(
+      screen.queryByRole("group", { name: "Caught up through" }),
+    ).not.toBeInTheDocument();
+    expect(getIntroduced()).toBe(false);
   });
 });

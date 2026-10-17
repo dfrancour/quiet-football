@@ -5,10 +5,18 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppHeader } from "~/components/layout/AppHeader";
 import { SiteHeader } from "~/components/layout/SiteHeader";
+import { markIntroduced, resetIntroducedCache } from "~/lib/first-run";
 import { TEAMS } from "~/lib/test-utils/fixtures";
+
+// A viewer who has seen the strip, so it waits to be opened.
+beforeEach(() => markIntroduced());
+afterEach(() => {
+  window.localStorage.clear();
+  resetIntroducedCache();
+});
 
 const home = () => screen.getByRole("link", { name: "Quiet Football" });
 
