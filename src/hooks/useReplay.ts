@@ -23,7 +23,7 @@ import {
   type ReplayStage,
 } from "~/lib/replay";
 
-/** A running replay's clock resolution; 1s would eat the pause at 3×. */
+/** A running replay's clock resolution; 1s would eat the pause at 5×. */
 const REPLAY_TICK_MS = 100;
 
 const subscribeToReplayClock = (listener: () => void) =>

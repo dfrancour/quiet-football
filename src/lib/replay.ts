@@ -31,7 +31,7 @@ function drawMsOf(play: Play): number {
     : drawMs;
 }
 
-export const REPLAY_SPEEDS = [1, 2, 3] as const;
+export const REPLAY_SPEEDS = [1, 2, 3, 5] as const;
 export type ReplaySpeed = (typeof REPLAY_SPEEDS)[number];
 
 /**
