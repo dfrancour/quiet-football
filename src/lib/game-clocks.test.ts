@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { gameClockAsOf, noteGameClock } from "~/lib/game-clocks";
+import { gameClockAsOf, gameSettledAt, noteGameClock } from "~/lib/game-clocks";
 
 const at = (clock: string) => ({
   detail: `${clock} - 3rd`,
@@ -38,5 +38,14 @@ describe("game clocks", () => {
     noteGameClock("g", at("7:00"), 10 * 60_000);
     // The newest before the window still stands for its start.
     expect(gameClockAsOf("g", 0)?.clock).toBe("8:00");
+  });
+
+  it("notes when a game it saw under way went final, and not one already over", () => {
+    noteGameClock("g", at("0:30"), 1_000);
+    noteGameClock("g", { ...at("0:00"), completed: true }, 31_000);
+    noteGameClock("g", { ...at("0:00"), completed: true }, 61_000);
+    expect(gameSettledAt("g")).toBe(31_000);
+    noteGameClock("over", { ...at("0:00"), completed: true }, 1_000);
+    expect(gameSettledAt("over")).toBeNull();
   });
 });

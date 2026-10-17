@@ -21,11 +21,22 @@ export const scoreConfig = {
   /** How long ESPN's standings, read for playoff seeds and clinch codes, are trusted. */
   marksStaleMs: 30 * 60_000,
   /**
-   * How long the season's recaps are trusted once a viewer looks at a
-   * recent game still without one. The dataset is pushed by a person, so
-   * there is nothing to poll for; a recap takes hours to appear.
+   * How often a final game still without a recap re-reads the season's
+   * recaps, by hours since the game went final: the NFL posts a recap soon
+   * after and the dataset is updated often, so it is asked for every few
+   * minutes at first (GitHub caches the file for five), then less and
+   * less, and not at all once the window has passed.
    */
-  recapsStaleMs: 60 * 60_000,
+  recapsPoll: [
+    { untilHours: 6, everyMs: 5 * 60_000 },
+    { untilHours: 24, everyMs: 30 * 60_000 },
+    { untilHours: 72, everyMs: 2 * 60 * 60_000 },
+  ],
+  /**
+   * How long after kickoff a game is taken to have ended, for one already
+   * over when first seen: the scoreboard says final, not when.
+   */
+  typicalGameMs: 3 * 60 * 60_000 + 15 * 60_000,
   /** How long a game's play-by-play is kept after the panel leaves it. */
   summaryKeepMs: 60 * 60_000,
 } as const;

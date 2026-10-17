@@ -29,13 +29,13 @@ drawing it, and nothing is fetched again just because the tab was looked at.
 ESPN sends `max-age=1` on everything, so the browser's own cache is no help;
 the query layer is the cache.
 
-| Query (`src/lib/queries.ts`) | Holds                                                   | Fetched again                                      |
-| ---------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
-| `standings`                  | ESPN's standings: teams by division, seeds, clinches    | after `marksStaleMs`, and only if marks are shown  |
-| `teams`                      | The 32 teams, with conference, division, color and logo | never in a session; saved for `teamsStaleMs`       |
-| `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..."         |
-| `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | as the scoreboard shows a new play; once when over |
-| `recaps`                     | The season's file from the recap dataset                | once a visit; see "Recaps"                         |
+| Query (`src/lib/queries.ts`) | Holds                                                   | Fetched again                                       |
+| ---------------------------- | ------------------------------------------------------- | --------------------------------------------------- |
+| `standings`                  | ESPN's standings: teams by division, seeds, clinches    | after `marksStaleMs`, and only if marks are shown   |
+| `teams`                      | The 32 teams, with conference, division, color and logo | never in a session; saved for `teamsStaleMs`        |
+| `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..."          |
+| `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | as the scoreboard shows a new play; once when over  |
+| `recaps`                     | The season's file from the recap dataset                | on `recapsPoll`'s schedule while a recap is awaited |
 
 Playoff marks are not a query of their own: `playoffMarksQuery` is the
 standings query with a `select`.
@@ -472,12 +472,17 @@ never shows one.
 A final game's panel carries `RecapLink` in its top row, beside the
 full-screen control: a YouTube icon, out to YouTube since the NFL blocks
 embedding, drawn only once the dataset has linked a recap. Until then there is
-nothing, not a search. The dataset is built and pushed by a person on no
-schedule, so there is nothing to poll for and `useRecaps` never polls. The
-one reason to look again is the viewer turning to a recent final game that
-still has no recap, and then only if the file in hand is older than
-`recapsStaleMs` (an hour); a game from weeks ago, or the offseason, asks
-nothing.
+nothing, not a search. The NFL posts a recap soon after a game and the
+dataset is updated often, so while the selected game is final and still
+unlinked `useRecaps` re-reads the file on a schedule that backs off from
+when the game went final (`recapsPollMs`, from `scoreConfig.recapsPoll`):
+every five minutes for the first hours (GitHub caches the file for five),
+every half hour through the first day, every two hours to three days, then
+never. When it went final is the moment a scoreboard poll first saw it
+complete (`gameSettledAt`, `game-clocks.ts`); a game already over when
+first seen is taken to have ended a typical game after kickoff
+(`typicalGameMs`). A game under way, one from weeks ago, or the offseason
+asks nothing.
 
 ## Other invariants
 

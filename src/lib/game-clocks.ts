@@ -15,6 +15,9 @@ const KEEP_MS = 2 * 60 * 1000;
  */
 const history = new Map<string, { at: number; clock: GameClock }[]>();
 
+/** When a poll first found each game complete, having seen it under way. */
+const settled = new Map<string, number>();
+
 export function noteGameClock(
   gameId: string,
   { detail, period, clock, completed }: GameClock,
@@ -22,6 +25,9 @@ export function noteGameClock(
 ): void {
   const entries = history.get(gameId) ?? [];
   const last = entries.at(-1)?.clock;
+  if (last && !last.completed && completed && !settled.has(gameId)) {
+    settled.set(gameId, at);
+  }
   if (
     last?.detail === detail &&
     last.period === period &&
@@ -50,7 +56,16 @@ export function gameClockAsOf(gameId: string, at: number): GameClock | null {
   return asOf?.clock ?? entries[0]?.clock ?? null;
 }
 
+/**
+ * When the game was seen to go final this visit, or null: a game already
+ * over when first seen went final who knows when.
+ */
+export function gameSettledAt(gameId: string): number | null {
+  return settled.get(gameId) ?? null;
+}
+
 /** For tests: forget every clock. */
 export function resetGameClocks(): void {
   history.clear();
+  settled.clear();
 }
