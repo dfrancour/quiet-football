@@ -112,12 +112,6 @@ export function ScoreRow({
           </div>
         )}
       </div>
-      {/* A pointer gets a hover state; a finger gets told once. */}
-      {onReveal && (followed.display === null || opposing.display === null) && (
-        <p className="text-ink-faint mt-2 hidden text-center text-xs pointer-coarse:block">
-          Tap a covered score to show it
-        </p>
-      )}
     </div>
   );
 }

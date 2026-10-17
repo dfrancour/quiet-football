@@ -22,16 +22,9 @@ interface PlayFeedProps {
   drives: Drive[];
   home: Team;
   away: Team;
-  /** A game under way reads newest first; a finished one, from kickoff. */
-  newestFirst: boolean;
   /** Marked and kept in view. */
   selectedId?: string | null;
   onSelect?: (playId: string) => void;
-  /**
-   * While set, this drive is open and the rest stay shut unless opened by
-   * hand, so a replay folds each drive away as it passes.
-   */
-  following?: { driveId: string | null };
 }
 
 const OUTCOMES: Record<PlayOutcome, { label: string; tone: string }> = {
@@ -165,30 +158,18 @@ function FirstDown({
   );
 }
 
-/**
- * Where a quarter begins: above its drives from kickoff, beneath them when
- * read newest first.
- */
-function QuarterRule({ period, below }: { period: number; below: boolean }) {
-  const rule = (
-    <>
-      <span className="text-ink-muted label-eyebrow shrink-0">
-        {periodName(period)}
-      </span>
-      <span className="bg-edge h-px flex-1" aria-hidden />
-    </>
-  );
-  return below ? (
+/** Where a quarter begins: beneath its drives, read newest first. */
+function QuarterRule({ period }: { period: number }) {
+  return (
     <li
       role="separator"
       aria-label={`${periodName(period)} begins`}
       className="flex items-center gap-3 pt-1 pb-3"
     >
-      {rule}
-    </li>
-  ) : (
-    <li>
-      <h2 className="flex items-center gap-3 pt-3 pb-1">{rule}</h2>
+      <span className="text-ink-muted label-eyebrow shrink-0">
+        {periodName(period)}
+      </span>
+      <span className="bg-edge h-px flex-1" aria-hidden />
     </li>
   );
 }
@@ -268,9 +249,9 @@ function DriveSummary({
   );
 }
 
-/** Always returns a new array. */
-function ordered<T>(items: T[], newestFirst: boolean): T[] {
-  return newestFirst ? [...items].reverse() : [...items];
+/** Newest first; always a new array. */
+function newestFirst<T>(items: T[]): T[] {
+  return [...items].reverse();
 }
 
 /**
@@ -288,9 +269,13 @@ function keepInView(list: HTMLElement, row: HTMLElement): void {
 }
 
 /**
- * The game drive by drive, with rules at each quarter and first down.
+ * The game drive by drive, newest first, with rules at each quarter and
+ * first down. Whatever the game's state, the newest play is the viewer's
+ * place, so the order never changes.
  *
- * The drive holding the selected play is open; others toggle by hand.
+ * The drive holding the selected play is open, or the newest with nothing
+ * selected; others toggle by hand, so a replay folds each drive away as it
+ * passes.
  *
  * A spoiler; the caller renders it only when allowed.
  *
@@ -301,10 +286,8 @@ export function PlayFeed({
   drives,
   home,
   away,
-  newestFirst,
   selectedId = null,
   onSelect,
-  following,
 }: PlayFeedProps) {
   const listRef = useRef<HTMLOListElement>(null);
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
@@ -325,21 +308,14 @@ export function PlayFeed({
 
   const newestId = drives.at(-1)?.id;
   const scores = scoreByDrive(drives);
-  const isOpen = (drive: Drive) => {
-    const holdsSelection = drive.plays.some((play) => play.id === selectedId);
-    if (following) {
-      return drive.id === following.driveId || toggled[drive.id] === true;
-    }
-    // Keep the selection's drive open so arrow keys never land in a fold.
-    return (
-      holdsSelection ||
-      (toggled[drive.id] ?? (newestFirst && drive.id === newestId))
-    );
-  };
+  // Keep the selection's drive open so arrow keys never land in a fold.
+  const isOpen = (drive: Drive) =>
+    drive.plays.some((play) => play.id === selectedId) ||
+    (toggled[drive.id] ?? (selectedId === null && drive.id === newestId));
 
   const rows = (drive: Drive): ReactNode[] =>
-    ordered(driveSeries(drive), newestFirst).flatMap((set) => {
-      const plays = ordered(set.plays, newestFirst).map((play) => (
+    newestFirst(driveSeries(drive)).flatMap((set) => {
+      const plays = newestFirst(set.plays).map((play) => (
         <PlayRow
           key={play.id}
           play={play}
@@ -353,7 +329,7 @@ export function PlayFeed({
           gainedBy={set.gainedBy}
         />
       );
-      return newestFirst ? [...plays, rule] : [rule, ...plays];
+      return [...plays, rule];
     });
 
   return (
@@ -365,15 +341,14 @@ export function PlayFeed({
         ref={listRef}
         className="space-y-1 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
       >
-        {ordered(drivesByQuarter(drives), newestFirst).flatMap((group) => {
+        {newestFirst(drivesByQuarter(drives)).flatMap((group) => {
           const rule = group.period !== null && (
             <QuarterRule
               key={`quarter-${group.period}`}
               period={group.period}
-              below={newestFirst}
             />
           );
-          const items = ordered(group.drives, newestFirst).map((drive) => {
+          const items = newestFirst(group.drives).map((drive) => {
             const open = isOpen(drive);
             return (
               <li key={drive.id}>
@@ -400,7 +375,7 @@ export function PlayFeed({
               </li>
             );
           });
-          return newestFirst ? [...items, rule] : [rule, ...items];
+          return [...items, rule];
         })}
       </ol>
     </section>

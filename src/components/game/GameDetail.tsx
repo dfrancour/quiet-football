@@ -215,9 +215,8 @@ function LiveLabel({
 }
 
 /**
- * The game is over and the row stands at a play in it. With the result
- * hidden, the label is the way to the end; as the live label, the hover
- * state is the only hint.
+ * The game is over. With the result hidden, the label is the way to the end;
+ * as the live label, the hover state is the only hint.
  */
 function FinalLabel({
   game,
@@ -560,8 +559,8 @@ export function GameDetail({
     return (
       <Panel className="md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain">
         <Eyebrow {...expand} recap={findRecap(recaps, game.gameId)}>
-          {/* The row stands at a play; the game itself is over. */}
-          {watched ? (
+          {/* Covered or stood at a play, the game itself is over. */}
+          {watched || onReveal ? (
             <FinalLabel game={game} onFinish={onReveal} />
           ) : (
             <span className="label-eyebrow">{weekLabel(game)}</span>

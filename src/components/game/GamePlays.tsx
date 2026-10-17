@@ -246,8 +246,8 @@ function Announcement({
  * With nothing on the field, a live field follows the scoreboard; a finished
  * one waits for a pick.
  *
- * While playing, the feed reads newest first and holds back each play until
- * its result is out.
+ * The feed reads newest first throughout; while playing it holds back each
+ * play until its result is out.
  *
  * With spoilers hidden the caller passes `seenThrough`, the viewer's place;
  * the feed shows nothing past it. A game seen to the end is no longer hidden.
@@ -267,7 +267,7 @@ export function GamePlays({
   home: Team;
   away: Team;
   replay: ReplayControls;
-  /** Live: feed reads newest first and the field follows the ball. */
+  /** Live: the field follows the ball. */
   ongoing: boolean;
   situation?: SituationState | null;
   /**
@@ -370,13 +370,8 @@ export function GamePlays({
         }
         home={home}
         away={away}
-        // A game watched partway reads like one under way.
-        newestFirst={ongoing || running || limited}
         selectedId={play ? revealedId : (resting?.id ?? null)}
         onSelect={onSelect}
-        following={
-          running ? { driveId: driveOf(revealedId)?.id ?? null } : undefined
-        }
       />
     </>
   );

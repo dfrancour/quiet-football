@@ -34,7 +34,6 @@ describe("PlayFeed", () => {
     const props = {
       home: TEAMS.NO,
       away: TEAMS.MIN,
-      newestFirst: false,
       selectedId: last.id,
     };
     const { rerender } = render(<PlayFeed {...props} drives={drives} />);

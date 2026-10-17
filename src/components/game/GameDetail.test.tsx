@@ -94,7 +94,9 @@ describe("GameDetail selection states", () => {
 
   it("offers no recap for a played game until one is linked", () => {
     renderDetail();
-    expect(screen.getByText("Week 5")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Week 5, final/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Final")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /recap/i })).toBeNull();
     expect(screen.queryByText(/YouTube/)).toBeNull();
@@ -677,11 +679,14 @@ describe("GameDetail plays on the field", () => {
           !node.closest('[aria-label="Play-by-play"]'),
       );
 
-  it("reads a finished game from kickoff, a heading over each quarter", () => {
+  it("reads a finished game newest first too, the last drive open", () => {
     renderDetail(final);
     expect(feed()).toHaveTextContent(
-      /1st Quarter.*Field Goal.*Punt.*2nd Quarter/,
+      /2nd Quarter.*Punt.*Field Goal.*1st Quarter$/,
     );
+    const details = feed().querySelectorAll("details");
+    expect(details[0]).toHaveAttribute("open");
+    expect(details[details.length - 1]).not.toHaveAttribute("open");
   });
 
   it("leaves each drive's score beside it, away side first", () => {
@@ -695,7 +700,7 @@ describe("GameDetail plays on the field", () => {
   it("names the plays that change the game", () => {
     renderDetail(final);
     // BAL's field goal, ATL's punt, and the fumble ATL returned for a score.
-    expect(feed()).toHaveTextContent(/Field goal.*Punt.*Touchdown.*Turnover/);
+    expect(feed()).toHaveTextContent(/Touchdown.*Turnover.*Punt.*Field goal/);
   });
 
   it("puts a picked play on the field", () => {
@@ -970,19 +975,22 @@ describe("GameDetail watching with spoilers hidden", () => {
   });
 
   it("says the game is over beside where the viewer is in it", () => {
-    renderDetail(hidden);
+    // With the result shown, the label says so only once the row stands at
+    // a play; hidden, it is the way to the end from the start.
+    renderDetail({ ...hidden, showSpoilers: true });
     expect(screen.queryByText(/· Final/)).not.toBeInTheDocument();
     startWatching();
     forward();
     forward();
     expect(screen.getByText(/· Final/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /see the game to the end/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("sees the game to the end from the Final label", () => {
     renderDetail(hidden);
-    expect(
-      screen.queryByRole("button", { name: /see the game to the end/ }),
-    ).not.toBeInTheDocument();
+    expect(button(/final: see the game to the end/)).toBeInTheDocument();
     startWatching();
     forward();
     forward();
@@ -995,13 +1003,6 @@ describe("GameDetail watching with spoilers hidden", () => {
     expect(
       screen.queryByRole("button", { name: /see the game to the end/ }),
     ).not.toBeInTheDocument();
-  });
-
-  it("tells a finger about the covered score only while one is covered", () => {
-    renderDetail(hidden);
-    expect(screen.getByText(/Tap a covered score/)).toBeInTheDocument();
-    startWatching();
-    expect(screen.queryByText(/Tap a covered score/)).not.toBeInTheDocument();
   });
 
   it("picks up where the viewer left off", () => {
@@ -1033,8 +1034,8 @@ describe("GameDetail watching with spoilers hidden", () => {
     renderDetail(hidden);
     expect(screen.getByText("Final")).toBeInTheDocument();
     expect(covered()).toHaveLength(0);
-    // Watched to the end, so it reads from kickoff.
-    expect(feed()).toHaveTextContent(/1st Quarter.*Field Goal/);
+    // Watched to the end, so all of it is there.
+    expect(feed()).toHaveTextContent(/Field Goal.*1st Quarter/);
 
     // Watching again from the start finishes nothing over.
     startWatching();

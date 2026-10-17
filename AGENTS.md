@@ -381,9 +381,12 @@ far, and the snap itself as the last bar. `FieldView` draws the ball at the end
 of the last bar. With nothing selected, a live field follows the scoreboard and
 a finished one stays empty.
 
-A live game's feed is newest first; a finished game's is from kickoff. Either
-way a quarter heading precedes the first drive with a play in it
-(`drivesByQuarter()`).
+The feed is newest first whatever the game's state — live, finished, running
+or paused — since the newest play is always the viewer's place, and a feed
+that re-sorted on pause or at the final play would lose it. A quarter's rule
+sits beneath its drives (`drivesByQuarter()`). The drive holding the play on
+the field is open, or the newest with nothing on it; the rest fold, and
+toggle by hand.
 
 Replay steps through the game a frame at a time, manually or automatically.
 Each snap is two frames: lined up (ball on the line of scrimmage, down and
@@ -398,9 +401,9 @@ hidden live region announces the play on the field. Caught up with a live
 game (`isLive()`), there is no speed to choose: what arrives after a replay
 started plays at 1×.
 
-While running, the feed is newest first and holds back each play until its
-result frame (`drivesThrough()` also hides the cut drive's result); paused, it
-is the feed as browsed. With a play on the field the score row shows the state
+While running, the feed holds back each play until its result frame
+(`drivesThrough()` also hides the cut drive's result); paused, it is the feed
+as browsed. With a play on the field the score row shows the state
 at that point: possession, timeouts left in the half (`timeoutsLeft()`), and
 the quarter grid so far (`pointsByPeriod()`); picking it again clears it. The last
 play of a finished game reads "Final" with the winner marked. ESPN names the
@@ -602,16 +605,14 @@ Pausing or leaving stops it there; **Resume** replays from the place, at any
 speed, and on reaching the newest play is live again. Followed to the final
 play, the game is seen to the end.
 
-Tapping the covered score skips ahead: on a finished game it
-sees the game to the end (`finishGame()`); on a live one it joins at the newest
-play. Once a play is on the field or a place exists, the row shows figures
-instead of a covered score, and the panel's eyebrow label takes over: partway
-through a live game its **Live** label joins at the newest play, and partway
-through a finished one its **Final** label sees the game to the end. Add no
-button for any of these: with a pointer the hover state is the only hint, and
-a touch screen (`pointer-coarse`) gets one faint line under the row, while a
-score is covered, saying it can be tapped. A recap is watched outside the app and moves
-nothing.
+The panel's eyebrow label skips ahead: while the result is hidden, a live
+game's **Live** label joins at the newest play, and a finished game's
+**Final** label sees the game to the end (`finishGame()`). The same label
+in the same place, whether the score is covered or the row stands at a play.
+Tapping a covered score does the same. Add no button and no explanatory
+text for any of these: with a pointer the hover state is the only hint, and
+nothing is spelled out for a finger. A recap is watched outside the app and
+moves nothing.
 
 The place reveals nothing unseen, so it does not expire.
 
