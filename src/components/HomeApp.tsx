@@ -199,7 +199,11 @@ function HomeView({ registry, data }: HomeViewProps) {
         )}
       >
         <PaneSwitch pane={pane} tableName={tableName} onChange={setPane} />
-        <section aria-labelledby="schedule" className={paneClass("games")}>
+        <section
+          aria-labelledby="schedule"
+          // The week stepper sits at the foot of the pane, so no space below.
+          className={cn(paneClass("games"), "max-sm:pb-0")}
+        >
           <h2 id="schedule" className="sr-only">
             Schedule
           </h2>

@@ -54,6 +54,26 @@ export function formatDateTime(iso: string, timeZone: string): string | null {
   });
 }
 
+/**
+ * The days from one kickoff to another: "Oct 15–19", "Oct 30 – Nov 2", or
+ * "Feb 14" when both fall on one day.
+ */
+export function formatDayRange(
+  firstIso: string,
+  lastIso: string,
+  timeZone: string,
+): string | null {
+  const month = (iso: string) => format(iso, timeZone, { month: "short" });
+  const day = (iso: string) => format(iso, timeZone, { day: "numeric" });
+  const first = format(firstIso, timeZone, { month: "short", day: "numeric" });
+  const last = format(lastIso, timeZone, { month: "short", day: "numeric" });
+  if (first === null || last === null) return first ?? last;
+  if (first === last) return first;
+  return month(firstIso) === month(lastIso)
+    ? `${first}–${day(lastIso)}`
+    : `${first} – ${last}`;
+}
+
 /** The calendar day in that zone, "2026-10-11", for grouping. */
 export function dayKey(iso: string, timeZone: string): string | null {
   return format(iso, timeZone, {

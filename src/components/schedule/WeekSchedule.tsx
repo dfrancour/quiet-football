@@ -1,14 +1,27 @@
 "use client";
 
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
+import { useCallback, useRef, useState } from "react";
 import { Redacted } from "~/components/common/Redacted";
+import { Sheet } from "~/components/common/Sheet";
 import { CoveredTeam } from "~/components/playoffs/CoveredTeam";
 import { TeamLogo } from "~/components/team/TeamLogo";
 import { useNow } from "~/hooks/useNow";
 import { useBroadcastClock, useBroadcastDelay } from "~/hooks/useBroadcast";
 import { broadcastPhase } from "~/lib/broadcast-delay";
 import { useTimeZone } from "~/hooks/useTimeZone";
-import { dayKey, formatLongDate, formatTime } from "~/lib/dates";
+import {
+  dayKey,
+  formatDayRange,
+  formatLongDate,
+  formatTime,
+} from "~/lib/dates";
 import { type GateGame } from "~/lib/playoffs";
 import { teamPath } from "~/lib/routes";
 import { formatRecord, gamePhase, type GamePhase } from "~/lib/schedule";
@@ -16,6 +29,7 @@ import {
   playoffRound,
   ROUND_ABBREVIATIONS,
   ROUND_NAMES,
+  weekName,
   weekParam,
 } from "~/lib/season-calendar";
 import { type BoardGame } from "~/lib/score.schema";
@@ -328,12 +342,15 @@ function WeekButton({
   week,
   currentWeek,
   totalWeeks,
+  cell,
   onChange,
 }: {
   entry: number;
   week: number;
   currentWeek: number;
   totalWeeks: number;
+  /** In the sheet's grid: a fingertip-sized cell, not a figure on a line. */
+  cell: boolean;
   onChange: (week: number) => void;
 }) {
   const round = playoffRound(totalWeeks, entry);
@@ -349,9 +366,11 @@ function WeekButton({
       }
       onClick={() => onChange(entry)}
       className={cn(
-        "relative shrink-0 cursor-pointer rounded-md pt-2 pb-2.5 text-center font-mono text-xs tabular-nums transition-colors",
-        // A round's name is wider than a week's number.
-        round ? "px-2" : "min-w-0 flex-1",
+        "relative cursor-pointer rounded-md text-center font-mono text-xs tabular-nums transition-colors",
+        cell
+          ? "h-11 min-w-0"
+          : // A round's name is wider than a week's number.
+            cn("shrink-0 pt-2 pb-2.5", round ? "px-2" : "min-w-0 flex-1"),
         entry === week
           ? "text-ink font-semibold"
           : cn(
@@ -365,7 +384,8 @@ function WeekButton({
       {(entry === week || entry === currentWeek) && (
         <span
           className={cn(
-            "absolute bottom-0 left-1/2 w-3 -translate-x-1/2 rounded-full",
+            "absolute left-1/2 w-3 -translate-x-1/2 rounded-full",
+            cell ? "bottom-1.5" : "bottom-0",
             entry === week ? "bg-accent-strong h-0.5" : "bg-ink-faint h-px",
           )}
         />
@@ -375,20 +395,23 @@ function WeekButton({
 }
 
 /**
- * The regular season's weeks on one line and, once set, the playoff rounds on
- * a line beneath; neither ever scrolls.
+ * Every week to pick from: on a line, the regular season and then each
+ * playoff round set so far, sharing its width so it never scrolls; as a
+ * grid, the weeks in rows of nine and the rounds beneath.
  */
 function WeekChooser({
   week,
   weeks,
   currentWeek,
   totalWeeks,
+  grid,
   onChange,
 }: {
   week: number;
   weeks: readonly number[];
   currentWeek: number;
   totalWeeks: number;
+  grid: boolean;
   onChange: (week: number) => void;
 }) {
   const regular = weeks.filter((entry) => entry <= totalWeeks);
@@ -400,19 +423,115 @@ function WeekChooser({
       week={week}
       currentWeek={currentWeek}
       totalWeeks={totalWeeks}
+      cell={grid}
       onChange={onChange}
     />
   );
 
-  return (
-    <div role="group" aria-label="Week" className="flex min-w-0 flex-col">
-      {/* The weeks share the line, however narrow; nothing scrolls sideways.
-          On a phone a line would be too tight to tap: two rows of nine. */}
-      <div className="grid min-w-0 grid-cols-9 gap-px sm:flex">
-        {regular.map(button)}
+  if (grid) {
+    return (
+      <div role="group" aria-label="Week" className="flex flex-col gap-px">
+        <div className="grid grid-cols-9 gap-px">{regular.map(button)}</div>
+        {rounds.length > 0 && (
+          <div className="grid grid-cols-4 gap-px">{rounds.map(button)}</div>
+        )}
       </div>
+    );
+  }
+  return (
+    <div role="group" aria-label="Week" className="flex min-w-0 gap-px">
+      {regular.map(button)}
       {rounds.length > 0 && (
-        <div className="flex gap-0.5">{rounds.map(button)}</div>
+        <span aria-hidden className="bg-edge mx-1 my-2 w-px shrink-0" />
+      )}
+      {rounds.map(button)}
+    </div>
+  );
+}
+
+/**
+ * A phone's week chooser, along the bottom within reach of a thumb: the week
+ * before and after either side of the shown week's name and days, which
+ * opens every week as a sheet; picking one closes it.
+ */
+function WeekStepper({
+  week,
+  weeks,
+  days,
+  currentWeek,
+  totalWeeks,
+  onChange,
+}: {
+  week: number;
+  weeks: readonly number[];
+  /** The shown week's days, "Oct 15–19"; null with no games to date it. */
+  days: string | null;
+  currentWeek: number;
+  totalWeeks: number;
+  onChange: (week: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const barRef = useRef<HTMLButtonElement>(null);
+  // Closed, focus goes back to the bar it came from.
+  const close = useCallback(() => {
+    setOpen(false);
+    barRef.current?.focus();
+  }, []);
+  const index = weeks.indexOf(week);
+  const before = weeks[index - 1];
+  const after = index === -1 ? undefined : weeks[index + 1];
+  const step = (to: number | undefined, label: string, Icon: LucideIcon) => (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={to === undefined}
+      onClick={() => to !== undefined && onChange(to)}
+      className="text-ink-muted hover:text-ink disabled:text-ink-faint/40 flex size-11 shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded-md transition-colors disabled:cursor-default"
+    >
+      <Icon className="size-5" aria-hidden />
+    </button>
+  );
+
+  return (
+    <div className="border-edge bg-surface sticky bottom-0 mt-auto flex items-center border-t py-1 sm:hidden">
+      {step(before, "Previous week", ChevronLeft)}
+      <button
+        ref={barRef}
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+        className="hover:bg-surface-raised/60 flex h-11 min-w-0 flex-1 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-md px-2 text-sm transition-colors"
+      >
+        <span className="text-ink truncate font-semibold">
+          {weekName(totalWeeks, week)}
+          {days && (
+            <span className="text-ink-muted font-normal">
+              {" · "}
+              {days}
+            </span>
+          )}
+        </span>
+        <ChevronUp className="text-ink-faint size-4 shrink-0" aria-hidden />
+      </button>
+      {step(after, "Next week", ChevronRight)}
+
+      {open && (
+        <Sheet label="Weeks" onClose={close}>
+          <div className="px-3 pt-1 pb-2">
+            <WeekChooser
+              week={week}
+              weeks={weeks}
+              currentWeek={currentWeek}
+              totalWeeks={totalWeeks}
+              grid
+              onChange={(entry) => {
+                onChange(entry);
+                close();
+              }}
+            />
+          </div>
+        </Sheet>
       )}
     </div>
   );
@@ -420,7 +539,8 @@ function WeekChooser({
 
 /**
  * One week of the league with a week chooser, playoff rounds after the
- * regular season. Each side links to its team's page on that week.
+ * regular season: a line above the games, or on a phone a stepper beneath
+ * them. Each side links to its team's page on that week.
  */
 export function WeekSchedule({
   games,
@@ -451,16 +571,26 @@ export function WeekSchedule({
   ];
 
   const boardById = new Map(board.map((entry) => [entry.gameId, entry]));
+  const first = shown[0];
+  const last = shown.at(-1);
+  const days =
+    first && last
+      ? formatDayRange(first.kickoff, last.kickoff, timeZone)
+      : null;
 
   return (
-    <div className="flex flex-col gap-4">
-      <WeekChooser
-        week={week}
-        weeks={weeks}
-        currentWeek={currentWeek}
-        totalWeeks={totalWeeks}
-        onChange={onWeekChange}
-      />
+    // On a phone the pane scrolls and the stepper keeps to its foot.
+    <div className="flex flex-col gap-4 max-sm:min-h-full">
+      <div className="max-sm:hidden">
+        <WeekChooser
+          week={week}
+          weeks={weeks}
+          currentWeek={currentWeek}
+          totalWeeks={totalWeeks}
+          grid={false}
+          onChange={onWeekChange}
+        />
+      </div>
 
       {shown.length === 0 ? (
         <p className="text-ink-muted text-sm">No games this week.</p>
@@ -521,6 +651,15 @@ export function WeekSchedule({
           ))}
         </div>
       )}
+
+      <WeekStepper
+        week={week}
+        weeks={weeks}
+        days={days}
+        currentWeek={currentWeek}
+        totalWeeks={totalWeeks}
+        onChange={onWeekChange}
+      />
     </div>
   );
 }

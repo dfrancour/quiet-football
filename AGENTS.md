@@ -275,9 +275,12 @@ for one: a two-way switch under the header, Schedule or Standings
 both stacked. There the page is exactly the viewport and does not scroll:
 the header and switch stay put and the pane shown scrolls beneath them.
 Section headings are screen-reader only.
-The chooser lists the regular season's weeks on one line (two rows of nine
-below `sm`) and, beneath, each playoff round once its games are known. The
-weeks share the line's width, so neither line ever scrolls.
+The chooser lists the regular season's weeks on one line and, after a
+hairline, each playoff round once its games are known. The weeks share the
+line's width, so it never scrolls. Below `sm` it is a stepper at the foot of
+the schedule instead, within reach of a thumb: the week before and after,
+either side of the week's name and days ("Week 6 · Oct 15–19"), which opens
+every week as a sheet in rows of nine, the rounds beneath.
 
 The standings are laid out NFC and AFC side by side, North, East, South, West
 down each; a row links to the team on the week the schedule shows (a bye week

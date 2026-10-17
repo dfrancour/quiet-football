@@ -215,6 +215,40 @@ describe("WeekSchedule", () => {
     expect(screen.getByRole("row")).toHaveClass("bg-accent/10");
   });
 
+  describe("on a phone", () => {
+    const step = (name: string) => screen.getByRole("button", { name });
+    const bar = () => screen.getByRole("button", { expanded: false });
+
+    it("names the shown week and its days", () => {
+      renderSchedule(false);
+      expect(bar()).toHaveTextContent("Week 5 · Oct 11");
+    });
+
+    it("steps a week either way, and no further than the season", () => {
+      renderSchedule(false);
+      fireEvent.click(step("Next week"));
+      expect(bar()).toHaveTextContent("Week 6 · Oct 18");
+      expect(links()).toEqual(["/team/GB?week=6", "/team/CHI?week=6"]);
+      fireEvent.click(step("Previous week"));
+      expect(bar()).toHaveTextContent("Week 5");
+
+      renderSchedule(false, { currentWeek: 1 });
+      expect(
+        screen.getAllByRole("button", { name: "Previous week" })[1],
+      ).toBeDisabled();
+    });
+
+    it("opens every week as a sheet, closed by a pick", () => {
+      renderSchedule(false);
+      fireEvent.click(bar());
+      const sheet = screen.getByRole("dialog", { name: "Weeks" });
+      fireEvent.click(within(sheet).getByRole("button", { name: "6" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(bar()).toHaveTextContent("Week 6");
+      expect(bar()).toHaveFocus();
+    });
+  });
+
   describe("in the playoffs", () => {
     const wildCard: WeekGame = {
       ...played,
@@ -230,6 +264,10 @@ describe("WeekSchedule", () => {
       const round = screen.getByRole("button", { name: "Wild Card" });
       expect(round).toHaveTextContent("WC");
       expect(round).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { expanded: false })).toHaveTextContent(
+        "Wild Card · Jan 16",
+      );
+      expect(screen.getByRole("button", { name: "Next week" })).toBeDisabled();
       expect(
         screen.queryByRole("button", { name: "Divisional Round" }),
       ).not.toBeInTheDocument();

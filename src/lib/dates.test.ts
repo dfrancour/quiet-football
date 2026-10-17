@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dayKey,
   formatDateTime,
+  formatDayRange,
   formatLongDate,
   formatShortDate,
   formatTime,
@@ -33,5 +34,37 @@ describe("kickoff dates", () => {
 
   it("gives nothing for a date it cannot read", () => {
     expect(formatShortDate("TBD", "UTC")).toBeNull();
+  });
+});
+
+describe("formatDayRange", () => {
+  it("names a week's days, its month once", () => {
+    expect(
+      formatDayRange(
+        "2026-10-16T00:15:00Z",
+        MONDAY_NIGHT.replace("10-13", "10-20"),
+        "America/New_York",
+      ),
+    ).toBe("Oct 15–19");
+  });
+
+  it("names both months when the week crosses one", () => {
+    expect(
+      formatDayRange(
+        "2026-10-30T00:15:00Z",
+        "2026-11-03T01:15:00Z",
+        "America/New_York",
+      ),
+    ).toBe("Oct 29 – Nov 2");
+  });
+
+  it("names one day once", () => {
+    expect(
+      formatDayRange(
+        "2027-02-14T23:30:00Z",
+        "2027-02-14T23:30:00Z",
+        "America/New_York",
+      ),
+    ).toBe("Feb 14");
   });
 });
