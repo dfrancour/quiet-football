@@ -4,7 +4,8 @@ import { createLocalStore } from "~/lib/local-store";
 /**
  * The viewer's place in each game: the furthest play they have seen. It only
  * moves forward, since a play once seen cannot be unseen, and it reveals
- * nothing unseen, so unlike the spoiler cookie it does not expire.
+ * nothing unseen, so unlike the spoiler cookie it does not expire; only
+ * hiding every spoiler clears it.
  */
 const progressSchema = z.object({
   /** The furthest play whose result the viewer has seen; null for none. */
@@ -51,4 +52,9 @@ export function finishGames(gameIds: readonly string[]): void {
 /** The viewer uncovered a finished game: it reads as watched to the end. */
 export function finishGame(gameId: string): void {
   finishGames([gameId]);
+}
+
+/** The viewer hid everything: no game keeps a place. */
+export function clearWatchProgress(): void {
+  store.set({});
 }

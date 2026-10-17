@@ -76,6 +76,16 @@ describe("useSpoilers", () => {
     expect(result.current.through).toBe(0);
   });
 
+  it("hiding everything covers every game watched, in part or to the end", () => {
+    recordWatchProgress("b", { playId: null, finished: true });
+    recordWatchProgress("c", { playId: "p1", finished: false });
+    const result = through(7);
+    act(() => result.current.catchUp(0));
+    expect(getWatchProgress()).toEqual({});
+    expect(result.current.isShown({ gameId: "b", week: 8 })).toBe(false);
+    expect(result.current.isShown({ gameId: "c", week: 8 })).toBe(false);
+  });
+
   describe("the week in progress", () => {
     const inProgress = { week: 20, finalGameIds: ["d1", "d2"] };
 

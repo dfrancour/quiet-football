@@ -558,9 +558,11 @@ season's weeks, a popover from `sm` up and below it a sheet (`Sheet`, shared
 with the team page's schedule) with the weeks in rows of nine so each is a
 fingertip wide, closing on a pick: any week up to `settledThrough()` (the last week with every game in
 it and before it final or canceled, so a week still being played is never
-offered), or none, which hides everything again. The week is **stored, not
-relative**: when the league moves on, the viewer stays where they were. The
-home page opens on the week after it, if the league is past that.
+offered), or none, which hides everything again: it also drops every game's
+place (`clearWatchProgress()`), so a game watched in part or seen to the
+end is covered again. The week is **stored, not relative**: when the league
+moves on, the viewer stays where they were. The home page opens on the week
+after it, if the league is past that.
 
 The week in progress is offered too, once a game in it is over
 (`weekInProgress()`, `src/lib/week.ts`): half a cell, split corner to corner,
@@ -612,8 +614,9 @@ week caught up through.
 
 - the place only moves forward. A play once seen cannot be unseen, so
   stepping back, pausing early or watching again from kickoff leaves it
-  where it was, and a game seen to the end stays so. A snap paused while
-  still lined up was never played, so the play before it is the place
+  where it was, and a game seen to the end stays so. Only **Hide all** in
+  the spoilers control clears it, for every game at once. A snap paused
+  while still lined up was never played, so the play before it is the place
 - before any of it is watched, the panel offers **Watch from kickoff** in
   place of the feed, over an empty field and masked score; the plays are
   not even fetched until then

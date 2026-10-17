@@ -12,7 +12,7 @@ import {
   subscribeToCaughtUp,
 } from "~/lib/spoilers";
 import { type TeamGame } from "~/lib/team-view";
-import { finishGames } from "~/lib/watch-progress";
+import { clearWatchProgress, finishGames } from "~/lib/watch-progress";
 import { type WeekInProgress } from "~/lib/week";
 
 export interface CaughtUpState {
@@ -72,12 +72,17 @@ export function useSpoilers({
   /**
    * Caught up through this week of the season, or none; other seasons keep
    * theirs. The week in progress catches up through every settled week and
-   * takes its finished games as seen, which stays so: a game seen to the end
-   * is never unseen.
+   * takes its finished games as seen, which stays so while going back: a
+   * game seen to the end is never unseen. Hiding everything is the one
+   * exception: it drops every game's place too, so nothing partly or wholly
+   * watched stays revealed.
    */
   const catchUp = useCallback(
     (week: number) => {
-      if (inProgress && week === inProgress.week) {
+      if (week === 0) {
+        catchUpThrough(season, 0);
+        clearWatchProgress();
+      } else if (inProgress && week === inProgress.week) {
         catchUpThrough(season, Math.max(through, settledThrough));
         finishGames(inProgress.finalGameIds);
       } else {
