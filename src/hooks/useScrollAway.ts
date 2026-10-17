@@ -9,20 +9,23 @@ const TOP_PX = 48;
 
 /**
  * Whether a bar along the bottom of the page should be out of the way: once
- * the viewer scrolls down, until they scroll back up, near the top, or reach
- * the end, where there is nothing more to read under it.
+ * the viewer scrolls down, until they scroll back up or near the top. The
+ * page leaves room for the bar at its end, so reaching it hides nothing.
  */
 export function useScrollAway(): boolean {
   const [away, setAway] = useState(false);
 
   useEffect(() => {
-    let last = window.scrollY;
+    // A bounce past either end of the page is not a scroll either way.
+    const position = () =>
+      Math.min(
+        Math.max(window.scrollY, 0),
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+    let last = position();
     const onScroll = () => {
-      const y = window.scrollY;
-      const atEnd =
-        y + window.innerHeight >=
-        document.documentElement.scrollHeight - STEP_PX;
-      if (y < TOP_PX || atEnd) {
+      const y = position();
+      if (y < TOP_PX) {
         setAway(false);
         last = y;
         return;

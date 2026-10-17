@@ -332,8 +332,9 @@ the bottom (`ScheduleSwitcher`), as the league page's week stepper is: the
 week before and after (a bye included) either side of the selected game's
 name, which opens the same `ScheduleSelector` as a sheet; picking a game
 closes it. The bar slides away as the page scrolls down and back as it
-scrolls up, near the top, or at the end (`useScrollAway`). The game and the schedule are never on screen together on a phone. The
-site's mark in the header gains a chevron there, reading as the way back.
+scrolls up or nears the top (`useScrollAway`). The game and the schedule
+are never on screen together on a phone. The site's mark in the header
+gains a chevron there, reading as the way back.
 
 `GameDetail` branches on `gamePhase()` of the **selected** game:
 
@@ -371,9 +372,12 @@ naming it) shows the week and "Bye", and nothing else.
 ### Selection is derived
 
 `pickedGameId` starts as the game `?week=` names, or null, meaning "use the
-default". The selection is `pickedGameId ?? defaultGameId`, so an explicit
-pick sticks as the default moves and no effect writes selection state. The
-default is live, then imminent, then most recently played.
+default". A pick writes its week to the URL in place
+(`history.replaceState`), so a reload lands on the same game and the back
+button does not step through every game looked at. The selection is
+`pickedGameId ?? defaultGameId`, so an explicit pick sticks as the default
+moves and no effect writes selection state. The default is live, then
+imminent, then most recently played.
 
 `TeamApp` keys `TeamView` by season and team so changing either resets the
 selection.

@@ -17,9 +17,9 @@ import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
 import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
 import { type LoadedPlayByPlay, playByPlayQuery } from "~/lib/queries";
-import { standingsPath } from "~/lib/routes";
+import { standingsPath, teamPath } from "~/lib/routes";
 import { defaultGameId, gamePhase } from "~/lib/schedule";
-import { parseWeekParam } from "~/lib/season-calendar";
+import { parseWeekParam, weekParam } from "~/lib/season-calendar";
 import { extractTeamScore } from "~/lib/score";
 import { buildTeamSchedule } from "~/lib/team-view";
 import { teamByAbbreviation } from "~/lib/teams";
@@ -98,10 +98,10 @@ function TeamView({ registry, data, team }: TeamViewProps) {
 
   // Null follows the default; an explicit pick sticks as the default moves.
   // A bye week can be picked too, and shows nothing but itself.
-  const weekParam = useSearchParams().get("week") ?? undefined;
+  const weekQuery = useSearchParams().get("week") ?? undefined;
   const [pick, setPick] = useState<{ gameId: string } | { bye: number } | null>(
     () => {
-      const week = parseWeekParam(seasonFile.totalWeeks, weekParam);
+      const week = parseWeekParam(seasonFile.totalWeeks, weekQuery);
       if (week === null) return null;
       const game = fullSchedule.games.find((entry) => entry.week === week);
       if (game) return { gameId: game.gameId };
@@ -110,8 +110,33 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   );
   const pickedGameId = pick && "gameId" in pick ? pick.gameId : null;
   const selectedBye = pick && "bye" in pick ? pick.bye : null;
-  const selectGame = useCallback((gameId: string) => setPick({ gameId }), []);
-  const selectBye = useCallback((bye: number) => setPick({ bye }), []);
+  // A pick is kept in the URL, in place, so a reload lands on it again.
+  const totalWeeks = seasonFile.totalWeeks;
+  const abbreviation = team.abbreviation;
+  const showWeek = useCallback(
+    (week: number) =>
+      window.history.replaceState(
+        null,
+        "",
+        teamPath(abbreviation, weekParam(totalWeeks, week)),
+      ),
+    [abbreviation, totalWeeks],
+  );
+  const selectGame = useCallback(
+    (gameId: string) => {
+      setPick({ gameId });
+      const game = fullSchedule.games.find((entry) => entry.gameId === gameId);
+      if (game) showWeek(game.week);
+    },
+    [fullSchedule.games, showWeek],
+  );
+  const selectBye = useCallback(
+    (bye: number) => {
+      setPick({ bye });
+      showWeek(bye);
+    },
+    [showWeek],
+  );
 
   const record = useMemo(
     () => recordThrough(schedule.games),

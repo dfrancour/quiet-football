@@ -35,15 +35,16 @@ describe("useScrollAway", () => {
     expect(result.current).toBe(false);
   });
 
-  it("comes back at the end of the page", () => {
+  it("stays away through a bounce past the end of the page", () => {
     Object.defineProperty(document.documentElement, "scrollHeight", {
       value: window.innerHeight + 400,
       configurable: true,
     });
     const { result } = renderHook(() => useScrollAway());
-    scrollTo(200);
-    expect(result.current).toBe(true);
     scrollTo(400);
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
+    scrollTo(460);
+    scrollTo(400);
+    expect(result.current).toBe(true);
   });
 });
