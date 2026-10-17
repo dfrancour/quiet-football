@@ -29,6 +29,8 @@ function renderSwitcher(selected = played) {
     <ScheduleSwitcher
       schedule={makeTeamSchedule([played, next])}
       selectedGame={selected}
+      selectedBye={null}
+      onSelectBye={() => undefined}
       onSelect={onSelect}
       isShown={() => false}
       now={NOW}

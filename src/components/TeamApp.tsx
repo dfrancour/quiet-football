@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoadFailed, Loading } from "~/components/common/LoadState";
+import { ByeWeek } from "~/components/game/ByeWeek";
 import { GameDetail } from "~/components/game/GameDetail";
 import { AppHeader } from "~/components/layout/AppHeader";
 import { ScheduleSelector } from "~/components/schedule/ScheduleSelector";
@@ -95,14 +96,21 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   );
 
   // Null follows the default; an explicit pick sticks as the default moves.
-  // A week with no game (a bye) opens on the default.
+  // A bye week can be picked too, and shows nothing but itself.
   const weekParam = useSearchParams().get("week") ?? undefined;
-  const [pickedGameId, setPickedGameId] = useState<string | null>(() => {
-    const week = parseWeekParam(seasonFile.totalWeeks, weekParam);
-    return (
-      fullSchedule.games.find((game) => game.week === week)?.gameId ?? null
-    );
-  });
+  const [pick, setPick] = useState<{ gameId: string } | { bye: number } | null>(
+    () => {
+      const week = parseWeekParam(seasonFile.totalWeeks, weekParam);
+      if (week === null) return null;
+      const game = fullSchedule.games.find((entry) => entry.week === week);
+      if (game) return { gameId: game.gameId };
+      return fullSchedule.byeWeeks.includes(week) ? { bye: week } : null;
+    },
+  );
+  const pickedGameId = pick && "gameId" in pick ? pick.gameId : null;
+  const selectedBye = pick && "bye" in pick ? pick.bye : null;
+  const selectGame = useCallback((gameId: string) => setPick({ gameId }), []);
+  const selectBye = useCallback((bye: number) => setPick({ bye }), []);
 
   const record = useMemo(
     () => recordThrough(schedule.games),
@@ -117,7 +125,8 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   // A pick that is covered (a playoff URL, say) falls back to the default.
   const picked =
     schedule.games.find((game) => game.gameId === pickedGameId) ?? null;
-  const selectedGameId = picked?.gameId ?? openingGameId;
+  const selectedGameId =
+    selectedBye !== null ? null : (picked?.gameId ?? openingGameId);
   const selectedGame =
     schedule.games.find((game) => game.gameId === selectedGameId) ?? null;
   const recaps = useRecaps(seasonFile, registry, selectedGame);
@@ -220,7 +229,9 @@ function TeamView({ registry, data, team }: TeamViewProps) {
             <ScheduleSelector
               schedule={schedule}
               selectedGameId={selectedGameId}
-              onSelect={setPickedGameId}
+              selectedBye={selectedBye}
+              onSelect={selectGame}
+              onSelectBye={selectBye}
               isShown={spoilers.isShown}
               now={now}
             />
@@ -233,33 +244,39 @@ function TeamView({ registry, data, team }: TeamViewProps) {
               <ScheduleSwitcher
                 schedule={schedule}
                 selectedGame={selectedGame}
-                onSelect={setPickedGameId}
+                selectedBye={selectedBye}
+                onSelect={selectGame}
+                onSelectBye={selectBye}
                 isShown={spoilers.isShown}
                 now={now}
               />
             </div>
           )}
-          <GameDetail
-            game={selectedGame}
-            now={now}
-            team={schedule.team}
-            score={score}
-            scoreError={selectedWeek?.error?.message ?? null}
-            scoreUpdatedAt={selectedWeek ? selectedWeek.updatedAt : null}
-            showSpoilers={
-              selectedGame !== null && spoilers.isShown(selectedGame)
-            }
-            // The record reveals games the viewer did not uncover.
-            showRecords={
-              selectedGame !== null &&
-              spoilers.showsRecordsBefore(selectedGame.week)
-            }
-            recaps={recaps}
-            playByPlay={playByPlay}
-            onLoadPlays={playable && !playsWanted ? loadPlays : undefined}
-            expanded={expanded}
-            onToggleExpanded={toggleExpanded}
-          />
+          {selectedBye !== null ? (
+            <ByeWeek week={selectedBye} />
+          ) : (
+            <GameDetail
+              game={selectedGame}
+              now={now}
+              team={schedule.team}
+              score={score}
+              scoreError={selectedWeek?.error?.message ?? null}
+              scoreUpdatedAt={selectedWeek ? selectedWeek.updatedAt : null}
+              showSpoilers={
+                selectedGame !== null && spoilers.isShown(selectedGame)
+              }
+              // The record reveals games the viewer did not uncover.
+              showRecords={
+                selectedGame !== null &&
+                spoilers.showsRecordsBefore(selectedGame.week)
+              }
+              recaps={recaps}
+              playByPlay={playByPlay}
+              onLoadPlays={playable && !playsWanted ? loadPlays : undefined}
+              expanded={expanded}
+              onToggleExpanded={toggleExpanded}
+            />
+          )}
         </div>
       </div>
     </div>

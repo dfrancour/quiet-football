@@ -56,6 +56,8 @@ interface StandingsTablesProps {
   favoriteTeamId?: string | null;
   /** Points at a team, or at nothing. */
   onPoint?: (teamIds: readonly string[]) => void;
+  /** The week a team's page opens on, as `weekParam()` names it; its default if absent. */
+  week?: string;
 }
 
 const NOTHING: ReadonlySet<string> = new Set();
@@ -68,11 +70,13 @@ function DivisionTable({
   highlighted,
   favoriteTeamId,
   onPoint,
+  week,
 }: {
   conference: Conference;
   division: Division;
   rows: StandingsLine[];
-} & Required<Omit<StandingsTablesProps, "standings">>) {
+} & Required<Omit<StandingsTablesProps, "standings" | "week">> &
+  Pick<StandingsTablesProps, "week">) {
   // The order reveals results, so hidden divisions list alphabetically.
   const ordered = showSpoilers
     ? rows
@@ -103,7 +107,7 @@ function DivisionTable({
             <th scope="row" className="py-2 pr-2 pl-1 text-left font-normal">
               {/* The overlay makes the whole row one target and ring. */}
               <Link
-                href={teamPath(team.abbreviation)}
+                href={teamPath(team.abbreviation, week)}
                 className="text-ink focus-visible:after:outline-accent-strong flex items-center gap-2 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2"
               >
                 <TeamLogo team={team} />
@@ -140,6 +144,7 @@ export function StandingsTables({
   highlighted = NOTHING,
   favoriteTeamId = null,
   onPoint = () => undefined,
+  week,
 }: StandingsTablesProps) {
   return (
     <div className="grid grid-cols-2 gap-x-6">
@@ -158,6 +163,7 @@ export function StandingsTables({
               highlighted={highlighted}
               favoriteTeamId={favoriteTeamId}
               onPoint={onPoint}
+              week={week}
             />
           ))}
         </div>

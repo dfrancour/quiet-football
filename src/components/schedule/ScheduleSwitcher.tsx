@@ -13,7 +13,10 @@ import { type TeamGame, type TeamSchedule } from "~/lib/team-view";
 interface ScheduleSwitcherProps {
   schedule: TeamSchedule;
   selectedGame: TeamGame | null;
+  /** The bye week selected, if one is. */
+  selectedBye: number | null;
   onSelect: (gameId: string) => void;
+  onSelectBye: (week: number) => void;
   isShown: (game: TeamGame) => boolean;
   now: number | null;
 }
@@ -26,7 +29,9 @@ interface ScheduleSwitcherProps {
 export function ScheduleSwitcher({
   schedule,
   selectedGame,
+  selectedBye,
   onSelect,
+  onSelectBye,
   isShown,
   now,
 }: ScheduleSwitcherProps) {
@@ -41,6 +46,10 @@ export function ScheduleSwitcher({
 
   const pick = (gameId: string) => {
     onSelect(gameId);
+    close();
+  };
+  const pickBye = (week: number) => {
+    onSelectBye(week);
     close();
   };
 
@@ -68,6 +77,11 @@ export function ScheduleSwitcher({
               </span>
             </span>
           </>
+        ) : selectedBye !== null ? (
+          <span className="text-ink min-w-0 flex-1 truncate text-sm font-semibold">
+            Week {selectedBye}
+            <span className="text-ink-muted font-normal">{" · Bye"}</span>
+          </span>
         ) : (
           <span className="text-ink-muted flex-1 text-sm">Schedule</span>
         )}
@@ -79,7 +93,9 @@ export function ScheduleSwitcher({
           <ScheduleSelector
             schedule={schedule}
             selectedGameId={selectedGame?.gameId ?? null}
+            selectedBye={selectedBye}
             onSelect={pick}
+            onSelectBye={pickBye}
             isShown={isShown}
             now={now}
           />

@@ -43,6 +43,8 @@ function renderSelector(
     <ScheduleSelector
       schedule={makeTeamSchedule([finalGame, futureGame])}
       selectedGameId="played"
+      selectedBye={null}
+      onSelectBye={() => undefined}
       onSelect={onSelect}
       isShown={() => false}
       now={KICKOFF_MS + 5 * 24 * 60 * 60 * 1000}
@@ -90,7 +92,11 @@ describe("ScheduleSelector results", () => {
     renderSelector();
     expect(screen.queryByText("T 0-0")).not.toBeInTheDocument();
     // The future row carries its date and nothing resembling a result.
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(
+      screen
+        .getAllByRole("button")
+        .filter((row) => !/bye/i.test(row.textContent ?? "")),
+    ).toHaveLength(2);
   });
 });
 
@@ -111,12 +117,26 @@ describe("ScheduleSelector navigation", () => {
     expect(current).toHaveLength(1);
   });
 
-  it("renders a bye week as plain text, not a choice", () => {
+  it("lets a bye week be picked and marks it when selected", async () => {
+    const onSelectBye = vi.fn();
     renderSelector({
       schedule: makeTeamSchedule([finalGame], { byeWeeks: [6] }),
+      onSelectBye,
     });
-    expect(screen.getByText("Bye")).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    await userEvent.click(screen.getByRole("button", { name: /bye/i }));
+    expect(onSelectBye).toHaveBeenCalledWith(6);
+  });
+
+  it("marks a selected bye week as current", () => {
+    renderSelector({
+      schedule: makeTeamSchedule([finalGame], { byeWeeks: [6] }),
+      selectedGameId: null,
+      selectedBye: 6,
+    });
+    expect(screen.getByRole("button", { name: /bye/i })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
   });
 });
 

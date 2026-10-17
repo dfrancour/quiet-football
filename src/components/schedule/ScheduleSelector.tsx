@@ -15,7 +15,10 @@ import { cn } from "~/lib/utils";
 interface ScheduleSelectorProps {
   schedule: TeamSchedule;
   selectedGameId: string | null;
+  /** The bye week selected, if one is. */
+  selectedBye: number | null;
   onSelect: (gameId: string) => void;
+  onSelectBye: (week: number) => void;
   /** Whether a game's result is shown: caught up through it, or uncovered. */
   isShown: (game: TeamGame) => boolean;
   /** Null until the clock mounts; live markers wait for it. */
@@ -118,7 +121,9 @@ function StatusCell({
 export function ScheduleSelector({
   schedule,
   selectedGameId,
+  selectedBye,
   onSelect,
+  onSelectBye,
   isShown,
   now,
 }: ScheduleSelectorProps) {
@@ -143,7 +148,7 @@ export function ScheduleSelector({
     else if (bottom > list.scrollTop + list.clientHeight) {
       list.scrollTop = bottom - list.clientHeight;
     }
-  }, [selectedGameId]);
+  }, [selectedGameId, selectedBye]);
 
   return (
     <ul
@@ -154,21 +159,39 @@ export function ScheduleSelector({
     >
       {rows.map((row) => {
         if (row.kind === "bye") {
+          const isSelected = row.week === selectedBye;
           return (
-            <li
-              key={`bye-${row.week}`}
-              className="flex items-center gap-3 py-2 pr-1 pl-3"
-            >
-              <span
+            <li key={`bye-${row.week}`}>
+              <button
+                type="button"
+                onClick={() => onSelectBye(row.week)}
+                aria-current={isSelected ? "true" : undefined}
                 className={cn(
-                  "text-ink-faint shrink-0 font-mono text-xs",
-                  weekWidth,
+                  "relative flex w-full cursor-pointer items-center gap-3 rounded-sm py-2 pr-1 pl-3 text-left transition-colors",
+                  isSelected
+                    ? "before:bg-accent-strong before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full"
+                    : "hover:bg-surface-raised/60",
                 )}
               >
-                {row.week}
-              </span>
-              <span className="size-5 shrink-0" aria-hidden />
-              <span className="text-ink-faint text-sm italic">Bye</span>
+                <span
+                  className={cn(
+                    "shrink-0 font-mono text-xs",
+                    weekWidth,
+                    isSelected ? "text-ink" : "text-ink-faint",
+                  )}
+                >
+                  {row.week}
+                </span>
+                <span className="size-5 shrink-0" aria-hidden />
+                <span
+                  className={cn(
+                    "text-sm italic",
+                    isSelected ? "text-ink font-semibold" : "text-ink-faint",
+                  )}
+                >
+                  Bye
+                </span>
+              </button>
             </li>
           );
         }

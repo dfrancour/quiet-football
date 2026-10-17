@@ -19,7 +19,7 @@ import {
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
 import { buildBracket } from "~/lib/playoffs";
-import { playoffRound } from "~/lib/season-calendar";
+import { playoffRound, weekParam } from "~/lib/season-calendar";
 import { buildStandings } from "~/lib/standings";
 import { teamByAbbreviation } from "~/lib/teams";
 import { type TeamRegistry } from "~/lib/teams.schema";
@@ -242,6 +242,7 @@ function HomeView({ registry, data }: HomeViewProps) {
               highlighted={highlighted}
               favoriteTeamId={favoriteTeamId}
               onPoint={setPointed}
+              week={weekParam(totalWeeks, week)}
             />
           </section>
         )}

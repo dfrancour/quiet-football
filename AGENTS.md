@@ -267,7 +267,8 @@ below `sm`) and, beneath, each playoff round once its games are known. The
 weeks share the line's width, so neither line ever scrolls.
 
 The standings are laid out NFC and AFC side by side, North, East, South, West
-down each, and show each team's record, ESPN's seed inside the field and its
+down each; a row links to the team on the week the schedule shows (a bye week
+included), and shows each team's record, ESPN's seed inside the field and its
 clinch code (no Pct or streak). The table stays in view beside a long week.
 
 The schedule says who plays when; the bracket (`buildBracket()`,
@@ -345,6 +346,9 @@ column scrolls sideways if anything pokes past it.
 Keep the upcoming-game panel minimal: no score placeholders or empty recap
 slots. Every panel's details are one line, kickoff and network; the venue is
 not shown.
+
+A bye week is a row of the schedule like any other: picking it (or a `?week=`
+naming it) shows the week and "Bye", and nothing else.
 
 ### Selection is derived
 
