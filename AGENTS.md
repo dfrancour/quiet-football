@@ -35,7 +35,7 @@ the query layer is the cache.
 | `teams`                      | The 32 teams, with conference, division, color and logo | never in a session; saved for `teamsStaleMs`       |
 | `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..."         |
 | `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | as the scoreboard shows a new play; once when over |
-| `recaps`                     | The season's file from the recap dataset                | every `recapsPollMs` while a recap is awaited      |
+| `recaps`                     | The season's file from the recap dataset                | once a visit; see "Recaps"                         |
 
 Playoff marks are not a query of their own: `playoffMarksQuery` is the
 standings query with a `select`.
@@ -458,8 +458,7 @@ matching rules, their corpus of real titles, and the corrections a person
 made. A wrong or missing recap is fixed there, not here.
 
 `recapDatasetQuery` reads the season's file from the dataset's repository
-(`<url>/<season>.json`, `src/lib/recap-dataset.ts`), which GitHub serves with
-a five-minute cache, so it is never re-read sooner (`recapsPollMs`). `recapsFromDataset()` keys each `found` game by the game in the
+(`<url>/<season>.json`, `src/lib/recap-dataset.ts`), once a visit. `recapsFromDataset()` keys each `found` game by the game in the
 same week between the same two teams, whichever is home. The dataset numbers
 the postseason as the app does (Wild Card is week 19 of an 18-week season),
 so playoff games join the same way; keep the two in step. Preseason games,
@@ -473,8 +472,12 @@ never shows one.
 A final game's panel carries `RecapLink` in its top row, beside the
 full-screen control: a YouTube icon, out to YouTube since the NFL blocks
 embedding, drawn only once the dataset has linked a recap. Until then there is
-nothing, not a search. While the selected game is final, recent and unlinked,
-`useRecaps` re-reads the file every `recapsPollMs`.
+nothing, not a search. The dataset is built and pushed by a person on no
+schedule, so there is nothing to poll for and `useRecaps` never polls. The
+one reason to look again is the viewer turning to a recent final game that
+still has no recap, and then only if the file in hand is older than
+`recapsStaleMs` (an hour); a game from weeks ago, or the offseason, asks
+nothing.
 
 ## Other invariants
 

@@ -20,8 +20,12 @@ export const scoreConfig = {
   teamsStaleMs: 7 * 24 * 60 * 60_000,
   /** How long ESPN's standings, read for playoff seeds and clinch codes, are trusted. */
   marksStaleMs: 30 * 60_000,
-  /** How often a game waiting on its recap re-reads the season's recaps. */
-  recapsPollMs: 5 * 60_000,
+  /**
+   * How long the season's recaps are trusted once a viewer looks at a
+   * recent game still without one. The dataset is pushed by a person, so
+   * there is nothing to poll for; a recap takes hours to appear.
+   */
+  recapsStaleMs: 60 * 60_000,
   /** How long a game's play-by-play is kept after the panel leaves it. */
   summaryKeepMs: 60 * 60_000,
 } as const;
