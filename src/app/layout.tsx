@@ -3,6 +3,7 @@ import "~/styles/globals.css";
 import { type Metadata, type Viewport } from "next";
 import { Providers } from "~/app/providers";
 import { VercelAnalytics } from "~/components/layout/VercelAnalytics";
+import { PREFETCH_SCRIPT } from "~/lib/prefetch";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "~/lib/site";
 
 export const metadata: Metadata = {
@@ -47,6 +48,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        {/* A first visit's reads of ESPN start here, while the script loads. */}
+        <script dangerouslySetInnerHTML={{ __html: PREFETCH_SCRIPT }} />
+      </head>
       <body>
         {/* Every page reads ESPN as soon as it hydrates; open the connections while the script loads. */}
         <link

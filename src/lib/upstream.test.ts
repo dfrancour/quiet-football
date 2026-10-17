@@ -9,9 +9,41 @@ import {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete window.__prefetched;
 });
 
 describe("fetchUpstream", () => {
+  it("takes a response the head started instead of asking again", async () => {
+    const fetchMock = vi.fn(async () => Response.json({ fresh: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    window.__prefetched = new Map([
+      [
+        "https://example.test/x",
+        Promise.resolve(Response.json({ early: true })),
+      ],
+    ]);
+    await expect(fetchUpstream("https://example.test/x")).resolves.toEqual({
+      early: true,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    // Taken once: the next read is a request of its own.
+    await expect(fetchUpstream("https://example.test/x")).resolves.toEqual({
+      fresh: true,
+    });
+  });
+
+  it("asks again the ordinary way when the head's request failed", async () => {
+    const fetchMock = vi.fn(async () => Response.json({ fresh: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    window.__prefetched = new Map([
+      ["https://example.test/x", Promise.reject(new TypeError("Failed"))],
+    ]);
+    await expect(fetchUpstream("https://example.test/x")).resolves.toEqual({
+      fresh: true,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("returns the body, and names the host and status of a bad answer", async () => {
     vi.stubGlobal(
       "fetch",

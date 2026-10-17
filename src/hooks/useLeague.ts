@@ -77,10 +77,13 @@ function combineWeeks(results: UseQueryResult<LoadedBoard>[]): WeeksSoFar {
   const failures = results.filter((result) => result.isError && !result.data);
   const first = failures[0];
   if (first) {
+    // A playoff round waits on the week before it, so one failure can be
+    // reported by several weeks; it is one week out when all share a cause.
+    const causes = new Set(failures.map((result) => result.error));
     return {
       weeks: null,
       failed: {
-        week: failures.length === 1 ? results.indexOf(first) + 1 : null,
+        week: causes.size === 1 ? results.indexOf(first) + 1 : null,
         error: first.error!,
       },
       empty,

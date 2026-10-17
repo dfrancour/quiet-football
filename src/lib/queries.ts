@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { scoreConfig } from "~/lib/config";
 import { noteGameClock } from "~/lib/game-clocks";
 import { notePlayArrivals } from "~/lib/play-arrivals";
@@ -7,7 +7,11 @@ import { type PlayoffMarks } from "~/lib/playoff-marks.schema";
 import { extractPlayByPlay, SUMMARY_URL, summaryIsFinal } from "~/lib/plays";
 import { type PlayByPlay } from "~/lib/plays.schema";
 import { fetchRecapDataset } from "~/lib/recap-dataset";
-import { seasonWeeks } from "~/lib/season-calendar";
+import {
+  playoffRound,
+  regularSeasonWeeks,
+  seasonWeeks,
+} from "~/lib/season-calendar";
 import {
   readWeek,
   weekActivity,
@@ -112,16 +116,36 @@ function savedStillGood(board: WeekBoard, savedAt: number, at: number) {
 }
 
 /**
+ * Whether a playoff round can have its matchups yet: they come from the
+ * week before it (the Wild Card's from Week 18), so until that week is
+ * settled the round is empty, and ESPN need not be asked to say so. A
+ * regular-season week always can.
+ */
+async function roundIsSet(
+  client: QueryClient,
+  season: number,
+  week: number,
+): Promise<boolean> {
+  if (!playoffRound(regularSeasonWeeks(season), week)) return true;
+  const before = await client.ensureQueryData(weekQuery(season, week - 1));
+  return weekActivity(before.games, Date.now()) === "settled";
+}
+
+/**
  * One week's scoreboard. A week saved by an earlier visit stands in for ESPN
  * while it is good: for good once settled, for `aheadStaleMs` while ahead.
  * Fetched, it is saved for the next visit unless a game in it is under way.
  */
 async function fetchWeek(
+  client: QueryClient,
   season: number,
   week: number,
   signal: AbortSignal,
 ): Promise<LoadedBoard> {
   const at = Date.now();
+  if (!(await roundIsSet(client, season, week))) {
+    return { ...readWeek(season, week, { events: [] }), fetchedAt: at };
+  }
   const saved = savedWeek(season, week);
   if (saved) {
     const board = readWeek(season, week, saved.payload);
@@ -146,12 +170,13 @@ async function fetchWeek(
 /**
  * One week's scoreboard, playoff rounds included. Settled, it is never
  * fetched again; with a game under way it is polled; ahead, it is trusted
- * for hours from when it arrived, long enough to pick up a flexed game.
+ * for hours from when it arrived, long enough to pick up a flexed game. A
+ * playoff round is asked for only once the week before it is settled.
  */
 export function weekQuery(season: number, week: number) {
   return queryOptions({
     queryKey: ["week", season, week],
-    queryFn: ({ signal }) => fetchWeek(season, week, signal),
+    queryFn: ({ client, signal }) => fetchWeek(client, season, week, signal),
     staleTime: (query) => {
       const { data } = query.state;
       const now = Date.now();

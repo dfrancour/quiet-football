@@ -87,7 +87,10 @@ ESPN numbers the postseason from 1 with the Pro Bowl before the Super Bowl
 (week 5), so `weekScoreboardUrl()` maps each round to ESPN's week and
 `seasonGamesFromScoreboard()` finds the Super Bowl by its headline. A round
 ESPN has not set lists "TBD" teams with negative ids; those events are
-dropped, so the round is empty until its matchups arrive.
+dropped, so the round is empty until its matchups arrive. A round's matchups
+come from the week before it, so a round is asked of ESPN only once that
+week is settled (`roundIsSet`); until then it is an empty week, and ESPN
+is not asked to say so through the regular season.
 
 Records and standings count the regular season only (`isRegularSeason()`);
 a playoff game's `recordsBefore` is the record the team finished with.
@@ -201,6 +204,16 @@ and logo hosts so the connections are open by the time the script runs. If ESPN
 ever stops allowing cross-origin reads, the fix is one proxy in front of
 `site.api.espn.com` behind this module, or a slim committed data file for
 what changes slowly, not a server.
+
+A first visit's reads start before the script has loaded: an inline script
+in the page's head (`PREFETCH_SCRIPT`, `src/lib/prefetch.ts`) starts a fetch
+of each regular-season week and the standings that no earlier visit saved,
+and `fetchUpstream` takes the started response instead of asking again, so
+ESPN's answers are on the way while the bundle downloads. It skips anything
+saved, good or not, so a return visit starts nothing from the head, and a
+prefetch that failed is simply asked again the ordinary way. The script
+names the season and the weeks as `currentSeason()` and
+`weekScoreboardUrl()` do, and a test holds it to both.
 
 Logos are not fetched through it: `Team.logo` is ESPN's CDN URL and
 `TeamLogo` loads it directly, at the size it is drawn.

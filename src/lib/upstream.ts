@@ -4,6 +4,8 @@
  * the query layer's (`queries.ts`).
  */
 
+import { takePrefetched } from "~/lib/prefetch";
+
 /** ESPN answers in well under a second when it is up; a hang is told apart quickly. */
 const TIMEOUT_MS = 8_000;
 
@@ -73,15 +75,44 @@ function errorName(error: unknown): string | null {
     : null;
 }
 
+/** Rejects with the signal's reason once it aborts. */
+function abortion(signal: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    signal.addEventListener("abort", () => reject(signal.reason), {
+      once: true,
+    });
+  });
+}
+
+/**
+ * The response: one the page's head already started (`prefetch.ts`), held
+ * to the same timeout, or a fresh request. A prefetch that failed is asked
+ * again the ordinary way, so it can only ever save time.
+ */
+async function respond(url: string, signal?: AbortSignal): Promise<Response> {
+  const timeout = AbortSignal.timeout(TIMEOUT_MS);
+  const early = takePrefetched(url);
+  if (early) {
+    const settled = await Promise.race([
+      early.then(
+        (response) => ({ response }),
+        () => null,
+      ),
+      abortion(timeout),
+    ]);
+    if (settled) return settled.response;
+  }
+  return fetch(url, {
+    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+  });
+}
+
 /** A JSON body, or an `UpstreamError` naming the status. */
 export async function fetchUpstream(
   url: string,
   signal?: AbortSignal,
 ): Promise<unknown> {
-  const timeout = AbortSignal.timeout(TIMEOUT_MS);
-  const response = await fetch(url, {
-    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-  });
+  const response = await respond(url, signal);
   if (!response.ok) {
     throw new UpstreamError(
       `${new URL(url).host} responded ${response.status}`,

@@ -70,8 +70,9 @@ describe("useSeason", () => {
     expect(season.season).toBe(2026);
     expect(season.games).toHaveLength(18);
     expect(weeks.size).toBe(22);
-    // Regular season and the four rounds, each once.
-    expect(fetchMock).toHaveBeenCalledTimes(22);
+    // The regular season and the Wild Card round, each once; a round not
+    // yet set holds the rounds after it.
+    expect(fetchMock).toHaveBeenCalledTimes(19);
     expect(
       fetchMock.mock.calls.filter(
         ([url]) =>
@@ -94,7 +95,7 @@ describe("useSeason", () => {
     });
     await waitFor(() => expect(result.current.data).not.toBeNull());
     expect(result.current.data?.weeks.get(3)?.games).toHaveLength(1);
-    expect(fetchMock).toHaveBeenCalledTimes(21);
+    expect(fetchMock).toHaveBeenCalledTimes(18);
     expect(
       fetchMock.mock.calls.some(
         ([url]) =>
@@ -197,6 +198,46 @@ describe("useSeason", () => {
     vi.useRealTimers();
   });
 
+  it("asks for a playoff round only once the week before it is settled", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));
+    const fetchMock = stubFetch((url) => {
+      const { season, type, week } = params(url);
+      if (type === 3) return scoreboard(season, week, 0);
+      return week <= 6
+        ? scoreboard(season, week, 1)
+        : scoreboard(season, week, 1, SCHEDULED, LATER);
+    });
+    const { result } = renderHook(() => useSeason(), {
+      wrapper: queryWrapper(),
+    });
+    await waitFor(() => expect(result.current.data).not.toBeNull());
+    expect(result.current.data?.weeks.size).toBe(22);
+    expect(result.current.data?.weeks.get(19)?.games).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(18);
+    expect(
+      fetchMock.mock.calls.some(([url]) => params(String(url)).type === 3),
+    ).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("names the week that cannot be loaded when the rounds after it fail with it", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));
+    stubFetch((url) => {
+      const { season, type, week } = params(url);
+      if (type === 2 && week === 18) return new Response(null, { status: 503 });
+      return scoreboard(season, week, type === 2 ? 1 : 0);
+    });
+    const { result } = renderHook(() => useSeason(), {
+      wrapper: queryWrapper(),
+    });
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.error).toBeInstanceOf(WeekLoadError);
+    expect((result.current.error as WeekLoadError).weekName).toBe("Week 18");
+    vi.useRealTimers();
+  });
+
   it("fetches every week at once, waiting on nothing first", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));
@@ -205,7 +246,7 @@ describe("useSeason", () => {
       return scoreboard(season, week, type === 2 ? 1 : 0);
     });
     renderHook(() => useSeason(), { wrapper: queryWrapper() });
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(22));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(19));
     vi.useRealTimers();
   });
 

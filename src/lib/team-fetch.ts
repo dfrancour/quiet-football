@@ -15,7 +15,7 @@ import { fetchUpstream } from "~/lib/upstream";
  * carries (`teamColors`).
  */
 
-const STANDINGS_URL =
+export const STANDINGS_URL =
   "https://site.api.espn.com/apis/v2/sports/football/nfl/standings";
 
 const logoSchema = z.object({

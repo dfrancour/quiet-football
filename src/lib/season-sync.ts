@@ -35,7 +35,7 @@ const ESPN_ROUND_WEEKS: Readonly<Record<PlayoffRound, number>> = {
   "super-bowl": 5,
 };
 
-const SCOREBOARD_BASE =
+export const SCOREBOARD_BASE =
   "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 
 function scoreboardUrl(season: number, type: number, week: number): string {
