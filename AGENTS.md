@@ -394,8 +394,13 @@ distance only), then the result, animated as the bar grows and the ball moves
 to where the play ended. The set of downs stacks from the top so each bar keeps
 its place. Kicks and stoppages have only a result frame. There is one mode:
 whatever is on the field, picked or paused on, can be stepped from, and play
-runs on from it. With a play on the field, the controls — step, play/pause,
-speed — sit between field and feed; the arrow keys step as they do. With
+runs on from it. With a play on the field, the controls — a drive back or
+on, step, play/pause, speed — sit between field and feed; the arrow keys
+step as they do, and shifted skip a drive. A drive on lands on its last
+play's result (`skipIndex()`), the next drive's from there; a drive back
+lands on the drive before's end, so the field stands as this one began.
+Either way a running replay runs on from there. At the end of a finished
+game the play control reads **Watch again**. With
 nothing on it, the panel offers **Watch from kickoff** (or **Resume**). A
 hidden live region announces the play on the field. Caught up with a live
 game (`isLive()`), there is no speed to choose: what arrives after a replay
@@ -446,7 +451,9 @@ word; runs and passes are untagged.
 
 ESPN's summary has no short description per play, so `playHeadline()` builds
 one like ESPN's own feed: "7-yd Run", "Incompletion", "10-yd Sack", "56-yd
-Punt", "False Start". The yards are what the play gained per its text ("for 13
+Punt", "False Start". A stoppage's is in the feed's own words ("End of 1st
+Quarter", "Halftime"), not ESPN's "END QUARTER 1", and a timeout's is its
+text, which says who and when; the feed and the caption show it. The yards are what the play gained per its text ("for 13
 yards"), not ESPN's net, so a run nullified by holding still reads "13-yd Run",
 tagged with the penalty. Anything else falls back to ESPN's type name, and a
 test requires that no play in the corpus does.

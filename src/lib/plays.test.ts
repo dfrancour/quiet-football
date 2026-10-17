@@ -160,6 +160,11 @@ describe("play actions and outcomes", () => {
 
   it("heads a play the way ESPN's feed does: its kind and how far", () => {
     const headline = (pattern: RegExp) => byText(pattern).headline;
+    expect(headline(/^END QUARTER 1$/)).toBe("End of 1st Quarter");
+    expect(headline(/^END GAME$/)).toBe("End of game");
+    expect(headline(/^Timeout #1 by MIN at 01:30/)).toBe(
+      "Timeout #1 by MIN at 01:30",
+    );
     expect(headline(/^B\.Back right guard to MIN 34/)).toBe("6-yd Run");
     expect(headline(/pass short middle to T\.End to MIN 41/)).toBe("7-yd Pass");
     expect(headline(/pass incomplete deep left to W\.Wide/)).toBe(

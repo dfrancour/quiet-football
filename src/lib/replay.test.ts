@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { type Play } from "~/lib/plays.schema";
+import { type Drive } from "~/lib/plays.schema";
 import {
   IDLE_REPLAY,
   isLive,
   replayFrame,
   replayFrames,
+  skipIndex,
   type Replay,
 } from "~/lib/replay";
 import { DEFAULT_TIMING } from "~/lib/replay-timing";
@@ -151,6 +153,44 @@ describe("replayFrame", () => {
 
   it("holds still before the clock has started", () => {
     expect(at(running(), null)).toBe("a:snap");
+  });
+});
+
+describe("skipIndex", () => {
+  const drive = (id: string, plays: Play[]): Drive => ({
+    id,
+    offense: "home",
+    description: null,
+    result: null,
+    isScore: false,
+    inProgress: false,
+    plays,
+  });
+  // Kickoff and two snaps; then a snap and a punt; then a snap under way.
+  const drives = [
+    drive("d1", [play("k", "kick"), play("a"), play("b")]),
+    drive("d2", [play("c"), play("p", "kick")]),
+    drive("d3", [play("d")]),
+  ];
+  const all = replayFrames(drives.flatMap((each) => each.plays));
+  const at = (index: number) => `${all[index]?.playId}:${all[index]?.stage}`;
+
+  it("lands on the end of the drive, then the next drive's end", () => {
+    expect(at(skipIndex(all, drives, 1, 1))).toBe("b:result");
+    expect(at(skipIndex(all, drives, 4, 1))).toBe("p:result");
+    expect(at(skipIndex(all, drives, 7, 1))).toBe("d:result");
+  });
+
+  it("goes back to where the drive began: the drive before's end", () => {
+    expect(at(skipIndex(all, drives, 6, -1))).toBe("b:result");
+    expect(at(skipIndex(all, drives, 4, -1))).toBe("k:result");
+    expect(at(skipIndex(all, drives, 2, -1))).toBe("k:result");
+    expect(skipIndex(all, drives, 0, -1)).toBe(0);
+  });
+
+  it("ends at the last frame, however the last drive ends", () => {
+    expect(skipIndex(all, drives, all.length - 1, 1)).toBe(all.length - 1);
+    expect(at(skipIndex(all, drives, -1, 1))).toBe("b:result");
   });
 });
 

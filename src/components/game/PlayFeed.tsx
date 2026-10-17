@@ -22,6 +22,8 @@ interface PlayFeedProps {
   drives: Drive[];
   home: Team;
   away: Team;
+  /** The game is under way, so a drive on the field is live. */
+  ongoing?: boolean;
   /** Marked and kept in view. */
   selectedId?: string | null;
   onSelect?: (playId: string) => void;
@@ -75,7 +77,9 @@ function PlayRow({
 }) {
   const body =
     play.kind === "stoppage" ? (
-      <span className="text-ink-faint block text-xs italic">{play.text}</span>
+      <span className="text-ink-faint block text-xs italic">
+        {play.headline}
+      </span>
     ) : (
       <span className="block min-w-0 space-y-0.5">
         <span className="flex items-baseline gap-3">
@@ -200,11 +204,14 @@ function DriveSummary({
   score,
   home,
   away,
+  live,
 }: {
   drive: Drive;
   score: DriveScore | null;
   home: Team;
   away: Team;
+  /** The game is under way: a drive on the field is drawn live. */
+  live: boolean;
 }) {
   const offense =
     drive.offense === "home" ? home : drive.offense === "away" ? away : null;
@@ -216,7 +223,7 @@ function DriveSummary({
         <span
           className={cn(
             "text-sm font-semibold",
-            drive.inProgress
+            drive.inProgress && live
               ? "text-live"
               : drive.isScore
                 ? "text-gold"
@@ -286,6 +293,7 @@ export function PlayFeed({
   drives,
   home,
   away,
+  ongoing = false,
   selectedId = null,
   onSelect,
 }: PlayFeedProps) {
@@ -368,6 +376,7 @@ export function PlayFeed({
                       score={scores.get(drive.id) ?? null}
                       home={home}
                       away={away}
+                      live={ongoing}
                     />
                   </summary>
                   <ol className="mt-1 mb-2 ml-1">{rows(drive)}</ol>

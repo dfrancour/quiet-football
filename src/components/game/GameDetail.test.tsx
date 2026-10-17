@@ -756,6 +756,42 @@ describe("GameDetail plays on the field", () => {
     expect(picked()).toEqual([expect.stringMatching(/4th & Goal at ATL 3/)]);
   });
 
+  it("skips a drive at a time, by button or shifted arrow", () => {
+    renderDetail(final);
+    const picked = () =>
+      screen
+        .getAllByRole("button", { pressed: true })
+        .map((row) => row.textContent);
+    fireEvent.click(screen.getByText("Field Goal"));
+    fireEvent.click(screen.getByRole("button", { name: /1st & 10 at ATL 24/ }));
+
+    // To the end of this drive, then the end of the next.
+    fireEvent.click(screen.getByLabelText("On a drive"));
+    expect(picked()).toEqual([expect.stringMatching(/4th & Goal at ATL 3/)]);
+    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
+    expect(picked()).toEqual([expect.stringMatching(/K\.Archer punts 56/)]);
+
+    // Back to where that drive began: the drive before's end.
+    fireEvent.keyDown(window, { key: "ArrowLeft", shiftKey: true });
+    expect(picked()).toEqual([expect.stringMatching(/4th & Goal at ATL 3/)]);
+    fireEvent.click(screen.getByLabelText("Back a drive"));
+    expect(picked()).toEqual([expect.stringMatching(/K\.Archer kicks 65/)]);
+    expect(screen.getByLabelText("Back a drive")).toBeDisabled();
+  });
+
+  it("offers the game again from its end, in those words", () => {
+    renderDetail(final);
+    fireEvent.click(screen.getByText("Watch from kickoff"));
+    fireEvent.click(screen.getByLabelText("Pause"));
+    expect(screen.getByLabelText("Play")).toBeInTheDocument();
+    while (!(screen.getByLabelText("On a drive") as HTMLButtonElement).disabled)
+      fireEvent.click(screen.getByLabelText("On a drive"));
+    expect(screen.getByLabelText("Watch again")).toBeInTheDocument();
+    // A stoppage reads in the feed's words, not ESPN's.
+    expect(screen.getAllByText("End of 1st Quarter").length).toBeGreaterThan(0);
+    expect(screen.queryByText("END QUARTER 1")).not.toBeInTheDocument();
+  });
+
   it("watches a game a play at a time, scored as it stood", () => {
     renderDetail(final);
     expect(scoresShown("20")).toHaveLength(1);

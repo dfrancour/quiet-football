@@ -1,6 +1,14 @@
 "use client";
 
-import { Pause, Play, RotateCcw, StepBack, StepForward } from "lucide-react";
+import {
+  Pause,
+  Play,
+  RotateCcw,
+  SkipBack,
+  SkipForward,
+  StepBack,
+  StepForward,
+} from "lucide-react";
 import { FieldView } from "~/components/game/FieldView";
 import { PlayFeed, playTime } from "~/components/game/PlayFeed";
 import { type ReplayControls } from "~/hooks/useReplay";
@@ -36,7 +44,7 @@ function Caption({
 }) {
   if (play) {
     const label =
-      play.downDistance ?? (play.kind === "stoppage" ? play.text : null);
+      play.downDistance ?? (play.kind === "stoppage" ? play.headline : null);
     return (
       <p className="flex min-w-0 items-baseline gap-2">
         {label && (
@@ -75,20 +83,34 @@ interface BroadcastDelay {
 }
 
 /**
- * Step, play or pause, and speed. Paused, the frame stays on the field to
- * browse from. Caught up with a live game there is no speed to choose; the
- * same place holds the delay instead.
+ * A drive back or on, a step back or on, play or pause, and speed. Paused,
+ * the frame stays on the field to browse from. Caught up with a live game
+ * there is no speed to choose; the same place holds the delay instead.
  */
 function Transport({
   replay,
   delay,
+  over,
 }: {
   replay: ReplayControls;
   delay?: BroadcastDelay;
+  /** The game is over, so playing from its end starts it again. */
+  over: boolean;
 }) {
   const { running, live, speed, atStart, atEnd } = replay;
+  const again = over && atEnd && !running;
   return (
     <div className="-my-1 flex items-center gap-0.5">
+      <button
+        type="button"
+        onClick={() => replay.skip(-1)}
+        disabled={atStart}
+        className={TRANSPORT}
+        aria-label="Back a drive"
+        title="Back a drive (⇧←)"
+      >
+        <SkipBack className="size-4" aria-hidden />
+      </button>
       <button
         type="button"
         onClick={() => replay.step(-1)}
@@ -103,11 +125,13 @@ function Transport({
         type="button"
         onClick={running ? replay.pause : replay.run}
         className={TRANSPORT}
-        aria-label={running ? "Pause" : "Play"}
-        title={running ? "Pause" : "Play"}
+        aria-label={running ? "Pause" : again ? "Watch again" : "Play"}
+        title={running ? "Pause" : again ? "Watch again" : "Play"}
       >
         {running ? (
           <Pause className="size-4" aria-hidden />
+        ) : again ? (
+          <RotateCcw className="size-4" aria-hidden />
         ) : (
           <Play className="size-4" aria-hidden />
         )}
@@ -121,6 +145,16 @@ function Transport({
         title="Step forward (→)"
       >
         <StepForward className="size-4" aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={() => replay.skip(1)}
+        disabled={atEnd}
+        className={TRANSPORT}
+        aria-label="On a drive"
+        title="On a drive (⇧→)"
+      >
+        <SkipForward className="size-4" aria-hidden />
       </button>
       {!live ? (
         <button
@@ -343,7 +377,7 @@ export function GamePlays({
           <Caption play={onField} situation={ongoing ? situation : null} />
           <div className="flex items-center gap-4">
             {play !== null || running ? (
-              <Transport replay={replay} delay={delay} />
+              <Transport replay={replay} delay={delay} over={!ongoing} />
             ) : (
               <WatchActions
                 replay={replay}
@@ -370,6 +404,7 @@ export function GamePlays({
         }
         home={home}
         away={away}
+        ongoing={ongoing}
         selectedId={play ? revealedId : (resting?.id ?? null)}
         onSelect={onSelect}
       />

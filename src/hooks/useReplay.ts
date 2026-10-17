@@ -18,6 +18,7 @@ import {
   isLive,
   replayFrame,
   replayFrames,
+  skipIndex,
   type Replay,
   type ReplayAt,
   type ReplayStage,
@@ -67,6 +68,8 @@ export interface ReplayControls {
   pause: () => void;
   /** A snap lined up, then its result. */
   step: (delta: number) => void;
+  /** To the end of the drive, or back to where it began. */
+  skip: (delta: 1 | -1) => void;
   cycleSpeed: () => void;
 }
 
@@ -147,11 +150,21 @@ export function useReplay(
     return frames[at + 1] ?? frames.at(-1);
   };
 
-  const step = (delta: number) => {
-    const target =
-      frames[Math.min(frames.length - 1, Math.max(0, origin + delta))];
+  // A running replay runs on from the frame moved to; paused, it stays.
+  const moveTo = (target: ReplayAt | undefined) => {
     if (target === undefined) return;
     update(running ? from(target) : { frame: target, running: null });
+  };
+  const step = (delta: number) => {
+    moveTo(frames[Math.min(frames.length - 1, Math.max(0, origin + delta))]);
+  };
+  // Where a drive back or on lands, read in render so the callback is plain.
+  const skipTo = {
+    back: frames[skipIndex(frames, drives ?? [], origin, -1)],
+    on: frames[skipIndex(frames, drives ?? [], origin, 1)],
+  };
+  const skip = (delta: 1 | -1) => {
+    moveTo(delta === 1 ? skipTo.on : skipTo.back);
   };
 
   const controls: ReplayControls = {
@@ -182,6 +195,7 @@ export function useReplay(
     },
     pause: () => update({ frame, running: null }),
     step,
+    skip,
     cycleSpeed: () => {
       const speed =
         REPLAY_SPEEDS[
@@ -197,10 +211,13 @@ export function useReplay(
     },
   };
 
-  // Arrow keys step as the buttons do, once something is on the field or
-  // there is a place to step from. Modifier chords are left to the browser.
+  // Arrow keys step as the buttons do, and with shift skip a drive, once
+  // something is on the field or there is a place to step from. Other
+  // chords are left to the browser.
   const hasPlay = origin !== -1;
-  const onArrow = useEffectEvent((delta: number) => step(delta));
+  const onArrow = useEffectEvent((delta: 1 | -1, drive: boolean) =>
+    drive ? skip(delta) : step(delta),
+  );
   useEffect(() => {
     if (!hasPlay) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -209,7 +226,6 @@ export function useReplay(
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
-        event.shiftKey ||
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement
       ) {
@@ -219,7 +235,7 @@ export function useReplay(
         event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
       if (delta === 0) return;
       event.preventDefault();
-      onArrow(delta);
+      onArrow(delta, event.shiftKey);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);

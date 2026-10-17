@@ -1,4 +1,4 @@
-import { type Play } from "~/lib/plays.schema";
+import { type Drive, type Play } from "~/lib/plays.schema";
 import { replayTiming } from "~/lib/replay-timing";
 
 /** A snap has two stages, lined up then result; anything else, a result. */
@@ -81,6 +81,34 @@ export function replayFrames(plays: Play[]): ReplayFrame[] {
         ]
       : [{ playId: play.id, stage: "result", drawMs: drawMsOf(play) }],
   );
+}
+
+/**
+ * Where a skip of `delta` drives lands from `origin`: forward, the result of
+ * the drive's last play (or the next drive's, from there); back, the result
+ * of the drive before (so the field stands as this drive began), or the
+ * first frame. The game's last frame ends the last drive, however it ends.
+ */
+export function skipIndex(
+  frames: ReplayFrame[],
+  drives: Drive[],
+  origin: number,
+  delta: 1 | -1,
+): number {
+  const ends = drives
+    .map((drive) => drive.plays.at(-1)?.id)
+    .map((lastId) =>
+      frames.findIndex(
+        (frame) => frame.playId === lastId && frame.stage === "result",
+      ),
+    )
+    .filter((index) => index !== -1);
+  if (delta === 1) {
+    return (
+      ends.find((index) => index > origin) ?? Math.max(0, frames.length - 1)
+    );
+  }
+  return [...ends].reverse().find((index) => index < origin) ?? 0;
 }
 
 /**

@@ -17,7 +17,7 @@ import {
   type Summary,
 } from "~/lib/plays.schema";
 import { type ReplayStage } from "~/lib/replay";
-import { cleanPlayText } from "~/lib/score";
+import { cleanPlayText, periodName } from "~/lib/score";
 import { type FieldState } from "~/lib/score.schema";
 
 export const SUMMARY_URL =
@@ -182,6 +182,35 @@ function timeoutCaller(text: string, sideOfCode: SideOfCode): FieldSide | null {
   return sideOfCode(code) ?? sideOfCode(GAMEBOOK_CODES[code] ?? "");
 }
 
+/**
+ * A stoppage in the feed's own words rather than ESPN's shouting ("END
+ * GAME", "END QUARTER 1"). A timeout's text says who and when, so it stays.
+ */
+function stoppageHeadline(
+  typeId: string | null,
+  text: string,
+  period: number | null,
+): string {
+  switch (typeId) {
+    case "2":
+      return period === null
+        ? "End of quarter"
+        : `End of ${periodName(period)}`;
+    case "65":
+      return "Halftime";
+    case "66":
+      return "End of game";
+    case "21":
+      return text.replace(/\.$/, "");
+    case "75":
+      return "Two-minute warning";
+    case "70":
+      return "Coin toss";
+    default:
+      return text;
+  }
+}
+
 function readPlay(play: RawPlay, sideOfCode: SideOfCode): Play | null {
   const text = cleanPlayText(play.text);
   if (!text) return null;
@@ -190,15 +219,23 @@ function readPlay(play: RawPlay, sideOfCode: SideOfCode): Play | null {
   const action =
     kind === "stoppage" ? null : playAction(play.type?.text ?? "", text);
   const placed = kind !== "stoppage";
+  const period = play.period?.number ?? null;
   return {
     id: String(play.id),
     kind,
     action,
     outcome: kind === "stoppage" ? null : playOutcome(play, action, text),
-    headline: kind === "stoppage" ? text : playHeadline(play, action, text),
+    headline:
+      kind === "stoppage"
+        ? stoppageHeadline(
+            play.type?.id == null ? null : String(play.type.id),
+            text,
+            period,
+          )
+        : playHeadline(play, action, text),
     timeoutBy: kind === "stoppage" ? timeoutCaller(text, sideOfCode) : null,
     text,
-    period: play.period?.number ?? null,
+    period,
     clock: play.clock?.displayValue ?? null,
     downDistance:
       kind === "snap" ? play.start?.downDistanceText?.trim() || null : null,
