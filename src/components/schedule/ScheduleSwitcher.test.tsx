@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScheduleSwitcher } from "~/components/schedule/ScheduleSwitcher";
@@ -23,20 +23,24 @@ const next = makeTeamGame({
 });
 const NOW = Date.parse("2026-10-16T17:00:00.000Z");
 
-function renderSwitcher(selected = played) {
+function renderSwitcher(
+  selected: typeof played | null = played,
+  bye: number | null = null,
+) {
   const onSelect = vi.fn();
+  const onSelectBye = vi.fn();
   render(
     <ScheduleSwitcher
       schedule={makeTeamSchedule([played, next])}
       selectedGame={selected}
-      selectedBye={null}
-      onSelectBye={() => undefined}
+      selectedBye={bye}
+      onSelectBye={onSelectBye}
       onSelect={onSelect}
       isShown={() => false}
       now={NOW}
     />,
   );
-  return onSelect;
+  return Object.assign(onSelect, { onSelectBye });
 }
 
 describe("ScheduleSwitcher", () => {
@@ -73,5 +77,29 @@ describe("ScheduleSwitcher", () => {
     await user.click(screen.getByRole("button", { name: /Week 5/ }));
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("steps a week either way through the schedule, byes included", async () => {
+    const user = userEvent.setup();
+    const step = (name: string) => screen.getByRole("button", { name });
+
+    const fromPlayed = renderSwitcher();
+    expect(step("Previous week")).toBeDisabled();
+    await user.click(step("Next week"));
+    expect(fromPlayed.onSelectBye).toHaveBeenCalledWith(6);
+    cleanup();
+
+    const fromBye = renderSwitcher(null, 6);
+    expect(
+      screen.getByRole("button", { name: /Week 6.*Bye/, expanded: false }),
+    ).toBeInTheDocument();
+    await user.click(step("Next week"));
+    expect(fromBye).toHaveBeenCalledWith("next");
+    await user.click(step("Previous week"));
+    expect(fromBye).toHaveBeenCalledWith("played");
+    cleanup();
+
+    renderSwitcher(next);
+    expect(step("Next week")).toBeDisabled();
   });
 });

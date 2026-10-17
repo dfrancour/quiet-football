@@ -197,12 +197,13 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   return (
     // From md up the page is the viewport, the schedule a rail beside the
     // game, and each column scrolls on its own. Below md the game has the
-    // page to itself, the schedule is a menu above it, and the page scrolls.
+    // page to itself, the schedule is a bar along the bottom, and the page
+    // scrolls, clear of the bar at its end.
     <div
       className={cn(
         "mx-auto flex w-full flex-col gap-6 px-4 md:h-dvh",
         // Same width as the league page.
-        expanded ? "max-w-7xl py-4" : "max-w-6xl py-6",
+        expanded ? "max-w-7xl py-4" : "max-w-6xl py-6 max-md:pb-20",
       )}
     >
       {!expanded && (
@@ -242,7 +243,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
 
         <div className="md:flex md:max-h-full md:flex-col md:overflow-y-auto md:overscroll-contain">
           {!expanded && (
-            <div className="mb-4 md:hidden">
+            <div className="md:hidden">
               <ScheduleSwitcher
                 schedule={schedule}
                 selectedGame={selectedGame}

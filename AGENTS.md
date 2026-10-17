@@ -327,10 +327,12 @@ the regular season, and the selection is marked with a rule at the row's edge,
 not a fill. There are no tabs and no archive view; a
 final game's panel links to its recap from its top row.
 
-Below `md` the game has the page to itself and the schedule is a menu
-(`ScheduleSwitcher`): a bar above the panel names the selected game and opens
-the same `ScheduleSelector` as a sheet from the bottom; picking a game closes
-it. The game and the schedule are never on screen together on a phone. The
+Below `md` the game has the page to itself and the schedule is a bar along
+the bottom (`ScheduleSwitcher`), as the league page's week stepper is: the
+week before and after (a bye included) either side of the selected game's
+name, which opens the same `ScheduleSelector` as a sheet; picking a game
+closes it. The bar slides away as the page scrolls down and back as it
+scrolls up, near the top, or at the end (`useScrollAway`). The game and the schedule are never on screen together on a phone. The
 site's mark in the header gains a chevron there, reading as the way back.
 
 `GameDetail` branches on `gamePhase()` of the **selected** game:
@@ -706,8 +708,9 @@ exists, and other subscribers are still notified once a second.
 On a team page from `md` up, the page is exactly the viewport and does not
 scroll: the header is fixed, and the schedule rail and detail panel scroll
 independently, with the selected week kept in view. Below `md` the page
-scrolls normally and the field and its transport stick to the top, so a
-replay can be followed from anywhere in the feed.
+scrolls normally, the field and its transport stick to the top, so a
+replay can be followed from anywhere in the feed, and the schedule's bar
+keeps to the bottom.
 
 The site is meant to be installed on a phone, so it is laid out for touch:
 every control has at least about 36px to tap (padding past the glyph, not a
