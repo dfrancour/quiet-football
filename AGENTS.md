@@ -410,9 +410,14 @@ Baltimore); `GAMEBOOK_CODES` maps those.
 A running replay stores its start frame and time, and `useReplay` derives its
 position from the shared clock rather than a timer, re-rendering only when the
 frame changes. Speed shortens only the pause between plays, never the
-animation: a result holds for `DRAW_MS` (doubled for punts and kickoffs) plus a
-rest divided by the speed. Replay state carries the game id, so selecting
-another game resets it without an effect.
+animation: a result holds for the draw (doubled for punts and kickoffs) plus a
+rest divided by the speed. The three times — lined up, draw, hold — live in
+`src/lib/replay-timing.ts`, and the field passes the draw to the stylesheet
+as `--field-draw` so the animations keep step. In development only,
+`?timing=lineUp,draw,hold` (milliseconds) overrides them for tuning by feel,
+kept in the browser until `?timing=`; the build has no such setting. Replay
+state carries the game id, so selecting another game resets it without an
+effect.
 
 ### Play kinds
 

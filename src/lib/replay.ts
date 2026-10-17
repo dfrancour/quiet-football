@@ -1,4 +1,5 @@
 import { type Play } from "~/lib/plays.schema";
+import { replayTiming } from "~/lib/replay-timing";
 
 /** A snap has two stages, lined up then result; anything else, a result. */
 export type ReplayStage = "snap" | "result";
@@ -13,28 +14,21 @@ export interface ReplayFrame extends ReplayAt {
   drawMs: number;
 }
 
-/** One draw animation; must match `animate-field-*` in the stylesheet. */
-export const DRAW_MS = 1_100;
-
-/** How long a snap stays lined up at 1×. */
-export const LINE_UP_MS = 3_000;
-
-/** How long a drawn result rests at 1×. */
-export const HOLD_MS = 4_000;
-
 /** Speed divides the rest, never the draw time, so a play draws in full. */
 export function frameMs(frame: ReplayFrame, speed: ReplaySpeed): number {
+  const { lineUpMs, holdMs } = replayTiming();
   return frame.stage === "snap"
-    ? LINE_UP_MS / speed
-    : frame.drawMs + HOLD_MS / speed;
+    ? lineUpMs / speed
+    : frame.drawMs + holdMs / speed;
 }
 
 /** A punt or kickoff draws twice (flight, then return); a stoppage none. */
 function drawMsOf(play: Play): number {
   if (play.kind === "stoppage") return 0;
+  const { drawMs } = replayTiming();
   return play.action === "punt" || play.action === "kickoff"
-    ? 2 * DRAW_MS
-    : DRAW_MS;
+    ? 2 * drawMs
+    : drawMs;
 }
 
 export const REPLAY_SPEEDS = [1, 2, 3] as const;

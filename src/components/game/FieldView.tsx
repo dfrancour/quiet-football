@@ -7,7 +7,7 @@ import {
   type HomeYardLine,
 } from "~/lib/field";
 import { type DownStep, type KickFlight } from "~/lib/plays";
-import { DRAW_MS } from "~/lib/replay";
+import { replayTiming } from "~/lib/replay-timing";
 import { type FieldState } from "~/lib/score.schema";
 import { type Team } from "~/lib/teams.schema";
 
@@ -311,7 +311,8 @@ export function FieldView({
       ? ({ "--run-dx": `${toX(kick.landed) - ballX}px` } as CSSProperties)
       : null;
   // So a score lights up as it lands.
-  const drawnFor = !drawFocus ? 0 : kick?.returned ? 2 * DRAW_MS : DRAW_MS;
+  const { drawMs } = replayTiming();
+  const drawnFor = !drawFocus ? 0 : kick?.returned ? 2 * drawMs : drawMs;
 
   const setStart = set[0]?.from ?? null;
   const driveStart = field?.driveSpots[0] ?? null;
@@ -328,6 +329,7 @@ export function FieldView({
       className="block h-auto w-full overflow-hidden rounded-lg ring-1 ring-white/5"
       role="img"
       aria-label={describe(field, set, kick, scoredBy, home, away)}
+      style={{ "--field-draw": `${drawMs}ms` } as CSSProperties}
     >
       <rect width={WIDTH} height={HEIGHT} className="fill-turf" />
       {Array.from({ length: 5 }, (_, index) => (
@@ -517,7 +519,7 @@ export function FieldView({
               height={MAX_ROW * BAR_SHARE}
               dimmed={false}
               drawn={drawFocus}
-              drawAfterMs={DRAW_MS}
+              drawAfterMs={drawMs}
             />
           )}
 

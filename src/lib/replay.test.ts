@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { type Play } from "~/lib/plays.schema";
 import {
-  DRAW_MS,
-  HOLD_MS,
   IDLE_REPLAY,
-  LINE_UP_MS,
   isLive,
   replayFrame,
   replayFrames,
   type Replay,
 } from "~/lib/replay";
+import { DEFAULT_TIMING } from "~/lib/replay-timing";
+
+const {
+  lineUpMs: LINE_UP_MS,
+  drawMs: DRAW_MS,
+  holdMs: HOLD_MS,
+} = DEFAULT_TIMING;
 
 function play(id: string, kind: Play["kind"] = "snap"): Play {
   return {
