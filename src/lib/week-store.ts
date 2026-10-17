@@ -1,35 +1,62 @@
 import { z } from "zod";
 import { scoreboardSchema } from "~/lib/score.schema";
+import { teamRegistrySchema, type TeamRegistry } from "~/lib/teams.schema";
 
 /**
- * A week every game of which is final or canceled cannot change, so its
- * scoreboard is saved in `localStorage` and stands in for ESPN on the next
- * visit; only weeks still in play are fetched again. Trimmed to the schema's
- * fields a week is about 11 KB, a season under 250 KB.
+ * What a visit leaves for the next, in `localStorage`, so only what can
+ * still change is asked of ESPN again. A week every game of which is final
+ * or canceled cannot change, so its scoreboard stands in for ESPN for good;
+ * a week still ahead is kept with the time it arrived and stands in until
+ * it is older than the query trusts (`aheadStaleMs`). Trimmed to the
+ * schema's fields a week is about 11 KB, a season under 250 KB. The team
+ * registry, which a season does not change, is kept the same way.
  */
 
-/** Bumped when the scoreboard schema gains a field a saved week would lack. */
-const FORMAT = 1;
+/** Bumped when a schema gains a field a saved copy would lack. */
+const FORMAT = 2;
 
-const PREFIX = "scoreboard:";
+const WEEK_PREFIX = "scoreboard:";
+const TEAMS_PREFIX = "teams:";
 
-const savedSchema = z.object({
+const savedWeekSchema = z.object({
   format: z.literal(FORMAT),
+  /** When it arrived from ESPN. */
+  savedAt: z.number(),
   payload: scoreboardSchema,
 });
 
-function key(season: number, week: number): string {
-  return `${PREFIX}${season}:${week}`;
+const savedTeamsSchema = z.object({
+  format: z.literal(FORMAT),
+  savedAt: z.number(),
+  registry: teamRegistrySchema,
+});
+
+export interface SavedTeams {
+  registry: TeamRegistry;
+  savedAt: number;
 }
 
-/** The week's scoreboard as saved, or null; a copy that cannot be read is dropped. */
-export function savedWeek(season: number, week: number): unknown | null {
+export interface SavedWeek {
+  payload: unknown;
+  savedAt: number;
+}
+
+function weekKey(season: number, week: number): string {
+  return `${WEEK_PREFIX}${season}:${week}`;
+}
+
+function teamsKey(season: number): string {
+  return `${TEAMS_PREFIX}${season}`;
+}
+
+/** A saved value, or null; a copy that cannot be read is dropped. */
+function read<T>(key: string, schema: z.ZodType<T>): T | null {
   try {
-    const raw = window.localStorage.getItem(key(season, week));
+    const raw = window.localStorage.getItem(key);
     if (raw === null) return null;
-    const parsed = savedSchema.safeParse(JSON.parse(raw) as unknown);
-    if (parsed.success) return parsed.data.payload;
-    window.localStorage.removeItem(key(season, week));
+    const parsed = schema.safeParse(JSON.parse(raw) as unknown);
+    if (parsed.success) return parsed.data;
+    window.localStorage.removeItem(key);
     return null;
   } catch {
     return null;
@@ -37,21 +64,59 @@ export function savedWeek(season: number, week: number): unknown | null {
 }
 
 /**
- * Saves a settled week's scoreboard, letting go of other seasons' first so
- * storage holds one season at most. Blocked or full storage is left alone:
- * the week is simply fetched next time.
+ * Saves under a season, letting go of other seasons' first so storage holds
+ * one season at most. Blocked or full storage is left alone: the value is
+ * simply fetched next time.
  */
-export function saveWeek(season: number, week: number, payload: unknown): void {
+function save(prefix: string, season: number, key: string, value: unknown) {
   try {
-    const mine = `${PREFIX}${season}:`;
+    const mine = `${prefix}${season}`;
     for (const stored of Object.keys(window.localStorage)) {
-      if (stored.startsWith(PREFIX) && !stored.startsWith(mine)) {
+      if (
+        stored.startsWith(prefix) &&
+        stored !== mine &&
+        !stored.startsWith(`${mine}:`)
+      ) {
         window.localStorage.removeItem(stored);
       }
     }
-    window.localStorage.setItem(
-      key(season, week),
-      JSON.stringify({ format: FORMAT, payload }),
-    );
+    window.localStorage.setItem(key, JSON.stringify(value));
   } catch {}
+}
+
+/** The week's scoreboard as saved, with when, or null. */
+export function savedWeek(season: number, week: number): SavedWeek | null {
+  const saved = read(weekKey(season, week), savedWeekSchema);
+  return saved ? { payload: saved.payload, savedAt: saved.savedAt } : null;
+}
+
+export function saveWeek(
+  season: number,
+  week: number,
+  payload: unknown,
+  savedAt: number,
+): void {
+  save(WEEK_PREFIX, season, weekKey(season, week), {
+    format: FORMAT,
+    savedAt,
+    payload,
+  });
+}
+
+/** The season's team registry as saved, with when, or null. */
+export function savedTeams(season: number): SavedTeams | null {
+  const saved = read(teamsKey(season), savedTeamsSchema);
+  return saved ? { registry: saved.registry, savedAt: saved.savedAt } : null;
+}
+
+export function saveTeams(
+  season: number,
+  registry: TeamRegistry,
+  savedAt: number,
+): void {
+  save(TEAMS_PREFIX, season, teamsKey(season), {
+    format: FORMAT,
+    savedAt,
+    registry,
+  });
 }

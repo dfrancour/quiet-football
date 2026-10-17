@@ -18,7 +18,6 @@ import {
 } from "~/hooks/useLeague";
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
-import { type PlayoffMarks } from "~/lib/playoff-marks.schema";
 import { buildBracket } from "~/lib/playoffs";
 import { playoffRound } from "~/lib/season-calendar";
 import { buildStandings } from "~/lib/standings";
@@ -31,7 +30,6 @@ import { buildLeagueGames, currentWeekNow, settledThrough } from "~/lib/week";
 export function HomeApp() {
   const season = useSeason();
   const teams = useTeams(season.data?.season.season ?? null);
-  const marks = usePlayoffMarks(season.data?.season.season ?? null);
   const error = teams.error ?? season.error;
   if (error && !(teams.data && season.data))
     return <LoadFailed error={error} />;
@@ -40,7 +38,6 @@ export function HomeApp() {
     <HomeView
       registry={teams.data}
       data={season.data}
-      marks={marks}
       key={season.data.season.season}
     />
   );
@@ -49,7 +46,6 @@ export function HomeApp() {
 interface HomeViewProps {
   registry: TeamRegistry;
   data: SeasonData;
-  marks: PlayoffMarks | null;
 }
 
 type Pane = "games" | "table";
@@ -98,7 +94,7 @@ function PaneSwitch({
  * and the page is the viewport, with only the one shown scrolling beneath the
  * header and switch.
  */
-function HomeView({ registry, data, marks }: HomeViewProps) {
+function HomeView({ registry, data }: HomeViewProps) {
   const { season: seasonFile, weeks } = data;
   const season = seasonFile.season;
   const totalWeeks = seasonFile.totalWeeks;
@@ -116,8 +112,19 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
     ? (teamByAbbreviation(registry, favorite)?.teamId ?? null)
     : null;
 
-  // The standings stand where the viewer is. ESPN's seeds and clinch codes
-  // describe the present, so they wait for the whole regular season.
+  // A viewer behind the league opens on the week after the one they are
+  // caught up through.
+  const [week, setWeek] = useState(() =>
+    through > 0 ? Math.min(currentWeek, through + 1) : currentWeek,
+  );
+  const isPlayoffWeek = playoffRound(totalWeeks, week) !== null;
+
+  // ESPN's seeds and clinch codes describe the present, so the standings
+  // wait for the whole regular season; the bracket is seeded by them. Until
+  // either can show them, they are not asked for.
+  const marks = usePlayoffMarks(season, through >= totalWeeks || isPlayoffWeek);
+
+  // The standings stand where the viewer is.
   const standings: StandingsView[] = useMemo(() => {
     const reached = {
       ...seasonFile,
@@ -149,12 +156,6 @@ function HomeView({ registry, data, marks }: HomeViewProps) {
 
   const [pointed, setPointed] = useState<readonly string[]>([]);
   const highlighted = useMemo(() => new Set(pointed), [pointed]);
-  // A viewer behind the league opens on the week after the one they are
-  // caught up through.
-  const [week, setWeek] = useState(() =>
-    through > 0 ? Math.min(currentWeek, through + 1) : currentWeek,
-  );
-  const isPlayoffWeek = playoffRound(totalWeeks, week) !== null;
   const [pane, setPane] = useState<Pane>("games");
   const tableName = isPlayoffWeek ? "Bracket" : "Standings";
   // From lg up both are shown and the page scrolls; below, the one chosen,

@@ -7,7 +7,12 @@ import {
 } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { type PlayoffMarks } from "~/lib/playoff-marks.schema";
-import { playoffMarksQuery, teamsQuery, weekQueries } from "~/lib/queries";
+import {
+  playoffMarksQuery,
+  teamsQuery,
+  weekQueries,
+  type LoadedBoard,
+} from "~/lib/queries";
 import {
   currentSeason,
   regularSeasonWeeks,
@@ -18,7 +23,7 @@ import { type SeasonFile } from "~/lib/season.schema";
 import { type TeamRegistry } from "~/lib/teams.schema";
 
 export interface LoadedWeek extends WeekBoard {
-  /** When its scoreboard last arrived. */
+  /** When its scoreboard last arrived from ESPN. */
   updatedAt: number;
   /** The last poll's failure, with the week as it stood before it. */
   error: Error | null;
@@ -67,7 +72,7 @@ interface WeeksSoFar {
 }
 
 /** Module-level, so the result is kept until a week's query changes. */
-function combineWeeks(results: UseQueryResult<WeekBoard>[]): WeeksSoFar {
+function combineWeeks(results: UseQueryResult<LoadedBoard>[]): WeeksSoFar {
   const empty = results[0]?.data?.games.length === 0;
   const failures = results.filter((result) => result.isError && !result.data);
   const first = failures[0];
@@ -90,7 +95,7 @@ function combineWeeks(results: UseQueryResult<WeekBoard>[]): WeeksSoFar {
         ? [
             {
               ...result.data,
-              updatedAt: result.dataUpdatedAt,
+              updatedAt: result.data.fetchedAt,
               error: result.error,
             },
           ]
@@ -161,11 +166,17 @@ export function useSeason(): Loading<SeasonData> {
   return { data, error };
 }
 
-/** ESPN's playoff seeds and clinch codes; null until they arrive. */
-export function usePlayoffMarks(season: number | null): PlayoffMarks | null {
+/**
+ * ESPN's playoff seeds and clinch codes; null until they arrive. Read only
+ * while `wanted`: a page that cannot show them asks for nothing.
+ */
+export function usePlayoffMarks(
+  season: number,
+  wanted: boolean,
+): PlayoffMarks | null {
   const { data } = useQuery({
-    ...playoffMarksQuery(season ?? 0),
-    enabled: season !== null,
+    ...playoffMarksQuery(season),
+    enabled: wanted,
   });
   return data ?? null;
 }

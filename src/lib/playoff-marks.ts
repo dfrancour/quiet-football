@@ -3,15 +3,12 @@ import {
   type PlayoffMark,
   type PlayoffMarks,
 } from "~/lib/playoff-marks.schema";
-import { fetchUpstream } from "~/lib/upstream";
 
 /**
  * Seeds and clinch marks come from ESPN rather than being derived: they need
- * the full multi-team tiebreakers and every remaining result.
+ * the full multi-team tiebreakers and every remaining result. They are read
+ * off the same standings payload as the team registry (`team-fetch.ts`).
  */
-
-const STANDINGS_URL =
-  "https://site.api.espn.com/apis/v2/sports/football/nfl/standings";
 
 /** Seeds that make the playoffs: seven per conference since 2020. */
 export const PLAYOFF_SEEDS = 7;
@@ -88,15 +85,4 @@ export function playoffMarksFromEspn(
     throw new Error(`ESPN's ${season} standings name no teams`);
   }
   return { season, fetchedAt, teams };
-}
-
-export async function fetchPlayoffMarks(
-  season: number,
-  signal?: AbortSignal,
-): Promise<PlayoffMarks> {
-  const payload = await fetchUpstream(
-    `${STANDINGS_URL}?season=${season}`,
-    signal,
-  );
-  return playoffMarksFromEspn(season, payload, new Date().toISOString());
 }

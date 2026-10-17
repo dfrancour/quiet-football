@@ -3,6 +3,7 @@ import {
   describeFailure,
   fetchUpstream,
   isPermanentFailure,
+  retryAfterOf,
   UpstreamError,
 } from "~/lib/upstream";
 
@@ -31,6 +32,23 @@ describe("fetchUpstream", () => {
       "example.test responded 404",
     );
     expect((failure as UpstreamError).status).toBe(404);
+  });
+
+  it("keeps how long the source asked to be left alone", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(null, { status: 429, headers: { "Retry-After": "90" } }),
+      ),
+    );
+    const failure = await fetchUpstream("https://example.test/x").catch(
+      (error: unknown) => error,
+    );
+    expect(retryAfterOf(failure)).toBe(90_000);
+    expect(isPermanentFailure(failure)).toBe(false);
+    expect(retryAfterOf(new UpstreamError("x", 503))).toBeNull();
+    expect(retryAfterOf(new TypeError("x"))).toBeNull();
   });
 });
 

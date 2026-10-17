@@ -2,14 +2,19 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { scoreConfig } from "~/lib/config";
 import { recapDatasetQuery } from "~/lib/queries";
 import { recapsFromDataset } from "~/lib/recap-dataset";
 import { type RecapsFile } from "~/lib/recaps";
 import { type SeasonFile } from "~/lib/season.schema";
 import { type TeamRegistry } from "~/lib/teams.schema";
 
-/** How often a game waiting on its recap re-reads the season's recaps. */
-export const RECAPS_POLL_MS = 2 * 60_000;
+/**
+ * How often a game waiting on its recap re-reads the season's recaps. The
+ * file is served from GitHub, which caches it for five minutes, so asking
+ * sooner gets the same answer.
+ */
+export const RECAPS_POLL_MS = scoreConfig.recapsPollMs;
 
 /** How long after kickoff a game is still waited on. */
 const WAIT_MS = 3 * 24 * 60 * 60_000;
@@ -22,8 +27,8 @@ interface Watched {
 
 /**
  * A season's recap links from football-recaps-data, keyed by game. Read once,
- * and while the selected game is final, recent and still unlinked, every two
- * minutes.
+ * and while the selected game is final, recent and still unlinked, every
+ * few minutes.
  */
 export function useRecaps(
   season: SeasonFile,

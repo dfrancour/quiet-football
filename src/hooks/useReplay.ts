@@ -58,6 +58,11 @@ export interface ReplayControls {
   resume: (afterId: string | null) => void;
   /** Plays from the latest play, taking each new one as it comes. */
   follow: () => void;
+  /**
+   * Starts on drives just loaded, before a render has them: from kickoff,
+   * or `atEnd`, following from the latest play.
+   */
+  start: (loaded: Drive[], atEnd: boolean) => void;
   /** Leaves the frame on the field. */
   pause: () => void;
   /** A snap lined up, then its result. */
@@ -171,6 +176,10 @@ export function useReplay(
       ),
     resume: (afterId) => update(from(after(afterId))),
     follow: () => update(from(frames.at(-1))),
+    start: (loaded, atEnd) => {
+      const loadedFrames = replayFrames(playsInOrder(loaded));
+      update(from(atEnd ? loadedFrames.at(-1) : loadedFrames[0]));
+    },
     pause: () => update({ frame, running: null }),
     step,
     cycleSpeed: () => {

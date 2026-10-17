@@ -161,11 +161,22 @@ function WatchActions({
   replay,
   limited,
   seen,
+  onLoad,
 }: {
   replay: ReplayControls;
   limited: boolean;
   seen: string | null;
+  /** The plays are not here yet; pressing asks for them and starts. */
+  onLoad?: () => void;
 }) {
+  if (onLoad) {
+    return (
+      <button type="button" onClick={onLoad} className={PRIMARY}>
+        <Play className="size-3.5" aria-hidden />
+        Watch from kickoff
+      </button>
+    );
+  }
   if (limited && seen !== null) {
     return (
       <>
@@ -250,6 +261,7 @@ export function GamePlays({
   situation = null,
   seenThrough,
   delay,
+  onLoadPlays,
 }: {
   drives: Drive[];
   home: Team;
@@ -265,6 +277,11 @@ export function GamePlays({
   seenThrough?: string | null;
   /** A live game's broadcast delay, offered once caught up with it. */
   delay?: BroadcastDelay;
+  /**
+   * With `drives` empty because they have not been asked for: asks for
+   * them and starts from kickoff when they come.
+   */
+  onLoadPlays?: () => void;
 }) {
   const { play, running, stage, revealedId } = replay;
   const limited = seenThrough !== undefined;
@@ -328,7 +345,12 @@ export function GamePlays({
             {play !== null || running ? (
               <Transport replay={replay} delay={delay} />
             ) : (
-              <WatchActions replay={replay} limited={limited} seen={seen} />
+              <WatchActions
+                replay={replay}
+                limited={limited}
+                seen={seen}
+                onLoad={onLoadPlays}
+              />
             )}
           </div>
         </div>

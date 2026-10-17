@@ -70,4 +70,18 @@ describe("usePlayByPlay", () => {
     await new Promise((done) => setTimeout(done, 10));
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("reads a live game again only as the scoreboard shows something new", async () => {
+    completed = false;
+    const { rerender } = renderHook(
+      ({ mark }) => usePlayByPlay(GAME_ID, true, mark),
+      { wrapper: queryWrapper(), initialProps: { mark: "Q1|0|0|Kickoff" } },
+    );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    rerender({ mark: "Q1|0|0|Kickoff" });
+    await new Promise((done) => setTimeout(done, 10));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    rerender({ mark: "Q1|7|0|Touchdown" });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GameDetail } from "~/components/game/GameDetail";
 import { extractPlayByPlay, playsInOrder } from "~/lib/plays";
@@ -410,9 +410,13 @@ describe("GameDetail score freshness", () => {
       score: { ...liveScore, gameId: liveGame.gameId },
       scoreUpdatedAt: KICKOFF_MS + 60_000 - 12_000,
     });
+    expect(screen.getByText("Updated").parentElement).toHaveTextContent(
+      /Updated\s*12s ago/,
+    );
+    // Nothing to press: the page asks ESPN on its own terms.
     expect(
-      screen.getByRole("button", { name: /Updated\s*12s ago/ }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: /Updated|Refresh/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("says nothing about freshness before a score for this game arrives", () => {
@@ -853,6 +857,45 @@ describe("GameDetail watching with spoilers hidden", () => {
     fireEvent.click(button("Pause"));
   };
 
+  it("asks for the plays only when the viewer starts watching, and starts on them", async () => {
+    const onLoadPlays = vi.fn(async () => ({
+      gameId: finalGame.gameId,
+      drives,
+    }));
+    const { rerender } = render(
+      <GameDetail
+        game={finalGame}
+        now={AFTER_GAME_MS}
+        team={TEAMS.MIN}
+        score={liveScore}
+        scoreError={null}
+        showSpoilers={false}
+        recaps={makeRecaps()}
+        onLoadPlays={onLoadPlays}
+      />,
+    );
+    expect(feed()).not.toBeInTheDocument();
+    expect(covered()).toHaveLength(2);
+    fireEvent.click(button(/Watch from kickoff/));
+    expect(onLoadPlays).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onLoadPlays.mock.results[0]?.value).resolves);
+    rerender(
+      <GameDetail
+        game={finalGame}
+        now={AFTER_GAME_MS}
+        team={TEAMS.MIN}
+        score={liveScore}
+        scoreError={null}
+        showSpoilers={false}
+        recaps={makeRecaps()}
+        playByPlay={{ gameId: finalGame.gameId, drives }}
+      />,
+    );
+    // Running from kickoff: nothing seen yet, the transport is up.
+    await waitFor(() => expect(button("Pause")).toBeInTheDocument());
+    expect(covered()).toHaveLength(0);
+  });
+
   it("offers the game from kickoff and shows none of it before then", () => {
     renderDetail(hidden);
     expect(feed()).not.toBeInTheDocument();
@@ -933,6 +976,32 @@ describe("GameDetail watching with spoilers hidden", () => {
     forward();
     forward();
     expect(screen.getByText(/· Final/)).toBeInTheDocument();
+  });
+
+  it("sees the game to the end from the Final label", () => {
+    renderDetail(hidden);
+    expect(
+      screen.queryByRole("button", { name: /see the game to the end/ }),
+    ).not.toBeInTheDocument();
+    startWatching();
+    forward();
+    forward();
+    expect(covered()).toHaveLength(0);
+
+    fireEvent.click(button(/final: see the game to the end/));
+    expect(getWatchProgress()[finalGame.gameId]?.finished).toBe(true);
+    expect(screen.getByText("Final")).toBeInTheDocument();
+    expect(feed()).toHaveTextContent("Field Goal");
+    expect(
+      screen.queryByRole("button", { name: /see the game to the end/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("tells a finger about the covered score only while one is covered", () => {
+    renderDetail(hidden);
+    expect(screen.getByText(/Tap a covered score/)).toBeInTheDocument();
+    startWatching();
+    expect(screen.queryByText(/Tap a covered score/)).not.toBeInTheDocument();
   });
 
   it("picks up where the viewer left off", () => {

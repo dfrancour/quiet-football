@@ -21,18 +21,24 @@ Vercel (or any static host) serves.
 
 The repository carries no data. Everything is fetched from ESPN (and the
 recap dataset, for recaps) by the browser, through TanStack Query, and kept
-for the session; only a settled week's scoreboard, which cannot change, is
-kept in `localStorage` for the next visit (`src/lib/week-store.ts`).
-**Nothing is stored twice**, and nothing is fetched unless a page is reading
-it.
+for the session. What a visit can leave for the next it saves in
+`localStorage` (`src/lib/week-store.ts`): a settled week's scoreboard for
+good, a week still ahead and the team registry for as long as they are
+trusted. **Nothing is stored twice**, nothing is fetched unless a page is
+drawing it, and nothing is fetched again just because the tab was looked at.
+ESPN sends `max-age=1` on everything, so the browser's own cache is no help;
+the query layer is the cache.
 
-| Query (`src/lib/queries.ts`) | Holds                                                   | Fetched again                              |
-| ---------------------------- | ------------------------------------------------------- | ------------------------------------------ |
-| `teams`                      | The 32 teams, with conference, division, color and logo | never in a session                         |
-| `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..." |
-| `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | polled while live; once when over          |
-| `playoff-marks`              | ESPN's playoff seeds and clinch codes                   | after 30 minutes                           |
-| `recaps`                     | The season's file from the recap dataset                | every 2 minutes while a recap is awaited   |
+| Query (`src/lib/queries.ts`) | Holds                                                   | Fetched again                                      |
+| ---------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| `standings`                  | ESPN's standings: teams by division, seeds, clinches    | after `marksStaleMs`, and only if marks are shown  |
+| `teams`                      | The 32 teams, with conference, division, color and logo | never in a session; saved for `teamsStaleMs`       |
+| `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..."         |
+| `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | as the scoreboard shows a new play; once when over |
+| `recaps`                     | The season's file from the recap dataset                | every `recapsPollMs` while a recap is awaited      |
+
+Playoff marks are not a query of their own: `playoffMarksQuery` is the
+standings query with a `select`.
 
 The viewer's own state lives in `localStorage` (`src/lib/local-store.ts`):
 the week caught up through per season, the favorite team, watch progress and
@@ -99,12 +105,17 @@ names every team under its division and answers cross-origin requests; the
 teams endpoint does neither. A team outside a known conference or division
 is refused, since it would silently drop out of the standings. The one thing
 the standings omit is each team's color, so `teamsQuery` reads it from the
-season's first week, in which every team plays.
+season's first week, in which every team plays. The registry is saved for
+the next visit and trusted for `teamsStaleMs`, so a return visit asks for
+the standings only when the marks are shown.
 
 Playoff seeds and clinch codes (`x`, `y`, `z`, `*`, `**`, `e`) are not derived:
 they need the full multi-team tiebreakers and every remaining result.
-`playoffMarksQuery` reads ESPN's (`src/lib/playoff-marks.ts`). The standings
-show a seed only inside the field (`PLAYOFF_SEEDS`, seven).
+`playoffMarksQuery` reads them off the same standings payload
+(`src/lib/playoff-marks.ts`), so one request serves both, and only while a
+page can show them (`usePlayoffMarks(season, wanted)`): the standings caught
+up through the regular season, or the bracket. The standings show a seed only
+inside the field (`PLAYOFF_SEEDS`, seven).
 
 ### One query per week is the source of truth
 
@@ -126,35 +137,56 @@ week's newest fetch simply replaces its last.
 `weekActivity()` reads each week from its own games, and `weekQuery` sets
 its policy from that:
 
-| Activity  | When                                               | Policy                                               |
-| --------- | -------------------------------------------------- | ---------------------------------------------------- |
-| `live`    | a game has kicked off and is not final or canceled | polled every `scoreConfig.livePollMs` while mounted  |
-| `settled` | every game is final or canceled                    | never fetched again; saved for the next visit        |
-| `ahead`   | anything else: games to come, a round not yet set  | trusted for `aheadStaleMs` (hours), to catch flexing |
+| Activity  | When                                               | Policy                                                                           |
+| --------- | -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `live`    | a game has kicked off and is not final or canceled | polled every `scoreConfig.livePollMs` while mounted; not saved                   |
+| `settled` | every game is final or canceled                    | never fetched again; saved for good                                              |
+| `ahead`   | anything else: games to come, a round not yet set  | trusted for `aheadStaleMs` (hours) from when it arrived, to catch flexing; saved |
 
 Polling runs only while a page is open and visible (Query's default), so a
-viewer looking at an old week costs ESPN nothing. The team page's refresh
-control invalidates the selected game's week.
+viewer looking at an old week costs ESPN nothing. There is no refresh
+control: nothing the viewer does asks ESPN for a week sooner than its
+policy says.
 
 A game's clock is noted as each poll lands (`noteGameClock`), so a delayed
 broadcast can be shown its own moment.
 
-A week found settled as it arrives is saved, trimmed to the schema's fields
-(about 11 KB), under its season and week; `fetchWeek` reads the saved copy
-before asking ESPN, so a return visit fetches only the weeks still in play.
-Storage holds one season: saving a week lets go of any other season's. A
-copy that cannot be read, or was saved under an older `FORMAT`, is dropped
-and fetched; blocked or full storage is simply not saved to.
+A week fetched without a game under way is saved, trimmed to the schema's
+fields (about 11 KB), under its season and week with when it arrived;
+`fetchWeek` reads the saved copy before asking ESPN and uses it while it is
+still good: for good once settled, for `aheadStaleMs` while ahead, and not
+at all once a saved game's kickoff has passed. So a return visit fetches
+only the week in play, and a week ahead at most every few hours across
+visits, not every page load. Storage holds one season: saving a week lets
+go of any other season's. A copy that cannot be read, or was saved under an
+older `FORMAT`, is dropped and fetched; blocked or full storage is simply
+not saved to.
+
+A poll that keeps failing backs off: its interval doubles for each failure
+in a row, up to `pollBackoffDoublings`, and never runs sooner than a
+`Retry-After` asked (`pollEvery`). Query's one retry waits for `Retry-After`
+too.
 
 ### Play-by-play comes from ESPN's summary
 
 `playByPlayQuery` reads ESPN's `summary` endpoint and trims it with
 `extractPlayByPlay()` (`src/lib/plays.ts`) as it arrives, since the payload is
-hundreds of kilobytes, mostly not plays. It is polled for a live game until
-the summary's own header calls the game over, and fetched once for a finished
-one, regardless of spoiler setting; with spoilers hidden it is shown only as
-far as the viewer has watched. When a game stops being live before its
-summary said so, `usePlayByPlay` reads it once more for the last plays.
+hundreds of kilobytes, mostly not plays: the heaviest call the app makes, so
+it is made only when the plays will be drawn. The team page asks for the
+selected game's plays when the game is shown, when the viewer has a place in
+it, or when they ask to watch it (`playsWanted`); a covered game nobody has
+started costs nothing, and its panel's **Watch from kickoff** asks for the
+plays and starts on them as they come (`onLoadPlays`, `replay.start`).
+
+A live game's summary is not on a timer of its own: `usePlayByPlay` reads it
+again when the week's scoreboard, already being polled, shows something new
+about the game (its clock, score or last play, the `mark`), with a slow poll
+behind that (`summaryFallbackMs`) in case the scoreboard missed a play. It
+stops once the summary's own header calls the game over; a finished game's
+is fetched once, regardless of spoiler setting, and with spoilers hidden it
+is shown only as far as the viewer has watched. When a game stops being live
+before its summary said so, `usePlayByPlay` reads it once more for the last
+plays.
 
 ### Every upstream call goes through `fetchUpstream`
 
@@ -162,8 +194,9 @@ summary said so, `usePlayByPlay` reads it once more for the last plays.
 Every endpoint used answers cross-origin requests (ESPN's `teams` endpoint
 does not, which is why the registry comes from the standings), so the
 browser calls them directly; it adds a timeout (8 seconds; ESPN answers in
-well under one) and turns a bad status into an `UpstreamError`. Caching and
-retries belong to the query layer. The root layout preconnects to ESPN's API
+well under one) and turns a bad status into an `UpstreamError`, keeping any
+`Retry-After` as `retryAfterMs`. Caching, retries and backoff belong to the
+query layer. The root layout preconnects to ESPN's API
 and logo hosts so the connections are open by the time the script runs. If ESPN
 ever stops allowing cross-origin reads, the fix is one proxy in front of
 `site.api.espn.com` behind this module, or a slim committed data file for
@@ -176,7 +209,7 @@ Logos are not fetched through it: `Team.logo` is ESPN's CDN URL and
 
 A page renders `Loading` until the teams and every week have arrived, and
 `LoadFailed` with a retry if any of them cannot be read after Query's one
-retry. Both are the same frame: the header every page shares (the site's
+retry. "Try again" resets only the queries that failed; what arrived is kept. Both are the same frame: the header every page shares (the site's
 mark, About) and, centred beneath, the mark breathing while the season is on
 the way, or the failure. No grey bars stand in for content. Nothing about a
 season is drawn until all of it is there, so a half-loaded page can never
@@ -285,13 +318,15 @@ site's mark in the header gains a chevron there, reading as the way back.
 
 `GameDetail` branches on `gamePhase()` of the **selected** game:
 
-| Phase                  | Shows                                              |
-| ---------------------- | -------------------------------------------------- |
-| `live`                 | Score row, clock, data age, field, plays           |
-| `final`                | Score row, field, plays; recap icon in the top row |
-| `pregame`              | Countdown, kickoff details                         |
-| `upcoming`             | When and on what, and nothing else                 |
-| `postponed`/`canceled` | The status and the original details                |
+| Phase  | Shows                                    |
+| ------ | ---------------------------------------- |
+| `live` | Score row, clock, data age, field, plays |
+
+The data age is a readout, not a control.
+| `final` | Score row, field, plays; recap icon in the top row |
+| `pregame` | Countdown, kickoff details |
+| `upcoming` | When and on what, and nothing else |
+| `postponed`/`canceled` | The status and the original details |
 
 Live and final panels lead with `ScoreRow`: away left, home right, matching
 the field's end zones. It names the teams, so there is no separate matchup
@@ -423,7 +458,8 @@ matching rules, their corpus of real titles, and the corrections a person
 made. A wrong or missing recap is fixed there, not here.
 
 `recapDatasetQuery` reads the season's file from the dataset's repository
-(`<url>/<season>.json`, `src/lib/recap-dataset.ts`). `recapsFromDataset()` keys each `found` game by the game in the
+(`<url>/<season>.json`, `src/lib/recap-dataset.ts`), which GitHub serves with
+a five-minute cache, so it is never re-read sooner (`recapsPollMs`). `recapsFromDataset()` keys each `found` game by the game in the
 same week between the same two teams, whichever is home. The dataset numbers
 the postseason as the app does (Wild Card is week 19 of an 18-week season),
 so playoff games join the same way; keep the two in step. Preseason games,
@@ -438,7 +474,7 @@ A final game's panel carries `RecapLink` in its top row, beside the
 full-screen control: a YouTube icon, out to YouTube since the NFL blocks
 embedding, drawn only once the dataset has linked a recap. Until then there is
 nothing, not a search. While the selected game is final, recent and unlinked,
-`useRecaps` re-reads the file every two minutes.
+`useRecaps` re-reads the file every `recapsPollMs`.
 
 ## Other invariants
 
@@ -530,7 +566,8 @@ week caught up through.
   where it was, and a game seen to the end stays so. A snap paused while
   still lined up was never played, so the play before it is the place
 - before any of it is watched, the panel offers **Watch from kickoff** in
-  place of the feed, over an empty field and masked score
+  place of the feed, over an empty field and masked score; the plays are
+  not even fetched until then
 - partway through, the score row, field and feed stand at the place, the feed
   newest first, with **Resume** leading; picking plays and stepping back
   browse what was seen without moving the place, and stepping forward past
@@ -550,10 +587,13 @@ play, the game is seen to the end.
 
 Tapping the covered score skips ahead: on a finished game it
 sees the game to the end (`finishGame()`); on a live one it joins at the newest
-play. Partway through a live game, the panel's **Live** label does the same.
-Add no button for either: with a pointer the hover state is the only hint, and
-a touch screen (`pointer-coarse`) gets one faint line under the row saying a
-covered score can be tapped. A recap is watched outside the app and moves
+play. Once a play is on the field or a place exists, the row shows figures
+instead of a covered score, and the panel's eyebrow label takes over: partway
+through a live game its **Live** label joins at the newest play, and partway
+through a finished one its **Final** label sees the game to the end. Add no
+button for any of these: with a pointer the hover state is the only hint, and
+a touch screen (`pointer-coarse`) gets one faint line under the row, while a
+score is covered, saying it can be tapped. A recap is watched outside the app and moves
 nothing.
 
 The place reveals nothing unseen, so it does not expire.

@@ -6,11 +6,13 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { isPermanentFailure } from "~/lib/upstream";
+import { isPermanentFailure, retryAfterOf } from "~/lib/upstream";
 
 /**
  * One query cache for the session; it is the app's only store. A failed read
- * is tried once more, so an outage shows within seconds rather than a minute.
+ * is tried once more, so an outage shows within seconds rather than a minute,
+ * and no sooner than the source asked. Nothing is fetched again just because
+ * the tab was looked at: each query's own policy says when.
  */
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(() => {
@@ -24,6 +26,9 @@ export function Providers({ children }: { children: ReactNode }) {
         queries: {
           retry: (failures, error) =>
             !isPermanentFailure(error) && failures < 1,
+          retryDelay: (attempt, error) =>
+            retryAfterOf(error) ?? Math.min(1000 * 2 ** attempt, 30_000),
+          refetchOnWindowFocus: false,
         },
       },
     });

@@ -16,7 +16,7 @@ import { fetchUpstream } from "~/lib/upstream";
  */
 
 const STANDINGS_URL =
-  "https://site.api.espn.com/apis/v2/sports/football/nfl/standings?level=3";
+  "https://site.api.espn.com/apis/v2/sports/football/nfl/standings";
 
 const logoSchema = z.object({
   href: z.string(),
@@ -146,6 +146,13 @@ export function teamRegistryFromEspn(
   };
 }
 
-export async function fetchStandings(signal?: AbortSignal): Promise<unknown> {
-  return fetchUpstream(STANDINGS_URL, signal);
+/**
+ * A season's standings, every team under its division (`level=3`). One
+ * payload serves the registry and the playoff marks (`playoff-marks.ts`).
+ */
+export async function fetchStandings(
+  season: number,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return fetchUpstream(`${STANDINGS_URL}?level=3&season=${season}`, signal);
 }

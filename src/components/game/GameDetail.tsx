@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { Maximize2, Minimize2, RefreshCw } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { FieldView } from "~/components/game/FieldView";
 import {
   ScoreRow,
@@ -52,7 +52,6 @@ interface GameDetailProps {
   scoreError: string | null;
   /** When the score last arrived, for the freshness readout. */
   scoreUpdatedAt?: number | null;
-  onRefreshScore?: () => void;
   /** Caught up through its week; a game seen to the end is shown too. */
   showSpoilers: boolean;
   /** Records reveal earlier results. Defaults to `showSpoilers`. */
@@ -60,6 +59,11 @@ interface GameDetailProps {
   recaps: RecapsFile;
   /** With spoilers hidden, shown only as far as the viewer has watched. */
   playByPlay?: PlayByPlay | null;
+  /**
+   * Given while the plays have not been asked for: the viewer's first move
+   * to watch asks for them. Resolves to the plays, or null if none came.
+   */
+  onLoadPlays?: () => Promise<PlayByPlay | null>;
   expanded?: boolean;
   onToggleExpanded?: () => void;
 }
@@ -210,6 +214,37 @@ function LiveLabel({
   );
 }
 
+/**
+ * The game is over and the row stands at a play in it. With the result
+ * hidden, the label is the way to the end; as the live label, the hover
+ * state is the only hint.
+ */
+function FinalLabel({
+  game,
+  onFinish,
+}: {
+  game: TeamGame;
+  onFinish?: () => void;
+}) {
+  const label = (
+    <span className="label-eyebrow text-inherit">
+      {weekLabel(game)} · Final
+    </span>
+  );
+  if (!onFinish) return label;
+  return (
+    <button
+      type="button"
+      onClick={onFinish}
+      className="text-ink-faint hover:text-ink -m-2 cursor-pointer rounded-md p-2 whitespace-nowrap transition-colors"
+      aria-label={`${weekLabel(game)}, final: see the game to the end`}
+      title="See to the end"
+    >
+      {label}
+    </button>
+  );
+}
+
 interface ExpandControl {
   expanded: boolean;
   onToggleExpanded?: () => void;
@@ -277,11 +312,11 @@ export function GameDetail({
   score,
   scoreError,
   scoreUpdatedAt = null,
-  onRefreshScore,
   showSpoilers: caughtUp,
   showRecords = caughtUp,
   recaps,
   playByPlay = null,
+  onLoadPlays,
   expanded = false,
   onToggleExpanded,
 }: GameDetailProps) {
@@ -357,13 +392,31 @@ export function GameDetail({
 
   const phase = broadcastPhase(gamePhase(game, now), broadcastClock);
   const { gameId: selectedId } = game;
+  // Plays not yet asked for: the first move to watch asks, then starts.
+  const loadThen = (atEnd: boolean) =>
+    onLoadPlays
+      ? () =>
+          void onLoadPlays().then((loaded) => {
+            if (loaded?.gameId === selectedId) {
+              replay.start(loaded.drives, atEnd);
+            }
+          })
+      : undefined;
+  const loadPlays = drives === null ? loadThen(false) : undefined;
+  const shownDrives = drives ?? (loadPlays ? [] : null);
   const onReveal = showSpoilers
     ? undefined
     : phase === "final"
-      ? () => finishGame(selectedId)
+      ? () => {
+          // Seen to the end: the row stands at the final, not at the play.
+          finishGame(selectedId);
+          replay.clear();
+        }
       : phase === "live" && plays.length > 0
         ? replay.follow
-        : undefined;
+        : phase === "live" && drives === null
+          ? loadThen(true)
+          : undefined;
 
   if (phase === "postponed" || phase === "canceled") {
     return (
@@ -428,17 +481,10 @@ export function GameDetail({
             onFollow={onReveal}
           />
           {!Number.isNaN(updatedMs) && (
-            <button
-              type="button"
-              onClick={onRefreshScore}
-              disabled={!onRefreshScore}
-              className="text-ink-faint hover:text-ink-muted flex cursor-pointer items-center gap-1 font-mono text-xs whitespace-nowrap transition-colors disabled:cursor-default"
-              title="Refresh now"
-            >
-              <RefreshCw className="size-3" aria-hidden />
+            <span className="text-ink-faint flex items-center gap-1 font-mono text-xs whitespace-nowrap">
               <span className="hidden sm:inline">Updated</span>
               {formatAge(now - updatedMs)}
-            </button>
+            </span>
           )}
         </Eyebrow>
 
@@ -467,9 +513,9 @@ export function GameDetail({
           }
         />
 
-        {drives ? (
+        {shownDrives ? (
           <GamePlays
-            drives={drives}
+            drives={shownDrives}
             {...sides(game, team)}
             replay={replay}
             ongoing
@@ -479,6 +525,7 @@ export function GameDetail({
               onCycle: () => cycleBroadcastDelay(selectedId),
             }}
             seenThrough={limit}
+            onLoadPlays={loadPlays}
           />
         ) : (
           situation && (
@@ -513,11 +560,12 @@ export function GameDetail({
     return (
       <Panel className="md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain">
         <Eyebrow {...expand} recap={findRecap(recaps, game.gameId)}>
-          <span className="label-eyebrow">
-            {weekLabel(game)}
-            {/* The row stands at a play; the game itself is over. */}
-            {watched && " · Final"}
-          </span>
+          {/* The row stands at a play; the game itself is over. */}
+          {watched ? (
+            <FinalLabel game={game} onFinish={onReveal} />
+          ) : (
+            <span className="label-eyebrow">{weekLabel(game)}</span>
+          )}
         </Eyebrow>
 
         <div className="mb-4">
@@ -560,13 +608,14 @@ export function GameDetail({
           />
         </div>
 
-        {drives && (
+        {shownDrives && (
           <GamePlays
-            drives={drives}
+            drives={shownDrives}
             {...sides(game, team)}
             replay={replay}
             ongoing={false}
             seenThrough={limit}
+            onLoadPlays={loadPlays}
           />
         )}
 

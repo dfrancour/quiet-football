@@ -102,7 +102,12 @@ export function LoadFailed({
           : "The season could not be loaded."}{" "}
         <button
           type="button"
-          onClick={() => void client.resetQueries()}
+          // Only what failed is asked for again; what arrived is kept.
+          onClick={() =>
+            void client.resetQueries({
+              predicate: (query) => query.state.status === "error",
+            })
+          }
           className="text-ink hover:text-accent-strong underline underline-offset-4 transition-colors"
         >
           Try again

@@ -14,7 +14,8 @@ import { usePlayByPlay } from "~/hooks/usePlayByPlay";
 import { useRecaps } from "~/hooks/useRecaps";
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
-import { weekQuery } from "~/lib/queries";
+import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
+import { type LoadedPlayByPlay, playByPlayQuery } from "~/lib/queries";
 import { standingsPath } from "~/lib/routes";
 import { defaultGameId, gamePhase } from "~/lib/schedule";
 import { parseWeekParam } from "~/lib/season-calendar";
@@ -135,18 +136,37 @@ function TeamView({ registry, data, team }: TeamViewProps) {
         : null,
     [selectedWeek, team.abbreviation],
   );
-  const refreshScore = useCallback(() => {
-    if (!selectedGame) return;
-    void client.invalidateQueries({
-      queryKey: weekQuery(season, selectedGame.week).queryKey,
-    });
-  }, [client, season, selectedGame]);
 
-  // Fetched regardless of spoilers: a hidden game is shown up to the
-  // viewer's place. A finished game's plays are fetched once.
+  // The plays are asked for only when they will be drawn: the game is
+  // shown, the viewer has a place in it, or they asked to watch it. A
+  // covered game nobody has started costs ESPN nothing. A live game's are
+  // read again as the scoreboard shows a new play.
+  const progress = useWatchProgressByGame();
+  const [asked, setAsked] = useState<ReadonlySet<string>>(() => new Set());
+  const playable = selectedIsLive || selectedPhase === "final";
+  const playsWanted =
+    playable &&
+    selectedGame !== null &&
+    (spoilers.isShown(selectedGame) ||
+      selectedGame.gameId in progress ||
+      asked.has(selectedGame.gameId));
+  const loadPlays = useCallback(async (): Promise<LoadedPlayByPlay | null> => {
+    if (selectedGameId === null) return null;
+    setAsked((before) => new Set(before).add(selectedGameId));
+    return client.fetchQuery(playByPlayQuery(selectedGameId, selectedIsLive));
+  }, [client, selectedGameId, selectedIsLive]);
+  const scoreMark = score
+    ? [
+        score.detail,
+        score.team.score,
+        score.opponent.score,
+        score.situation?.lastPlay,
+      ].join("|")
+    : null;
   const playByPlay = usePlayByPlay(
-    selectedIsLive || selectedPhase === "final" ? selectedGameId : null,
+    playsWanted ? selectedGameId : null,
     selectedIsLive,
+    scoreMark,
   );
 
   // The body comes in whole, marks and all, under the header already there.
@@ -226,7 +246,6 @@ function TeamView({ registry, data, team }: TeamViewProps) {
             score={score}
             scoreError={selectedWeek?.error?.message ?? null}
             scoreUpdatedAt={selectedWeek ? selectedWeek.updatedAt : null}
-            onRefreshScore={refreshScore}
             showSpoilers={
               selectedGame !== null && spoilers.isShown(selectedGame)
             }
@@ -237,6 +256,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
             }
             recaps={recaps}
             playByPlay={playByPlay}
+            onLoadPlays={playable && !playsWanted ? loadPlays : undefined}
             expanded={expanded}
             onToggleExpanded={toggleExpanded}
           />
