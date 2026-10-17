@@ -36,8 +36,9 @@ export interface SidePeriods {
  * Away left and home right, matching the field's end zones. Teams stay
  * visible while figures are masked.
  *
- * Status and quarter grid sit between the scores, dropping below them when
- * the panel is too narrow.
+ * The status sits between the scores, and the quarter grid under it. A
+ * narrow panel drops the grid below the row, and a phone the status too,
+ * leaving a gutter between the scores.
  */
 export function ScoreRow({
   game,
@@ -73,10 +74,7 @@ export function ScoreRow({
       </p>
       <div
         className={cn(
-          "grid items-center gap-2 sm:gap-3",
-          hasPeriods
-            ? "grid-cols-2 gap-y-4 @xl:grid-cols-[1fr_auto_1fr] @xl:gap-x-6"
-            : "grid-cols-[1fr_auto_1fr]",
+          "grid grid-cols-[auto_minmax(1rem,1fr)_auto] items-center gap-x-2 gap-y-3 sm:gap-x-3 @sm:grid-cols-[1fr_minmax(1rem,auto)_1fr] @xl:gap-x-6 @xl:gap-y-2",
         )}
       >
         <ScoreLine
@@ -84,25 +82,35 @@ export function ScoreRow({
           emphasis={away === team}
           onReveal={onReveal}
           {...awayFigures}
-        />
-        <div
           className={cn(
-            "flex flex-col items-center gap-2",
-            hasPeriods && "order-last col-span-2 @xl:order-none @xl:col-span-1",
+            "col-start-1 row-start-1",
+            hasPeriods && "@xl:row-span-2",
+          )}
+        />
+        <p
+          className={cn(
+            "col-span-3 row-start-2 justify-self-center font-mono text-xs whitespace-nowrap @sm:col-span-1 @sm:col-start-2 @sm:row-start-1",
+            hasPeriods && "@xl:self-end",
           )}
         >
-          <p className="font-mono text-xs whitespace-nowrap">{status}</p>
-          {hasPeriods && (
-            <PeriodGrid game={game} team={team} periods={periods} />
-          )}
-        </div>
+          {status}
+        </p>
         <ScoreLine
           team={home}
           emphasis={home === team}
           mirrored
           onReveal={onReveal}
           {...homeFigures}
+          className={cn(
+            "col-start-3 row-start-1",
+            hasPeriods && "@xl:row-span-2",
+          )}
         />
+        {hasPeriods && (
+          <div className="col-span-3 justify-self-center @xl:col-span-1 @xl:col-start-2 @xl:self-start">
+            <PeriodGrid game={game} team={team} periods={periods} />
+          </div>
+        )}
       </div>
       {/* A pointer gets a hover state; a finger gets told once. */}
       {onReveal && (followed.display === null || opposing.display === null) && (

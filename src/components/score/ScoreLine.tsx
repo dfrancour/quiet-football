@@ -27,6 +27,7 @@ interface ScoreLineProps {
   mirrored?: boolean;
   /** Makes a covered figure the way to uncover it. */
   onReveal?: () => void;
+  className?: string;
 }
 
 const TIMEOUTS_PER_HALF = 3;
@@ -66,12 +67,14 @@ export function ScoreLine({
   won = null,
   mirrored = false,
   onReveal,
+  className,
 }: ScoreLineProps) {
   return (
     <div
       className={cn(
         "flex min-w-0 items-center justify-between gap-2 sm:gap-3",
         mirrored && "flex-row-reverse",
+        className,
       )}
     >
       <span
@@ -119,12 +122,7 @@ export function ScoreLine({
           )}
         </span>
       </span>
-      <span
-        className={cn(
-          "flex items-center gap-0.5",
-          mirrored && "flex-row-reverse",
-        )}
-      >
+      <span className={cn("flex items-center", mirrored && "flex-row-reverse")}>
         <span
           className={cn(
             "stat-figure text-3xl sm:text-4xl",
@@ -140,7 +138,7 @@ export function ScoreLine({
         </span>
         {won !== null && (
           // Points inward at the winner's figure from the middle of the row.
-          <span className="flex size-5 shrink-0 items-center justify-center">
+          <span className="flex h-5 w-4 shrink-0 items-center justify-center">
             {won && (
               <>
                 <svg

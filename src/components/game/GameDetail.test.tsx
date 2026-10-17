@@ -244,12 +244,12 @@ describe("GameDetail live situation", () => {
       score: liveScoreWithSituation,
       showSpoilers: true,
     });
-    // MIN is away at NO: the score row with the quarter grid between its two
-    // sides, then the end zones.
+    // MIN is away at NO: the score row's two sides, then its quarter grid,
+    // then the end zones.
     const order = screen
       .getAllByText(/^(MIN|NO)$/)
       .map((element) => element.textContent);
-    expect(order).toEqual(["MIN", "MIN", "NO", "NO", "MIN", "NO"]);
+    expect(order).toEqual(["MIN", "NO", "MIN", "NO", "MIN", "NO"]);
   });
 
   it("still draws the field when nobody has the ball", () => {
