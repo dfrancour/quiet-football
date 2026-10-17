@@ -8,7 +8,9 @@ import { youtubeWatchUrl, type Recap } from "~/lib/recaps";
  * the dataset has linked one; there is no search fallback.
  *
  * The icon is two strokes, the frame then the play sign; hovered, the frame
- * takes YouTube's red and the sign goes white.
+ * takes YouTube's red and the sign goes white. Its artwork sits inside its
+ * box where the full-screen arrows reach the corners, so it is drawn a step
+ * larger, with less padding, to read the same size in the same hit area.
  */
 export function RecapLink({ recap }: { recap: Recap }) {
   return (
@@ -16,11 +18,11 @@ export function RecapLink({ recap }: { recap: Recap }) {
       href={youtubeWatchUrl(recap.youtubeId)}
       target="_blank"
       rel="noreferrer noopener"
-      className="text-ink-faint hover:[&>svg>path:first-child]:stroke-youtube hover:[&>svg>path:last-child]:stroke-ink -m-2 shrink-0 rounded-md p-2 transition-colors [&>svg>path]:transition-colors"
+      className="text-ink-faint hover:[&>svg>path:first-child]:stroke-youtube hover:[&>svg>path:last-child]:stroke-ink -m-2 shrink-0 rounded-md p-1.5 transition-colors [&>svg>path]:transition-colors"
       aria-label="Watch recap on YouTube"
       title="Watch recap"
     >
-      <Youtube className="size-4" aria-hidden />
+      <Youtube className="size-5" aria-hidden />
     </a>
   );
 }
