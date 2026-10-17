@@ -281,7 +281,8 @@ function Announcement({
  * one waits for a pick.
  *
  * The feed reads newest first throughout; while playing it holds back each
- * play until its result is out.
+ * play until its result is out, and with the result hidden it stands at the
+ * play on the field.
  *
  * With spoilers hidden the caller passes `seenThrough`, the viewer's place;
  * the feed shows nothing past it. A game seen to the end is no longer hidden.
@@ -347,6 +348,16 @@ export function GamePlays({
   // A kick stands for the play on its own; the snaps before it fade back.
   const shownPlayId = shown.kick?.id ?? shown.set.at(-1)?.id ?? null;
 
+  // Running, the feed shows what has played out. With the result hidden it
+  // stands at the play on the field, so stepping back takes it back too, or
+  // at the place with nothing on the field. Shown, a paused feed is whole.
+  const feedThrough =
+    running || (limited && play !== null)
+      ? revealedId
+      : limited
+        ? seen
+        : undefined;
+
   const onSelect = (playId: string) => {
     if (!running && playId === play?.id) replay.clear();
     else replay.select(playId);
@@ -394,15 +405,11 @@ export function GamePlays({
 
       <PlayFeed
         drives={
-          running
-            ? revealedId === null
+          feedThrough === undefined
+            ? drives
+            : feedThrough === null
               ? []
-              : drivesThrough(drives, revealedId)
-            : !limited
-              ? drives
-              : seen === null
-                ? []
-                : drivesThrough(drives, seen)
+              : drivesThrough(drives, feedThrough)
         }
         home={home}
         away={away}

@@ -597,8 +597,9 @@ week caught up through.
   not even fetched until then
 - partway through, the score row, field and feed stand at the place, the feed
   newest first, with **Resume** leading; picking plays and stepping back
-  browse what was seen without moving the place, and stepping forward past
-  it is watching
+  browse what was seen without moving the place, the feed and score row
+  standing at the play on the field, and stepping forward past it is
+  watching
 - the place never stands in for how far along the game is. A schedule row
   shows the game's own state — its clock while live, Final once over — and
   its result once seen to the end. While the score row stands at a play, the

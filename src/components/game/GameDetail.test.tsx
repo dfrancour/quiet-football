@@ -982,14 +982,23 @@ describe("GameDetail watching with spoilers hidden", () => {
     expect(button(/K\.Archer kicks/)).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("unsees nothing stepped back over", () => {
+  it("unsees nothing stepped back over, though the feed goes back too", () => {
     renderDetail(hidden);
     startWatching();
     forward();
     forward();
-    fireEvent.click(button("Step back"));
-    fireEvent.click(button("Step back"));
+    expect(feed()).toHaveTextContent(/R\.Swift right end/);
+    const place = getWatchProgress()[finalGame.gameId]?.playId;
 
+    fireEvent.click(button("Step back"));
+    fireEvent.click(button("Step back"));
+    // The feed stands at the play on the field; the place stays.
+    expect(feed()).not.toHaveTextContent(/R\.Swift right end/);
+    expect(feed()).toHaveTextContent(/K\.Archer kicks 65 yards/);
+    expect(getWatchProgress()[finalGame.gameId]?.playId).toBe(place);
+
+    forward();
+    forward();
     expect(feed()).toHaveTextContent(/R\.Swift right end/);
     expect(feed()).not.toHaveTextContent("Field Goal");
   });
