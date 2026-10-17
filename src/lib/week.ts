@@ -58,6 +58,26 @@ export function settledThrough(season: SeasonFile): number {
   return unsettled.length === 0 ? last : Math.min(...unsettled) - 1;
 }
 
+export interface WeekInProgress {
+  week: number;
+  /** The games in it already over, oldest kickoff first. */
+  finalGameIds: string[];
+}
+
+/**
+ * The week after the last settled one, once a game in it is final: a viewer
+ * can catch up into it, taking its finished games as seen. Null while none
+ * of its games is over, or the season is settled.
+ */
+export function weekInProgress(season: SeasonFile): WeekInProgress | null {
+  const week = settledThrough(season) + 1;
+  const finalGameIds = season.games
+    .filter((game) => game.week === week && game.status === "final")
+    .sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff))
+    .map((game) => game.gameId);
+  return finalGameIds.length > 0 ? { week, finalGameIds } : null;
+}
+
 export function buildLeagueGames(
   season: SeasonFile,
   registry: TeamRegistry,

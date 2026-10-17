@@ -11,6 +11,7 @@ import {
 import { Sheet } from "~/components/common/Sheet";
 import { useDismiss } from "~/hooks/useDismiss";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
+import { type PartialWeek } from "~/hooks/useSpoilers";
 import {
   playoffRound,
   ROUND_ABBREVIATIONS,
@@ -27,14 +28,24 @@ interface CaughtUpProps {
   /** The week the league is on, marked as the week chooser marks it. */
   currentWeek: number;
   totalWeeks: number;
+  /**
+   * The week in progress, offered as half a week once a game in it is over,
+   * and whether its finished games are seen. Null while none is.
+   */
+  partial: PartialWeek | null;
   onCatchUp: (week: number) => void;
 }
 
 /** Each week's cover lifts this long after the one before. */
 const SWEEP_STEP_MS = 18;
 
-function label(totalWeeks: number, week: number): string {
-  return week > 0 ? `Through ${weekName(totalWeeks, week)}` : "Spoilers hidden";
+/** The upper-left half of a cell: a week in progress is filled this far. */
+const HALF: CSSProperties = { clipPath: "polygon(0 0, 100% 0, 0 100%)" };
+
+function label(totalWeeks: number, week: number, partial = false): string {
+  if (week === 0) return "Spoilers hidden";
+  const name = weekName(totalWeeks, week);
+  return partial ? `${name} so far` : `Through ${name}`;
 }
 
 /** Tailwind's `sm`: from here the strip is a popover under the control. */
@@ -45,14 +56,19 @@ const WIDE = "(min-width: 40rem)";
  * It opens the season as a strip: weeks caught up through read plainly,
  * settled weeks past them are hatched like any hidden result, and weeks not
  * yet played are faint. Tapping a settled week uncovers (or covers) the strip
- * up to it. On a phone the strip comes up as a sheet, its weeks in rows of
- * nine so each is a fingertip wide, and closes on a pick.
+ * up to it. A week in progress is half a cell, split corner to corner, once
+ * a game in it is over: tapping it uncovers everything settled, that week's
+ * finished games included, and the half fills; as more of its games end it
+ * is hatched again until tapped. On a phone the strip comes up as a sheet,
+ * its weeks in rows of nine so each is a fingertip wide, and closes on a
+ * pick.
  */
 export function CaughtUp({
   through,
   settledThrough,
   currentWeek,
   totalWeeks,
+  partial,
   onCatchUp,
 }: CaughtUpProps) {
   const [open, setOpen] = useState(false);
@@ -69,6 +85,11 @@ export function CaughtUp({
     pending !== null && pending.from === through ? pending.week : through;
   const reachable = Math.max(committed, settledThrough);
   const shown = preview ?? committed;
+  // Caught up into the week in progress: every settled week and its finished
+  // games. The furthest the strip goes.
+  const intoPartial =
+    partial !== null && partial.uncovered && committed >= settledThrough;
+  const furthest = partial?.week ?? reachable;
   const Icon = committed > 0 ? Eye : EyeOff;
 
   const close = useCallback(() => setOpen(false), []);
@@ -82,8 +103,12 @@ export function CaughtUp({
   const choose = (week: number) => {
     setPreview(null);
     if (!wide) closeSheet();
-    if (week === committed) return;
-    setPending({ week, from: through });
+    if (week === committed || (week === partial?.week && intoPartial)) return;
+    // The week in progress catches up through every settled week first.
+    setPending({
+      week: week === partial?.week ? Math.max(through, settledThrough) : week,
+      from: through,
+    });
     onCatchUp(week);
   };
 
@@ -95,7 +120,7 @@ export function CaughtUp({
     const at = Number(
       (event.target as HTMLElement).dataset.week ?? String(committed),
     );
-    const next = Math.min(reachable, Math.max(1, at + step));
+    const next = Math.min(furthest, Math.max(1, at + step));
     rootRef.current
       ?.querySelector<HTMLElement>(`[data-week="${next}"]`)
       ?.focus();
@@ -114,8 +139,11 @@ export function CaughtUp({
 
   const cell = (week: number) => {
     const round = playoffRound(totalWeeks, week);
-    const settled = week <= reachable;
-    const uncovered = week <= shown;
+    const half = week === partial?.week;
+    const settled = week <= reachable || half;
+    const uncovered = half
+      ? (partial.uncovered && shown >= settledThrough) || preview === week
+      : week <= shown;
     // Picked, the covers sweep away from the old place toward the new one.
     const sweep: CSSProperties | undefined =
       preview === null && pending !== null && pending.from === through
@@ -129,8 +157,8 @@ export function CaughtUp({
         type="button"
         data-week={week}
         disabled={!settled}
-        aria-pressed={week === committed}
-        aria-label={label(totalWeeks, week)}
+        aria-pressed={half ? intoPartial : week === committed}
+        aria-label={label(totalWeeks, week, half)}
         title={week === currentWeek ? "This week" : undefined}
         onClick={() => choose(week)}
         onPointerEnter={() => settled && setPreview(week)}
@@ -138,18 +166,34 @@ export function CaughtUp({
         className={cn(
           "relative min-w-0 overflow-hidden font-mono text-[0.6875rem] tabular-nums transition-colors first:rounded-l-sm last:rounded-r-sm",
           wide ? "h-9" : "h-11 text-xs",
-          !settled
-            ? "bg-surface-sunken/50 text-ink-faint/60 cursor-default"
+          !settled || half
+            ? "bg-surface-sunken/50"
             : uncovered
-              ? "bg-accent-dim text-ink cursor-pointer"
-              : "bg-surface-sunken text-ink-muted cursor-pointer",
-          week === committed && "font-semibold",
+              ? "bg-accent-dim"
+              : "bg-surface-sunken",
+          !settled
+            ? "text-ink-faint/60 cursor-default"
+            : uncovered
+              ? "text-ink cursor-pointer"
+              : "text-ink-muted cursor-pointer",
+          (half ? intoPartial : week === committed) && "font-semibold",
         )}
       >
+        {/* A week in progress is filled to its diagonal, the rest unplayed. */}
+        {half && (
+          <span
+            aria-hidden
+            style={HALF}
+            className={cn(
+              "absolute inset-0 transition-colors",
+              uncovered ? "bg-accent-dim" : "bg-surface-sunken",
+            )}
+          />
+        )}
         {settled && (
           <span
             aria-hidden
-            style={sweep}
+            style={half ? { ...HALF, ...sweep } : sweep}
             className={cn(
               "hatched absolute inset-0 transition-opacity duration-150 motion-reduce:transition-none",
               uncovered ? "opacity-0" : "opacity-100",
@@ -167,17 +211,35 @@ export function CaughtUp({
     );
   };
 
-  // One way of talking: caught up through a week, and steps from there.
+  // One way of talking: caught up through a week, and steps from there. The
+  // week in progress is "so far": its finished games, not the week.
+  const name = (week: number) =>
+    week === partial?.week
+      ? `${weekName(totalWeeks, week)} so far`
+      : weekName(totalWeeks, week);
   const status =
-    preview === null || preview === committed
-      ? committed > 0
-        ? `Caught up through ${weekName(totalWeeks, committed)}`
-        : "Spoilers hidden"
+    preview === null ||
+    preview === committed ||
+    (preview === partial?.week && intoPartial)
+      ? intoPartial
+        ? `Caught up through ${name(partial.week)}`
+        : committed > 0
+          ? `Caught up through ${name(committed)}`
+          : "Spoilers hidden"
       : preview === 0
         ? "Hide all spoilers"
         : preview > committed
-          ? `Catch up through ${weekName(totalWeeks, preview)}`
-          : `Go back to ${weekName(totalWeeks, preview)}`;
+          ? `Catch up through ${name(preview)}`
+          : `Go back to ${name(preview)}`;
+
+  // The shortcut's target: the week in progress once it has games to take,
+  // else the last settled week.
+  const ahead =
+    partial !== null && !partial.uncovered
+      ? partial.week
+      : committed < settledThrough
+        ? settledThrough
+        : null;
 
   const tone =
     committed > 0 ? "text-ink-muted" : "text-ink-faint hover:text-ink-muted";
@@ -232,15 +294,15 @@ export function CaughtUp({
         >
           Hide all
         </button>
-        {committed < settledThrough && (
+        {ahead !== null && (
           <button
             type="button"
-            onClick={() => choose(settledThrough)}
-            onPointerEnter={() => setPreview(settledThrough)}
+            onClick={() => choose(ahead)}
+            onPointerEnter={() => setPreview(ahead)}
             onPointerLeave={() => setPreview(null)}
             className="text-ink-muted hover:text-ink -my-2 inline-flex cursor-pointer items-center gap-1 py-2 transition-colors"
           >
-            Catch up through {weekName(totalWeeks, settledThrough)}
+            Catch up through {name(ahead)}
             <ArrowRight className="size-3" aria-hidden />
           </button>
         )}
@@ -262,7 +324,9 @@ export function CaughtUp({
         )}
       >
         <Icon className="size-3.5" aria-hidden />
-        {label(totalWeeks, committed)}
+        {intoPartial
+          ? label(totalWeeks, partial.week, true)
+          : label(totalWeeks, committed)}
       </button>
 
       {open &&

@@ -25,7 +25,7 @@ import { buildTeamSchedule } from "~/lib/team-view";
 import { teamByAbbreviation } from "~/lib/teams";
 import { type Team, type TeamRegistry } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
-import { currentWeekNow, settledThrough } from "~/lib/week";
+import { currentWeekNow, settledThrough, weekInProgress } from "~/lib/week";
 
 /** One team's season, once the league has loaded; an unknown team goes to the standings. */
 export function TeamApp({ abbreviation }: { abbreviation: string }) {
@@ -78,6 +78,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     totalWeeks: seasonFile.totalWeeks,
     settledThrough: settledThrough(seasonFile),
     currentWeek: currentWeekNow(seasonFile),
+    inProgress: useMemo(() => weekInProgress(seasonFile), [seasonFile]),
   });
   const { isOpen, recordThrough } = spoilers;
 
@@ -212,6 +213,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
           settledThrough={spoilers.settledThrough}
           currentWeek={spoilers.currentWeek}
           totalWeeks={spoilers.totalWeeks}
+          partial={spoilers.partial}
           onCatchUp={spoilers.catchUp}
         />
       )}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildLeagueGames, currentWeek, settledThrough } from "~/lib/week";
+import {
+  buildLeagueGames,
+  currentWeek,
+  settledThrough,
+  weekInProgress,
+} from "~/lib/week";
 import {
   REGISTRY,
   TEAMS,
@@ -92,6 +97,33 @@ describe("settledThrough", () => {
     });
     expect(settledThrough(withStatus("canceled"))).toBe(6);
     expect(settledThrough(withStatus("postponed"))).toBe(4);
+  });
+});
+
+describe("weekInProgress", () => {
+  it("is the week after the settled ones once a game in it is over", () => {
+    expect(weekInProgress(season)).toBeNull();
+    expect(weekInProgress(settled("sun"))).toEqual({
+      week: 5,
+      finalGameIds: ["sun"],
+    });
+    // Week 5 settled, nothing in week 6 over yet.
+    expect(weekInProgress(settled("sun", "mon"))).toBeNull();
+  });
+
+  it("names only the games that are final, not canceled ones", () => {
+    const withCanceled = {
+      ...settled("sun"),
+      games: settled("sun").games.map((game) =>
+        game.gameId === "mon" ? { ...game, status: "canceled" as const } : game,
+      ),
+    };
+    // Week 5 is then settled; week 6 has nothing over yet.
+    expect(weekInProgress(withCanceled)).toBeNull();
+  });
+
+  it("is null once every game is settled", () => {
+    expect(weekInProgress(settled("sun", "mon", "thu"))).toBeNull();
   });
 });
 

@@ -34,11 +34,21 @@ export function recordWatchProgress(
   store.set({ ...store.get(), [gameId]: progress });
 }
 
+/** The viewer uncovered finished games: each reads as watched to the end. */
+export function finishGames(gameIds: readonly string[]): void {
+  const stored = store.get();
+  store.set({
+    ...stored,
+    ...Object.fromEntries(
+      gameIds.map((gameId) => [
+        gameId,
+        { playId: stored[gameId]?.playId ?? null, finished: true },
+      ]),
+    ),
+  });
+}
+
 /** The viewer uncovered a finished game: it reads as watched to the end. */
 export function finishGame(gameId: string): void {
-  const stored = store.get()[gameId];
-  recordWatchProgress(gameId, {
-    playId: stored?.playId ?? null,
-    finished: true,
-  });
+  finishGames([gameId]);
 }

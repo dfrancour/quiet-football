@@ -21,6 +21,7 @@ describe("SiteHeader", () => {
         settledThrough={settledThrough}
         currentWeek={settledThrough + 1}
         totalWeeks={18}
+        partial={null}
         onCatchUp={onCatchUp}
       />,
     );
@@ -136,6 +137,7 @@ describe("SiteHeader", () => {
         settledThrough={5}
         currentWeek={6}
         totalWeeks={18}
+        partial={null}
         onCatchUp={() => undefined}
       />,
     );

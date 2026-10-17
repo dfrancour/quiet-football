@@ -5,6 +5,7 @@ import { SiteHeader } from "~/components/layout/SiteHeader";
 import { FavoriteStar } from "~/components/team/FavoriteStar";
 import { TeamLogo } from "~/components/team/TeamLogo";
 import { formatRecord, type TeamRecord } from "~/lib/schedule";
+import { type PartialWeek } from "~/hooks/useSpoilers";
 import { type Team } from "~/lib/teams.schema";
 
 interface AppHeaderProps {
@@ -15,6 +16,8 @@ interface AppHeaderProps {
   settledThrough: number;
   currentWeek: number;
   totalWeeks: number;
+  /** The week in progress, if the strip is to offer it. */
+  partial: PartialWeek | null;
   onCatchUp: (week: number) => void;
 }
 
@@ -26,6 +29,7 @@ export function AppHeader({
   settledThrough,
   currentWeek,
   totalWeeks,
+  partial,
   onCatchUp,
 }: AppHeaderProps) {
   return (
@@ -34,6 +38,7 @@ export function AppHeader({
       settledThrough={settledThrough}
       currentWeek={currentWeek}
       totalWeeks={totalWeeks}
+      partial={partial}
       onCatchUp={onCatchUp}
       about={false}
     >

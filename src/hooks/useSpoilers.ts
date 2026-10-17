@@ -12,6 +12,8 @@ import {
   subscribeToCaughtUp,
 } from "~/lib/spoilers";
 import { type TeamGame } from "~/lib/team-view";
+import { finishGames } from "~/lib/watch-progress";
+import { type WeekInProgress } from "~/lib/week";
 
 export interface CaughtUpState {
   season: number;
@@ -20,6 +22,15 @@ export interface CaughtUpState {
   settledThrough: number;
   /** The week the league is on (`currentWeek()`). */
   currentWeek: number;
+  /** The week after `settledThrough` once a game in it is over (`weekInProgress()`). */
+  inProgress: WeekInProgress | null;
+}
+
+/** A week in progress as the strip offers it: half a week, taken or not. */
+export interface PartialWeek {
+  week: number;
+  /** Every game in it that is over has been seen. */
+  uncovered: boolean;
 }
 
 /**
@@ -31,6 +42,7 @@ export function useSpoilers({
   totalWeeks,
   settledThrough,
   currentWeek,
+  inProgress,
 }: CaughtUpState) {
   const caughtUp = useSyncExternalStore(
     subscribeToCaughtUp,
@@ -40,13 +52,40 @@ export function useSpoilers({
   /** The last week the viewer is caught up through; 0 for none. */
   const through = caughtUp[String(season)] ?? 0;
 
-  /** Caught up through this week of the season, or none; other seasons keep theirs. */
-  const catchUp = useCallback(
-    (week: number) => catchUpThrough(season, week),
-    [season],
+  const progress = useWatchProgressByGame();
+
+  /**
+   * The week in progress, and whether its finished games are all seen; null
+   * while none of its games is over.
+   */
+  const partial = useMemo<PartialWeek | null>(
+    () =>
+      inProgress && {
+        week: inProgress.week,
+        uncovered: inProgress.finalGameIds.every(
+          (gameId) => progress[gameId]?.finished === true,
+        ),
+      },
+    [inProgress, progress],
   );
 
-  const progress = useWatchProgressByGame();
+  /**
+   * Caught up through this week of the season, or none; other seasons keep
+   * theirs. The week in progress catches up through every settled week and
+   * takes its finished games as seen, which stays so: a game seen to the end
+   * is never unseen.
+   */
+  const catchUp = useCallback(
+    (week: number) => {
+      if (inProgress && week === inProgress.week) {
+        catchUpThrough(season, Math.max(through, settledThrough));
+        finishGames(inProgress.finalGameIds);
+      } else {
+        catchUpThrough(season, week);
+      }
+    },
+    [season, through, settledThrough, inProgress],
+  );
 
   /**
    * The viewer is caught up through its week, or saw it to the end: watched,
@@ -85,6 +124,7 @@ export function useSpoilers({
       settledThrough,
       currentWeek,
       totalWeeks,
+      partial,
       catchUp,
       isShown,
       isOpen,
@@ -96,6 +136,7 @@ export function useSpoilers({
       settledThrough,
       currentWeek,
       totalWeeks,
+      partial,
       catchUp,
       isShown,
       isOpen,

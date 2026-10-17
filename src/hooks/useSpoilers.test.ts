@@ -3,18 +3,19 @@ import { describe, expect, it } from "vitest";
 import { useSpoilers, type CaughtUpState } from "~/hooks/useSpoilers";
 import { catchUpThrough, getCaughtUp } from "~/lib/spoilers";
 import { makeTeamGame } from "~/lib/test-utils/fixtures";
-import { recordWatchProgress } from "~/lib/watch-progress";
+import { getWatchProgress, recordWatchProgress } from "~/lib/watch-progress";
 
 const state: CaughtUpState = {
   season: 2026,
   totalWeeks: 18,
   settledThrough: 19,
   currentWeek: 20,
+  inProgress: null,
 };
 
-function through(week: number) {
+function through(week: number, overrides: Partial<CaughtUpState> = {}) {
   catchUpThrough(2026, week);
-  return renderHook(() => useSpoilers(state)).result;
+  return renderHook(() => useSpoilers({ ...state, ...overrides })).result;
 }
 
 describe("useSpoilers", () => {
@@ -73,5 +74,43 @@ describe("useSpoilers", () => {
     act(() => result.current.catchUp(0));
     expect(getCaughtUp()).toEqual({ "2025": 22 });
     expect(result.current.through).toBe(0);
+  });
+
+  describe("the week in progress", () => {
+    const inProgress = { week: 20, finalGameIds: ["d1", "d2"] };
+
+    it("is offered covered until every finished game in it is seen", () => {
+      expect(through(19).current.partial).toBeNull();
+      expect(through(19, { inProgress }).current.partial).toEqual({
+        week: 20,
+        uncovered: false,
+      });
+      recordWatchProgress("d1", { playId: "p3", finished: true });
+      expect(through(19, { inProgress }).current.partial?.uncovered).toBe(
+        false,
+      );
+      recordWatchProgress("d2", { playId: null, finished: true });
+      expect(through(19, { inProgress }).current.partial?.uncovered).toBe(true);
+    });
+
+    it("catches up through every settled week and takes its finished games as seen", () => {
+      recordWatchProgress("d1", { playId: "p3", finished: false });
+      const result = through(7, { inProgress });
+      act(() => result.current.catchUp(20));
+      expect(result.current.through).toBe(19);
+      expect(result.current.partial?.uncovered).toBe(true);
+      expect(result.current.isShown({ gameId: "d1", week: 20 })).toBe(true);
+      expect(result.current.isShown({ gameId: "d3", week: 20 })).toBe(false);
+      // The place in a game is kept; only its end is marked.
+      expect(getWatchProgress().d1).toEqual({ playId: "p3", finished: true });
+    });
+
+    it("keeps its games seen when the viewer goes back", () => {
+      const result = through(19, { inProgress });
+      act(() => result.current.catchUp(20));
+      act(() => result.current.catchUp(12));
+      expect(result.current.through).toBe(12);
+      expect(result.current.isShown({ gameId: "d2", week: 20 })).toBe(true);
+    });
   });
 });

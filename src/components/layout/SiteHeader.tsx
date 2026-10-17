@@ -2,6 +2,7 @@
 
 import { Info } from "lucide-react";
 import { type ReactNode } from "react";
+import { type PartialWeek } from "~/hooks/useSpoilers";
 import { CaughtUp } from "~/components/common/CaughtUp";
 import Link from "next/link";
 import { SiteMark } from "~/components/layout/SiteMark";
@@ -32,6 +33,8 @@ interface SiteHeaderProps {
   /** The week the league is on, marked in the season strip. */
   currentWeek: number;
   totalWeeks: number;
+  /** The week in progress, if the strip is to offer it. */
+  partial: PartialWeek | null;
   onCatchUp: (week: number) => void;
   /** Whether the way to About is offered; only the league page does. */
   about?: boolean;
@@ -50,6 +53,7 @@ export function SiteHeader({
   settledThrough,
   currentWeek,
   totalWeeks,
+  partial,
   onCatchUp,
   about = true,
   children,
@@ -81,6 +85,7 @@ export function SiteHeader({
           settledThrough={settledThrough}
           currentWeek={currentWeek}
           totalWeeks={totalWeeks}
+          partial={partial}
           onCatchUp={onCatchUp}
         />
       </div>

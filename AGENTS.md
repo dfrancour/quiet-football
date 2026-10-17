@@ -562,6 +562,15 @@ offered), or none, which hides everything again. The week is **stored, not
 relative**: when the league moves on, the viewer stays where they were. The
 home page opens on the week after it, if the league is past that.
 
+The week in progress is offered too, once a game in it is over
+(`weekInProgress()`, `src/lib/week.ts`): half a cell, split corner to corner,
+named "Week 7 so far". Picking it catches up through every settled week and
+marks that week's finished games **seen to the end** (`finishGames()`), the
+same place a watched game reaches, so nothing new is stored: a game that
+ends later stays covered, the cell is hatched again until picked, and the
+record and standings still stop at the week caught up through. The games
+stay seen if the viewer goes back, as any game seen to the end does.
+
 It is kept per season in `localStorage` (`catchUpThrough()` in
 `src/lib/spoilers.ts`, read by `useSpoilers`); changing it recomputes the
 page in place. Everything else the viewer chose is keyed by game id. It names

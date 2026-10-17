@@ -24,7 +24,12 @@ import { buildStandings } from "~/lib/standings";
 import { teamByAbbreviation } from "~/lib/teams";
 import { type TeamRegistry } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
-import { buildLeagueGames, currentWeekNow, settledThrough } from "~/lib/week";
+import {
+  buildLeagueGames,
+  currentWeekNow,
+  settledThrough,
+  weekInProgress,
+} from "~/lib/week";
 
 /** The league: the week's games and the standings, once both have loaded. */
 export function HomeApp() {
@@ -104,6 +109,7 @@ function HomeView({ registry, data }: HomeViewProps) {
     totalWeeks,
     settledThrough: settledThrough(seasonFile),
     currentWeek,
+    inProgress: useMemo(() => weekInProgress(seasonFile), [seasonFile]),
   });
   const { through } = spoilers;
 
@@ -181,6 +187,7 @@ function HomeView({ registry, data }: HomeViewProps) {
         settledThrough={spoilers.settledThrough}
         currentWeek={currentWeek}
         totalWeeks={totalWeeks}
+        partial={spoilers.partial}
         onCatchUp={spoilers.catchUp}
       />
 
