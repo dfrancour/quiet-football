@@ -529,7 +529,7 @@ asks nothing.
 
 ### Spoilers are hidden by default
 
-There is no switch for spoilers. The viewer is **caught up through** a week
+The viewer is **caught up through** a week
 of each season (0 to start, so hidden is the default), and everything through
 that week is shown: its scores, records and standings. Past it, nothing may
 reveal a result the viewer has not watched or uncovered. This covers more
@@ -596,6 +596,26 @@ and is not shown it. That is the one line of guidance the site has: no
 tour, and nothing added to the page body. With nothing caught up the
 control is the brighter of its two states, so it reads as the way in.
 
+### Showing everything
+
+The one switch is **Show everything**, beneath the strip: with it on, every
+result of every season is shown as it comes, live or final, records,
+standings, seeds and playoff matchups included, and a game that kicks off
+later shows its score from the first snap. It is a preference, kept in
+`localStorage` (`spoilers-shown`, `setShowAll()` in `src/lib/spoilers.ts`)
+and not per season, and `useSpoilers` applies it: `isShown`, `isOpen`,
+`showsRecordsBefore` and `recordThrough` all answer "shown", and the home
+page reads `standingsThrough` and `marksShown` rather than the week.
+
+It changes only what is drawn. The week caught up through and every game's
+place stay as they were (watching with everything shown moves no place),
+so turning it off covers again whatever they cover; the switch's line names
+that week ("Turn off to go back to Week 5"). While it is on, the strip reads
+uncovered with the viewer's week still marked, the header control says
+"Spoilers shown" in the accent, and the catch-up shortcut is not offered.
+Picking a week, or **Hide all**, turns it off: a pick asks to see only that
+far.
+
 Masking is a matter of what is drawn, not what is fetched: the browser holds
 the whole season so uncovering a game needs no request, and anyone can read
 ESPN's answers in the network panel. That is accepted; they are public
@@ -645,7 +665,10 @@ week caught up through.
   watching
 - the place never stands in for how far along the game is. A schedule row
   shows the game's own state — its clock while live, Final once over — and
-  its result once seen to the end. While the score row stands at a play, the
+  its result once seen to the end. A league row also shows a live game's
+  score while the viewer's place is its newest play (the scoreboard's
+  `lastPlayId`, which is the summary's play id; `isCaughtUpLive`), and
+  covers it again when a play arrives that they have not seen. While the score row stands at a play, the
   panel's top line adds the game's own state beside it ("Live · Q4+",
   "Final"), under the same overtime rule as everywhere
 

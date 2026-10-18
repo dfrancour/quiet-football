@@ -50,6 +50,8 @@ interface WeekScheduleProps {
   totalWeeks: number;
   /** Whether a game's result is shown: caught up through it, or uncovered. */
   isShown: (game: GateGame) => boolean;
+  /** Whether the viewer's place in a live game is its newest play. */
+  isCaughtUpLive: (gameId: string, lastPlayId: string | null) => boolean;
   /** Whether a playoff matchup may be shown (`playoffs.ts`). */
   isOpen: (gate: readonly GateGame[]) => boolean;
   /** Whether the records going into a week's games give nothing away. */
@@ -550,6 +552,7 @@ export function WeekSchedule({
   currentWeek,
   totalWeeks,
   isShown,
+  isCaughtUpLive,
   isOpen,
   showsRecordsBefore,
   highlighted,
@@ -622,6 +625,7 @@ export function WeekSchedule({
                         />
                       );
                     }
+                    const board = boardById.get(game.gameId);
                     return (
                       <GameRow
                         key={game.gameId}
@@ -629,8 +633,17 @@ export function WeekSchedule({
                         slot={slot}
                         isFirstInSlot={index === 0}
                         phase={phase}
-                        board={boardById.get(game.gameId)}
-                        revealed={isShown(game)}
+                        board={board}
+                        // A live game followed to its newest play is seen
+                        // as far as the scoreboard goes.
+                        revealed={
+                          isShown(game) ||
+                          (phase === "live" &&
+                            isCaughtUpLive(
+                              game.gameId,
+                              board?.lastPlayId ?? null,
+                            ))
+                        }
                         showRecords={showsRecordsBefore(game.week)}
                         totalWeeks={totalWeeks}
                         highlighted={

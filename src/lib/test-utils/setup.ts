@@ -5,7 +5,7 @@ import { resetBroadcastDelaysCache } from "~/lib/broadcast-delay";
 import { resetFavoriteCache } from "~/lib/favorite";
 import { resetGameClocks } from "~/lib/game-clocks";
 import { resetPlayArrivals } from "~/lib/play-arrivals";
-import { resetCaughtUpCache } from "~/lib/spoilers";
+import { resetCaughtUpCache, resetShowAllCache } from "~/lib/spoilers";
 import { resetWatchProgressCache } from "~/lib/watch-progress";
 
 /** A stand-in router whose calls tests can inspect. */
@@ -33,5 +33,6 @@ afterEach(() => {
   resetWatchProgressCache();
   resetBroadcastDelaysCache();
   resetCaughtUpCache();
+  resetShowAllCache();
   resetFavoriteCache();
 });

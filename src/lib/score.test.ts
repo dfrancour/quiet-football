@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { extractTeamScore, formatGameClock } from "~/lib/score";
+import {
+  extractScoreboard,
+  extractTeamScore,
+  formatGameClock,
+} from "~/lib/score";
 
 function scoreboard(
   competitors: unknown,
@@ -449,5 +453,19 @@ describe("formatGameClock", () => {
 
   it("keeps ESPN's wording when the clock is missing", () => {
     expect(at("0:47 - 4th", 4, null)).toBe("0:47 - 4th");
+  });
+});
+
+describe("extractScoreboard", () => {
+  it("keeps the newest play's id, as the summary names it", () => {
+    const [game] = extractScoreboard(
+      scoreboard(SEA_HOSTS_SF, {}, { lastPlay: { id: 4018729511515 } }),
+    );
+    expect(game?.lastPlayId).toBe("4018729511515");
+  });
+
+  it("has no newest play when nothing is under way", () => {
+    const [game] = extractScoreboard(scoreboard(SEA_HOSTS_SF));
+    expect(game?.lastPlayId).toBeNull();
   });
 });

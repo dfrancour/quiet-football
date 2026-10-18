@@ -26,6 +26,8 @@ describe("SiteHeader", () => {
     render(
       <SiteHeader
         through={through}
+        showAll={false}
+        onShowAll={() => undefined}
         settledThrough={settledThrough}
         currentWeek={settledThrough + 1}
         totalWeeks={18}
@@ -142,6 +144,8 @@ describe("SiteHeader", () => {
         team={TEAMS.MIN}
         record={{ wins: 4, losses: 1, ties: 0 }}
         through={5}
+        showAll={false}
+        onShowAll={() => undefined}
         settledThrough={5}
         currentWeek={6}
         totalWeeks={18}

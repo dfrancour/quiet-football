@@ -68,6 +68,8 @@ const situationSchema = z.object({
   awayTimeouts: z.number().nullish(),
   lastPlay: z
     .object({
+      /** The play's id, as in the game's summary. */
+      id: z.union([z.string(), z.number()]).nullish(),
       text: z.string().nullish(),
       team: z
         .object({ id: z.union([z.string(), z.number()]).nullish() })
@@ -188,6 +190,8 @@ export const boardGameSchema = z.object({
   period: z.number().nullable(),
   clock: z.string().nullable(),
   completed: z.boolean(),
+  /** The newest play's id, as in the game's summary; null when none is. */
+  lastPlayId: z.string().nullable(),
   home: boardSideSchema,
   away: boardSideSchema,
 });

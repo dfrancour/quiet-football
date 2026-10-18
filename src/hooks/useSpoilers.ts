@@ -8,8 +8,12 @@ import {
   catchUpThrough,
   getCaughtUp,
   getServerCaughtUp,
+  getServerShowAll,
+  getShowAll,
   recordsShownBefore,
+  setShowAll,
   subscribeToCaughtUp,
+  subscribeToShowAll,
 } from "~/lib/spoilers";
 import { type TeamGame } from "~/lib/team-view";
 import { clearWatchProgress, finishGames } from "~/lib/watch-progress";
@@ -35,7 +39,9 @@ export interface PartialWeek {
 
 /**
  * Where the viewer is in the season, from the browser, and the games seen
- * to the end beyond it.
+ * to the end beyond it. Showing everything overrides both without touching
+ * them: every result is shown, and turning it off leaves the viewer where
+ * they were.
  */
 export function useSpoilers({
   season,
@@ -51,6 +57,11 @@ export function useSpoilers({
   );
   /** The last week the viewer is caught up through; 0 for none. */
   const through = caughtUp[String(season)] ?? 0;
+  const showAll = useSyncExternalStore(
+    subscribeToShowAll,
+    getShowAll,
+    getServerShowAll,
+  );
 
   const progress = useWatchProgressByGame();
 
@@ -75,10 +86,12 @@ export function useSpoilers({
    * takes its finished games as seen, which stays so while going back: a
    * game seen to the end is never unseen. Hiding everything is the one
    * exception: it drops every game's place too, so nothing partly or wholly
-   * watched stays revealed.
+   * watched stays revealed. Picking a week is asking to see only that far,
+   * so it stops showing everything.
    */
   const catchUp = useCallback(
     (week: number) => {
+      setShowAll(false);
       if (week === 0) {
         catchUpThrough(season, 0);
         clearWatchProgress();
@@ -98,8 +111,20 @@ export function useSpoilers({
    */
   const isShown = useCallback(
     (game: GateGame) =>
-      game.week <= through || progress[game.gameId]?.finished === true,
-    [through, progress],
+      showAll ||
+      game.week <= through ||
+      progress[game.gameId]?.finished === true,
+    [showAll, through, progress],
+  );
+
+  /**
+   * A live game the viewer is caught up with: their place is the newest play
+   * the scoreboard has (`lastPlayId`), so its score tells them nothing new.
+   */
+  const isCaughtUpLive = useCallback(
+    (gameId: string, lastPlayId: string | null) =>
+      lastPlayId !== null && progress[gameId]?.playId === lastPlayId,
+    [progress],
   );
 
   /** A playoff matchup may be shown: every game deciding it is seen. */
@@ -110,40 +135,56 @@ export function useSpoilers({
 
   /** The records going into a game in this week give nothing unseen away. */
   const showsRecordsBefore = useCallback(
-    (week: number) => recordsShownBefore(week, through, totalWeeks),
-    [through, totalWeeks],
+    (week: number) => showAll || recordsShownBefore(week, through, totalWeeks),
+    [showAll, through, totalWeeks],
   );
 
   /** A team's record through the viewer's week; null through none. */
   const recordThrough = useCallback(
     (games: readonly TeamGame[]): TeamRecord | null =>
-      through === 0
-        ? null
-        : teamRecord(games.filter((game) => game.week <= through)),
-    [through],
+      showAll
+        ? teamRecord(games)
+        : through === 0
+          ? null
+          : teamRecord(games.filter((game) => game.week <= through)),
+    [showAll, through],
   );
+
+  /** The last week the standings count; every week while showing all. */
+  const standingsThrough = showAll ? Number.POSITIVE_INFINITY : through;
+  /** ESPN's seeds and clinch codes describe the present: the whole regular season. */
+  const marksShown = showAll || through >= totalWeeks;
 
   return useMemo(
     () => ({
       through,
+      showAll,
+      setShowAll,
+      standingsThrough,
+      marksShown,
       settledThrough,
       currentWeek,
       totalWeeks,
       partial,
       catchUp,
       isShown,
+      isCaughtUpLive,
       isOpen,
       showsRecordsBefore,
       recordThrough,
     }),
     [
       through,
+      showAll,
+      standingsThrough,
+      marksShown,
       settledThrough,
       currentWeek,
       totalWeeks,
       partial,
       catchUp,
       isShown,
+      isCaughtUpLive,
       isOpen,
       showsRecordsBefore,
       recordThrough,

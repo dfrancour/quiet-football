@@ -187,6 +187,11 @@ function readClock(competition: Competition) {
   };
 }
 
+function lastPlayId(competition: Competition): string | null {
+  const id = competition.situation?.lastPlay?.id;
+  return id === null || id === undefined ? null : String(id);
+}
+
 /** Every game on the scoreboard; a malformed payload reads as empty. */
 export function extractScoreboard(payload: unknown): BoardGame[] {
   const parsed = scoreboardSchema.safeParse(payload);
@@ -209,6 +214,7 @@ export function extractScoreboard(payload: unknown): BoardGame[] {
       {
         gameId,
         ...readClock(competition),
+        lastPlayId: lastPlayId(competition),
         home: side(home),
         away: side(away),
       },

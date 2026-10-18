@@ -111,7 +111,7 @@ function HomeView({ registry, data }: HomeViewProps) {
     currentWeek,
     inProgress: useMemo(() => weekInProgress(seasonFile), [seasonFile]),
   });
-  const { through } = spoilers;
+  const { through, showAll, standingsThrough, marksShown } = spoilers;
 
   const favorite = useFavorite();
   const favoriteTeamId = favorite
@@ -121,22 +121,22 @@ function HomeView({ registry, data }: HomeViewProps) {
   // A viewer behind the league opens on the week after the one they are
   // caught up through.
   const [week, setWeek] = useState(() =>
-    through > 0 ? Math.min(currentWeek, through + 1) : currentWeek,
+    through > 0 && !showAll ? Math.min(currentWeek, through + 1) : currentWeek,
   );
   const isPlayoffWeek = playoffRound(totalWeeks, week) !== null;
 
   // ESPN's seeds and clinch codes describe the present, so the standings
   // wait for the whole regular season; the bracket is seeded by them. Until
   // either can show them, they are not asked for.
-  const marks = usePlayoffMarks(season, through >= totalWeeks || isPlayoffWeek);
+  const marks = usePlayoffMarks(season, marksShown || isPlayoffWeek);
 
   // The standings stand where the viewer is.
   const standings: StandingsView[] = useMemo(() => {
     const reached = {
       ...seasonFile,
-      games: seasonFile.games.filter((game) => game.week <= through),
+      games: seasonFile.games.filter((game) => game.week <= standingsThrough),
     };
-    const shownMarks = through >= totalWeeks ? marks : null;
+    const shownMarks = marksShown ? marks : null;
     return buildStandings(reached, registry).map(
       ({ conference, divisions }) => ({
         conference,
@@ -150,7 +150,7 @@ function HomeView({ registry, data }: HomeViewProps) {
         })),
       }),
     );
-  }, [seasonFile, registry, marks, through, totalWeeks]);
+  }, [seasonFile, registry, marks, standingsThrough, marksShown]);
   const games = useMemo(
     () => buildLeagueGames(seasonFile, registry),
     [seasonFile, registry],
@@ -184,6 +184,8 @@ function HomeView({ registry, data }: HomeViewProps) {
       <h1 className="sr-only">{season} NFL Season</h1>
       <SiteHeader
         through={through}
+        showAll={showAll}
+        onShowAll={spoilers.setShowAll}
         settledThrough={spoilers.settledThrough}
         currentWeek={currentWeek}
         totalWeeks={totalWeeks}
@@ -215,6 +217,7 @@ function HomeView({ registry, data }: HomeViewProps) {
             currentWeek={currentWeek}
             totalWeeks={totalWeeks}
             isShown={spoilers.isShown}
+            isCaughtUpLive={spoilers.isCaughtUpLive}
             isOpen={spoilers.isOpen}
             showsRecordsBefore={spoilers.showsRecordsBefore}
             highlighted={highlighted}
@@ -249,7 +252,7 @@ function HomeView({ registry, data }: HomeViewProps) {
             </h2>
             <StandingsTables
               standings={standings}
-              showSpoilers={through > 0}
+              showSpoilers={standingsThrough > 0}
               highlighted={highlighted}
               favoriteTeamId={favoriteTeamId}
               onPoint={setPointed}

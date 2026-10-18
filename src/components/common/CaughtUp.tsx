@@ -25,6 +25,9 @@ import { cn } from "~/lib/utils";
 interface CaughtUpProps {
   /** The last week the viewer is caught up through; 0 for none. */
   through: number;
+  /** Every result shown, whatever the week caught up through. */
+  showAll: boolean;
+  onShowAll: (on: boolean) => void;
   /** As far as catching up goes: the last week every game is settled through. */
   settledThrough: number;
   /** The week the league is on, marked as the week chooser marks it. */
@@ -65,6 +68,11 @@ const WIDE = "(min-width: 40rem)";
  * its weeks in rows of nine so each is a fingertip wide, and closes on a
  * pick.
  *
+ * Beneath the strip, a switch shows everything: every result, live or
+ * final, as it comes. The strip reads all uncovered while it is on, its
+ * week still marked, since turning it off goes back there; picking a week
+ * turns it off.
+ *
  * A first visit opens the strip by itself, asking for the last week seen,
  * since a page of covered results says nothing about why; closing it or
  * picking a week ends that for good (`first-run.ts`). A viewer already
@@ -72,6 +80,8 @@ const WIDE = "(min-width: 40rem)";
  */
 export function CaughtUp({
   through,
+  showAll,
+  onShowAll,
   settledThrough,
   currentWeek,
   totalWeeks,
@@ -84,6 +94,8 @@ export function CaughtUp({
   const [pending, setPending] = useState<{ week: number; from: number } | null>(
     null,
   );
+  // The switch just flipped: the covers sweep from the viewer's week.
+  const [flipped, setFlipped] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const controlRef = useRef<HTMLButtonElement>(null);
   const wide = useMediaQuery(WIDE, true);
@@ -97,7 +109,7 @@ export function CaughtUp({
   const intoPartial =
     partial !== null && partial.uncovered && committed >= settledThrough;
   const furthest = partial?.week ?? reachable;
-  const Icon = committed > 0 ? Eye : EyeOff;
+  const Icon = showAll || committed > 0 ? Eye : EyeOff;
 
   // Open by itself on a first visit, until closed or a week is picked.
   const introducing = !useIntroduced() && through === 0;
@@ -116,9 +128,15 @@ export function CaughtUp({
 
   const choose = (week: number) => {
     setPreview(null);
+    setFlipped(false);
     markIntroduced();
     if (!wide) closeSheet();
-    if (week === committed || (week === partial?.week && intoPartial)) return;
+    if (
+      !showAll &&
+      (week === committed || (week === partial?.week && intoPartial))
+    ) {
+      return;
+    }
     // The week in progress catches up through every settled week first.
     setPending({
       week: week === partial?.week ? Math.max(through, settledThrough) : week,
@@ -156,16 +174,25 @@ export function CaughtUp({
     const round = playoffRound(totalWeeks, week);
     const half = week === partial?.week;
     const settled = week <= reachable || half;
-    const uncovered = half
-      ? (partial.uncovered && shown >= settledThrough) || preview === week
-      : week <= shown;
-    // Picked, the covers sweep away from the old place toward the new one.
+    const uncovered =
+      (showAll && preview === null) ||
+      (half
+        ? (partial.uncovered && shown >= settledThrough) || preview === week
+        : week <= shown);
+    // Picked, the covers sweep away from the old place toward the new one;
+    // flipping the switch, from the viewer's week outward.
+    const from =
+      preview !== null
+        ? null
+        : pending !== null && pending.from === through
+          ? pending.from
+          : flipped
+            ? committed
+            : null;
     const sweep: CSSProperties | undefined =
-      preview === null && pending !== null && pending.from === through
-        ? {
-            transitionDelay: `${Math.abs(week - pending.from) * SWEEP_STEP_MS}ms`,
-          }
-        : undefined;
+      from === null
+        ? undefined
+        : { transitionDelay: `${Math.abs(week - from) * SWEEP_STEP_MS}ms` };
     return (
       <button
         key={week}
@@ -232,10 +259,15 @@ export function CaughtUp({
     week === partial?.week
       ? `${weekName(totalWeeks, week)} so far`
       : weekName(totalWeeks, week);
-  const status =
-    preview === null ||
-    preview === committed ||
-    (preview === partial?.week && intoPartial)
+  const status = showAll
+    ? preview === null
+      ? "Showing everything"
+      : preview === 0
+        ? "Hide all spoilers"
+        : `Show only through ${name(preview)}`
+    : preview === null ||
+        preview === committed ||
+        (preview === partial?.week && intoPartial)
       ? intoPartial
         ? `Caught up through ${name(partial.week)}`
         : committed > 0
@@ -251,8 +283,9 @@ export function CaughtUp({
 
   // The shortcut's target: the week in progress once it has games to take,
   // else the last settled week.
-  const ahead =
-    partial !== null && !partial.uncovered
+  const ahead = showAll
+    ? null
+    : partial !== null && !partial.uncovered
       ? partial.week
       : committed < settledThrough
         ? settledThrough
@@ -260,10 +293,19 @@ export function CaughtUp({
 
   // With nothing caught up the control is the page's one way in, so it is
   // the brighter of its two states, not the fainter.
-  const tone =
-    committed > 0
+  const tone = showAll
+    ? "text-accent-strong hover:text-ink"
+    : committed > 0
       ? "text-ink-muted hover:text-ink"
       : "text-ink-muted hover:text-ink font-semibold";
+
+  const flip = () => {
+    setPreview(null);
+    setPending(null);
+    setFlipped(true);
+    markIntroduced();
+    onShowAll(!showAll);
+  };
 
   // The strip and its actions, the same in the popover and the sheet.
   const strip = (
@@ -307,9 +349,9 @@ export function CaughtUp({
       >
         <button
           type="button"
-          disabled={committed === 0}
+          disabled={committed === 0 && !showAll}
           onClick={() => choose(0)}
-          onPointerEnter={() => committed > 0 && setPreview(0)}
+          onPointerEnter={() => (committed > 0 || showAll) && setPreview(0)}
           onPointerLeave={() => setPreview(null)}
           className="text-ink-faint hover:text-ink-muted disabled:text-ink-faint/50 -my-2 cursor-pointer py-2 transition-colors disabled:cursor-default"
         >
@@ -328,6 +370,51 @@ export function CaughtUp({
           </button>
         )}
       </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={showAll}
+        onClick={flip}
+        className={cn(
+          "border-edge group flex cursor-pointer items-center justify-between gap-4 border-t text-left",
+          wide ? "-mb-1 pt-2.5 pb-1" : "min-h-14 pt-3",
+        )}
+      >
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span
+            className={cn(
+              "text-ink font-medium transition-colors",
+              wide ? "text-xs" : "text-sm",
+            )}
+          >
+            Show everything
+          </span>
+          <span className="text-ink-faint truncate text-xs">
+            {!showAll
+              ? "Every score, live and to come"
+              : committed > 0
+                ? `Turn off to go back to ${name(committed)}`
+                : "Turn off to hide them again"}
+          </span>
+        </span>
+        <span
+          aria-hidden
+          className={cn(
+            "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 motion-reduce:transition-none",
+            showAll
+              ? "bg-accent"
+              : "bg-surface-sunken group-hover:bg-edge ring-edge ring-1 ring-inset",
+          )}
+        >
+          <span
+            className={cn(
+              "bg-ink absolute top-0.5 left-0.5 size-4 rounded-full shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none",
+              showAll ? "translate-x-4" : "translate-x-0",
+            )}
+          />
+        </span>
+      </button>
     </div>
   );
 
@@ -345,9 +432,11 @@ export function CaughtUp({
         )}
       >
         <Icon className="size-3.5" aria-hidden />
-        {intoPartial
-          ? label(totalWeeks, partial.week, true)
-          : label(totalWeeks, committed)}
+        {showAll
+          ? "Spoilers shown"
+          : intoPartial
+            ? label(totalWeeks, partial.week, true)
+            : label(totalWeeks, committed)}
       </button>
 
       {open &&

@@ -25,6 +25,27 @@ export const getCaughtUp = store.get;
 export const getServerCaughtUp = store.getServer;
 export const resetCaughtUpCache = store.resetCache;
 
+/**
+ * Whether the viewer chose to see everything: every result, live or final,
+ * of every season, as it comes. It changes only what is drawn: the week
+ * caught up through and every game's place stay as they were, so turning it
+ * off covers again whatever they cover.
+ */
+const showAllStore = createLocalStore<boolean>(
+  "spoilers-shown",
+  z.boolean(),
+  false,
+);
+
+export const subscribeToShowAll = showAllStore.subscribe;
+export const getShowAll = showAllStore.get;
+export const getServerShowAll = showAllStore.getServer;
+export const resetShowAllCache = showAllStore.resetCache;
+
+export function setShowAll(on: boolean): void {
+  if (showAllStore.get() !== on) showAllStore.set(on);
+}
+
 /** Caught up through `week` of `season` (0 for nothing); other seasons keep theirs. */
 export function catchUpThrough(season: number, week: number): void {
   const others = Object.entries(store.get()).filter(

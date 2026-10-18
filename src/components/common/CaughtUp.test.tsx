@@ -34,11 +34,15 @@ function firstVisit() {
 function renderControl(
   through = 3,
   partial: { week: number; uncovered: boolean } | null = null,
+  showAll = false,
+  onShowAll: (on: boolean) => void = () => undefined,
 ) {
   const onCatchUp = vi.fn();
   render(
     <CaughtUp
       through={through}
+      showAll={showAll}
+      onShowAll={onShowAll}
       settledThrough={7}
       currentWeek={8}
       totalWeeks={18}
@@ -189,5 +193,53 @@ describe("CaughtUp on a first visit", () => {
       screen.queryByRole("group", { name: "Caught up through" }),
     ).not.toBeInTheDocument();
     expect(getIntroduced()).toBe(false);
+  });
+});
+
+describe("CaughtUp showing everything", () => {
+  it("turns everything on from a switch beneath the strip", async () => {
+    const user = userEvent.setup();
+    const onShowAll = vi.fn();
+    renderControl(3, null, false, onShowAll);
+    await user.click(screen.getByRole("button", { name: "Through Week 3" }));
+    const toggle = screen.getByRole("switch", { name: /Show everything/ });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    await user.click(toggle);
+    expect(onShowAll).toHaveBeenCalledWith(true);
+  });
+
+  it("says so on the control, and keeps the viewer's week for turning it off", async () => {
+    const user = userEvent.setup();
+    const onShowAll = vi.fn();
+    renderControl(3, null, true, onShowAll);
+    await user.click(screen.getByRole("button", { name: "Spoilers shown" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Showing everything");
+    const toggle = screen.getByRole("switch", { name: /Show everything/ });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(toggle).toHaveTextContent("Turn off to go back to Week 3");
+    expect(
+      screen.getByRole("button", { name: "Through Week 3" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await user.click(toggle);
+    expect(onShowAll).toHaveBeenCalledWith(false);
+  });
+
+  it("offers no shortcut while everything is shown, and picking a week still goes there", async () => {
+    const user = userEvent.setup();
+    const onCatchUp = renderControl(3, null, true);
+    await user.click(screen.getByRole("button", { name: "Spoilers shown" }));
+    expect(
+      screen.queryByRole("button", { name: /Catch up through/ }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Through Week 3" }));
+    expect(onCatchUp).toHaveBeenCalledWith(3);
+  });
+
+  it("can hide all from showing everything with nothing caught up", async () => {
+    const user = userEvent.setup();
+    const onCatchUp = renderControl(0, null, true);
+    await user.click(screen.getByRole("button", { name: "Spoilers shown" }));
+    await user.click(screen.getByRole("button", { name: "Hide all" }));
+    expect(onCatchUp).toHaveBeenCalledWith(0);
   });
 });

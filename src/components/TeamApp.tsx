@@ -236,6 +236,8 @@ function TeamView({ registry, data, team }: TeamViewProps) {
           team={schedule.team}
           record={record}
           through={spoilers.through}
+          showAll={spoilers.showAll}
+          onShowAll={spoilers.setShowAll}
           settledThrough={spoilers.settledThrough}
           currentWeek={spoilers.currentWeek}
           totalWeeks={spoilers.totalWeeks}

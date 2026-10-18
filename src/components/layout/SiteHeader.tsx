@@ -28,6 +28,9 @@ export function AboutLink() {
 interface SiteHeaderProps {
   /** The last week the viewer is caught up through; 0 for none. */
   through: number;
+  /** Every result shown, whatever the viewer is caught up through. */
+  showAll: boolean;
+  onShowAll: (on: boolean) => void;
   /** As far as catching up goes. */
   settledThrough: number;
   /** The week the league is on, marked in the season strip. */
@@ -50,6 +53,8 @@ interface SiteHeaderProps {
  */
 export function SiteHeader({
   through,
+  showAll,
+  onShowAll,
   settledThrough,
   currentWeek,
   totalWeeks,
@@ -82,6 +87,8 @@ export function SiteHeader({
         {about && <AboutLink />}
         <CaughtUp
           through={through}
+          showAll={showAll}
+          onShowAll={onShowAll}
           settledThrough={settledThrough}
           currentWeek={currentWeek}
           totalWeeks={totalWeeks}

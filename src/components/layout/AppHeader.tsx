@@ -13,6 +13,8 @@ interface AppHeaderProps {
   /** Through the viewer's week; null while nothing is. */
   record: TeamRecord | null;
   through: number;
+  showAll: boolean;
+  onShowAll: (on: boolean) => void;
   settledThrough: number;
   currentWeek: number;
   totalWeeks: number;
@@ -26,6 +28,8 @@ export function AppHeader({
   team,
   record,
   through,
+  showAll,
+  onShowAll,
   settledThrough,
   currentWeek,
   totalWeeks,
@@ -35,6 +39,8 @@ export function AppHeader({
   return (
     <SiteHeader
       through={through}
+      showAll={showAll}
+      onShowAll={onShowAll}
       settledThrough={settledThrough}
       currentWeek={currentWeek}
       totalWeeks={totalWeeks}

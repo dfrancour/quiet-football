@@ -1,7 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useSpoilers, type CaughtUpState } from "~/hooks/useSpoilers";
-import { catchUpThrough, getCaughtUp } from "~/lib/spoilers";
+import {
+  catchUpThrough,
+  getCaughtUp,
+  getShowAll,
+  setShowAll,
+} from "~/lib/spoilers";
 import { makeTeamGame } from "~/lib/test-utils/fixtures";
 import { getWatchProgress, recordWatchProgress } from "~/lib/watch-progress";
 
@@ -121,6 +126,63 @@ describe("useSpoilers", () => {
       act(() => result.current.catchUp(12));
       expect(result.current.through).toBe(12);
       expect(result.current.isShown({ gameId: "d2", week: 20 })).toBe(true);
+    });
+  });
+
+  it("shows a live game the viewer is at the newest play of", () => {
+    recordWatchProgress("live", { playId: "p9", finished: false });
+    const result = through(7);
+    expect(result.current.isCaughtUpLive("live", "p9")).toBe(true);
+    expect(result.current.isCaughtUpLive("live", "p10")).toBe(false);
+    expect(result.current.isCaughtUpLive("live", null)).toBe(false);
+    expect(result.current.isCaughtUpLive("other", "p9")).toBe(false);
+  });
+
+  describe("showing everything", () => {
+    const won = (gameId: string, week: number) =>
+      makeTeamGame({
+        gameId,
+        week,
+        status: "final",
+        result: { teamScore: 20, opponentScore: 10, outcome: "win" },
+      });
+
+    it("shows every game, matchup and record, whatever the week caught up through", () => {
+      setShowAll(true);
+      const result = through(0);
+      expect(result.current.showAll).toBe(true);
+      expect(result.current.isShown({ gameId: "x", week: 12 })).toBe(true);
+      expect(result.current.isOpen([{ gameId: "w18", week: 18 }])).toBe(true);
+      expect(result.current.showsRecordsBefore(19)).toBe(true);
+      expect(result.current.recordThrough([won("a", 6), won("b", 9)])).toEqual({
+        wins: 2,
+        losses: 0,
+        ties: 0,
+      });
+      expect(result.current.standingsThrough).toBe(Number.POSITIVE_INFINITY);
+      expect(result.current.marksShown).toBe(true);
+    });
+
+    it("leaves the week caught up through and every place as they were", () => {
+      recordWatchProgress("c", { playId: "p1", finished: false });
+      const result = through(7);
+      act(() => result.current.setShowAll(true));
+      act(() => result.current.setShowAll(false));
+      expect(result.current.through).toBe(7);
+      expect(getCaughtUp()).toEqual({ "2026": 7 });
+      expect(getWatchProgress()).toEqual({
+        c: { playId: "p1", finished: false },
+      });
+      expect(result.current.isShown({ gameId: "b", week: 8 })).toBe(false);
+    });
+
+    it("stops on picking a week, which is asking to see only that far", () => {
+      setShowAll(true);
+      const result = through(7);
+      act(() => result.current.catchUp(5));
+      expect(getShowAll()).toBe(false);
+      expect(result.current.through).toBe(5);
+      expect(result.current.isShown({ gameId: "b", week: 6 })).toBe(false);
     });
   });
 });

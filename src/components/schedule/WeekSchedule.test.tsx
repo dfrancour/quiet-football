@@ -1,12 +1,22 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WeekSchedule } from "~/components/schedule/WeekSchedule";
 import { type GateGame } from "~/lib/playoffs";
 import { type BoardGame } from "~/lib/score.schema";
 import { TEAMS } from "~/lib/test-utils/fixtures";
-import { recordWatchProgress } from "~/lib/watch-progress";
+import { getWatchProgress, recordWatchProgress } from "~/lib/watch-progress";
 import { type WeekGame } from "~/lib/week";
+
+// Between week 5's game and week 6's, so the one is played and the other
+// still to come.
+beforeEach(() => {
+  vi.useFakeTimers({
+    toFake: ["Date"],
+    now: new Date("2026-10-14T12:00:00.000Z"),
+  });
+});
+afterEach(() => vi.useRealTimers());
 
 const played: WeekGame = {
   gameId: "401872987",
@@ -80,6 +90,10 @@ function renderSchedule(
         currentWeek={currentWeek}
         totalWeeks={18}
         isShown={() => revealed}
+        isCaughtUpLive={(gameId, lastPlayId) =>
+          lastPlayId !== null &&
+          getWatchProgress()[gameId]?.playId === lastPlayId
+        }
         isOpen={isOpen}
         showsRecordsBefore={() => revealed}
         highlighted={highlighted}
@@ -113,6 +127,7 @@ function overtime(completed: boolean) {
       period: 5,
       clock: completed ? "0:00" : "10:00",
       completed,
+      lastPlayId: completed ? null : "p9",
       away: { abbreviation: "MIN", score: 20 },
       home: { abbreviation: "NO", score: completed ? 23 : 20 },
     },
@@ -174,6 +189,14 @@ describe("WeekSchedule", () => {
     });
     renderSchedule(false, { games: [game], board });
     expect(await screen.findByText("Q4+")).toBeInTheDocument();
+  });
+
+  it("shows a live game's score once the viewer is at its newest play", async () => {
+    const { game, board } = overtime(false);
+    recordWatchProgress(game.gameId, { playId: "p9", finished: false });
+    renderSchedule(false, { games: [game], board });
+    expect(await screen.findByText("OT - 10:00")).toBeInTheDocument();
+    expect(hidden()).toHaveLength(0);
   });
 
   it("never says overtime about a hidden game under way", async () => {
