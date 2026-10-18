@@ -197,12 +197,12 @@ describe("CaughtUp on a first visit", () => {
 });
 
 describe("CaughtUp showing everything", () => {
-  it("turns everything on from a switch beneath the strip", async () => {
+  it("turns everything on from a switch beside the strip's actions", async () => {
     const user = userEvent.setup();
     const onShowAll = vi.fn();
     renderControl(3, null, false, onShowAll);
     await user.click(screen.getByRole("button", { name: "Through Week 3" }));
-    const toggle = screen.getByRole("switch", { name: /Show everything/ });
+    const toggle = screen.getByRole("switch", { name: "Show all" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
     await user.click(toggle);
     expect(onShowAll).toHaveBeenCalledWith(true);
@@ -214,9 +214,8 @@ describe("CaughtUp showing everything", () => {
     renderControl(3, null, true, onShowAll);
     await user.click(screen.getByRole("button", { name: "Spoilers shown" }));
     expect(screen.getByRole("status")).toHaveTextContent("Showing everything");
-    const toggle = screen.getByRole("switch", { name: /Show everything/ });
+    const toggle = screen.getByRole("switch", { name: "Show all" });
     expect(toggle).toHaveAttribute("aria-checked", "true");
-    expect(toggle).toHaveTextContent("Turn off to go back to Week 3");
     expect(
       screen.getByRole("button", { name: "Through Week 3" }),
     ).toHaveAttribute("aria-pressed", "true");

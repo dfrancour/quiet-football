@@ -68,7 +68,7 @@ const WIDE = "(min-width: 40rem)";
  * its weeks in rows of nine so each is a fingertip wide, and closes on a
  * pick.
  *
- * Beneath the strip, a switch shows everything: every result, live or
+ * Beside the strip's actions, a switch shows all: every result, live or
  * final, as it comes. The strip reads all uncovered while it is on, its
  * week still marked, since turning it off goes back there; picking a week
  * turns it off.
@@ -353,68 +353,56 @@ export function CaughtUp({
           onClick={() => choose(0)}
           onPointerEnter={() => (committed > 0 || showAll) && setPreview(0)}
           onPointerLeave={() => setPreview(null)}
-          className="text-ink-faint hover:text-ink-muted disabled:text-ink-faint/50 -my-2 cursor-pointer py-2 transition-colors disabled:cursor-default"
+          className="text-ink-faint hover:text-ink-muted disabled:text-ink-faint/50 -my-2 shrink-0 cursor-pointer py-2 whitespace-nowrap transition-colors disabled:cursor-default"
         >
           Hide all
         </button>
-        {ahead !== null && (
+        <div className="flex min-w-0 items-center gap-4">
+          {ahead !== null && (
+            <button
+              type="button"
+              onClick={() => choose(ahead)}
+              onPointerEnter={() => setPreview(ahead)}
+              onPointerLeave={() => setPreview(null)}
+              className="text-ink-muted hover:text-ink -my-2 inline-flex min-w-0 cursor-pointer items-center gap-1 py-2 transition-colors"
+            >
+              {/* On a phone the row has room only for the verb. */}
+              <span className="truncate">
+                Catch up{" "}
+                <span className={cn(!wide && "sr-only")}>
+                  through {name(ahead)}
+                </span>
+              </span>
+              <ArrowRight className="size-3 shrink-0" aria-hidden />
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => choose(ahead)}
-            onPointerEnter={() => setPreview(ahead)}
-            onPointerLeave={() => setPreview(null)}
-            className="text-ink-muted hover:text-ink -my-2 inline-flex cursor-pointer items-center gap-1 py-2 transition-colors"
+            role="switch"
+            aria-checked={showAll}
+            onClick={flip}
+            className="group text-ink-muted hover:text-ink -my-2 inline-flex shrink-0 cursor-pointer items-center gap-2 py-2 whitespace-nowrap transition-colors"
           >
-            Catch up through {name(ahead)}
-            <ArrowRight className="size-3" aria-hidden />
+            Show all
+            <span
+              aria-hidden
+              className={cn(
+                "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200 motion-reduce:transition-none",
+                showAll
+                  ? "bg-accent"
+                  : "bg-surface-sunken group-hover:bg-edge ring-edge ring-1 ring-inset",
+              )}
+            >
+              <span
+                className={cn(
+                  "bg-ink absolute top-0.5 left-0.5 size-3 rounded-full shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none",
+                  showAll ? "translate-x-3" : "translate-x-0",
+                )}
+              />
+            </span>
           </button>
-        )}
+        </div>
       </div>
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={showAll}
-        onClick={flip}
-        className={cn(
-          "border-edge group flex cursor-pointer items-center justify-between gap-4 border-t text-left",
-          wide ? "-mb-1 pt-2.5 pb-1" : "min-h-14 pt-3",
-        )}
-      >
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span
-            className={cn(
-              "text-ink font-medium transition-colors",
-              wide ? "text-xs" : "text-sm",
-            )}
-          >
-            Show everything
-          </span>
-          <span className="text-ink-faint truncate text-xs">
-            {!showAll
-              ? "Every score, live and to come"
-              : committed > 0
-                ? `Turn off to go back to ${name(committed)}`
-                : "Turn off to hide them again"}
-          </span>
-        </span>
-        <span
-          aria-hidden
-          className={cn(
-            "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 motion-reduce:transition-none",
-            showAll
-              ? "bg-accent"
-              : "bg-surface-sunken group-hover:bg-edge ring-edge ring-1 ring-inset",
-          )}
-        >
-          <span
-            className={cn(
-              "bg-ink absolute top-0.5 left-0.5 size-4 rounded-full shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none",
-              showAll ? "translate-x-4" : "translate-x-0",
-            )}
-          />
-        </span>
-      </button>
     </div>
   );
 

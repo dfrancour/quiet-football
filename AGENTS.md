@@ -598,7 +598,8 @@ control is the brighter of its two states, so it reads as the way in.
 
 ### Showing everything
 
-The one switch is **Show everything**, beneath the strip: with it on, every
+The one switch is **Show all**, on the strip's row of actions beside
+**Hide all** and the catch-up shortcut: with it on, every
 result of every season is shown as it comes, live or final, records,
 standings, seeds and playoff matchups included, and a game that kicks off
 later shows its score from the first snap. It is a preference, kept in
@@ -609,8 +610,7 @@ page reads `standingsThrough` and `marksShown` rather than the week.
 
 It changes only what is drawn. The week caught up through and every game's
 place stay as they were (watching with everything shown moves no place),
-so turning it off covers again whatever they cover; the switch's line names
-that week ("Turn off to go back to Week 5"). While it is on, the strip reads
+so turning it off covers again whatever they cover. While it is on, the strip reads
 uncovered with the viewer's week still marked, the header control says
 "Spoilers shown" in the accent, and the catch-up shortcut is not offered.
 Picking a week, or **Hide all**, turns it off: a pick asks to see only that
