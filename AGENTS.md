@@ -842,3 +842,25 @@ pnpm build                  # the static site, in out/
 ```
 
 There are no data commands: the browser fetches everything.
+
+### Checking the UI in a headless browser
+
+A headless Chrome cannot see the schedule: the page's fetches to ESPN fail
+inside it, so it renders "The season could not be loaded", even though
+`curl` from the shell reaches ESPN fine. Do not conclude the page is broken
+from a headless screenshot showing that message. Screenshots and DOM
+measurements from headless Chrome are only useful for the chrome around the
+data (header, switch, empty and loading states).
+
+To check a layout that depends on the schedule, either:
+
+- test it under `vitest` with fixtures (`src/lib/test-utils/fixtures.ts`), where
+  `stubFetch()` supplies the data. jsdom does not lay anything out, so
+  this checks structure and text, not overlap or widths.
+- or say what was not checked visually and ask the user to look on their device.
+  Do not claim a layout is fixed from arithmetic alone.
+
+Driving headless Chrome by hand: `chrome-headless-shell` from
+`~/.cache/ms-playwright` with `--remote-debugging-port`, then
+`Emulation.setDeviceMetricsOverride` for a phone width. Remember the data will
+not arrive, so do not spend time waiting for it.

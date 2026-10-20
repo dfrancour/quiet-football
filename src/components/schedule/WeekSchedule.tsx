@@ -165,13 +165,13 @@ function TeamCell({
       href={href}
       className={cn(
         // The overlay makes the whole cell one target and focus ring.
-        "focus-visible:after:outline-accent-strong flex items-center gap-2 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2",
+        "focus-visible:after:outline-accent-strong flex items-center gap-1.5 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 sm:gap-2",
         align === "end" && "flex-row-reverse",
       )}
     >
       <span
         className={cn(
-          "w-8 shrink-0 text-center font-mono tabular-nums",
+          "w-6 shrink-0 text-center font-mono tabular-nums sm:w-8",
           leading ? "text-ink font-semibold" : "text-ink-muted",
         )}
       >
@@ -199,16 +199,35 @@ function TeamCell({
 const teamCellClass =
   "has-[a:hover]:bg-surface-sunken relative py-2 transition-colors";
 
-/** The slot's time, on the first row of games kicking off together. */
+/**
+ * The slot's time, on the first row of games kicking off together. On a
+ * phone there is no room for a column of it beside the teams, so it heads
+ * the slot instead (`SlotTimeRow`).
+ */
 function SlotTime({ slot }: { slot: Slot }) {
   return (
     <th
       scope="rowgroup"
       rowSpan={slot.games.length}
-      className="text-ink-muted w-16 py-1.5 pr-2 text-left align-top font-mono text-xs font-normal whitespace-nowrap"
+      className="text-ink-muted w-16 py-1.5 pr-2 text-left align-top font-mono text-xs font-normal whitespace-nowrap max-sm:hidden"
     >
       {slot.time}
     </th>
+  );
+}
+
+/** A phone's time, as a line above the games kicking off together. */
+function SlotTimeRow({ slot }: { slot: Slot }) {
+  return (
+    <tr className="sm:hidden">
+      <th
+        scope="rowgroup"
+        colSpan={4}
+        className="text-ink-muted pt-1 pb-1 text-left font-mono text-xs font-normal whitespace-nowrap"
+      >
+        {slot.time}
+      </th>
+    </tr>
   );
 }
 
@@ -247,7 +266,7 @@ function CoveredRow({
           <CoveredTeam />
         </span>
       </td>
-      <td className="w-24 py-1.5 pl-3 text-right font-mono text-xs">
+      <td className="w-20 py-1.5 pl-2 text-right font-mono text-xs sm:w-24 sm:pl-3">
         <Status game={game} phase={phase} board={undefined} revealed={false} />
       </td>
     </tr>
@@ -332,7 +351,7 @@ function GameRow({
           showRecord={showRecords}
         />
       </td>
-      <td className="w-24 py-1.5 pl-3 text-right font-mono text-xs">
+      <td className="w-20 py-1.5 pl-2 text-right font-mono text-xs sm:w-24 sm:pl-3">
         <Status game={game} phase={phase} board={board} revealed={revealed} />
       </td>
     </tr>
@@ -605,8 +624,9 @@ export function WeekSchedule({
                 {day.label}
               </caption>
               <tbody>
-                {day.slots.flatMap((slot) =>
-                  slot.games.map((game, index) => {
+                {day.slots.flatMap((slot) => [
+                  <SlotTimeRow key={`time-${slot.key}`} slot={slot} />,
+                  ...slot.games.map((game, index) => {
                     // Until the clock mounts, only a stored status is trusted.
                     const phase =
                       now === null
@@ -658,7 +678,7 @@ export function WeekSchedule({
                       />
                     );
                   }),
-                )}
+                ])}
               </tbody>
             </table>
           ))}

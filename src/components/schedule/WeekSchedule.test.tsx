@@ -110,6 +110,15 @@ const links = () =>
 
 const hidden = () => screen.queryAllByRole("img", { name: "Hidden" });
 
+/** The one game's row; a phone's slot time is a row of its own with no cells. */
+function gameRow(): HTMLElement {
+  const [row] = screen
+    .getAllByRole("row")
+    .filter((candidate) => candidate.querySelector("td"));
+  if (!row) throw new Error("no game row");
+  return row;
+}
+
 /** A game under way now, in overtime by the scoreboard's account. */
 function overtime(completed: boolean) {
   const kickoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -154,7 +163,7 @@ describe("WeekSchedule", () => {
 
   it("shows the scores once spoilers are on", () => {
     renderSchedule(true);
-    const card = screen.getByRole("row");
+    const card = gameRow();
     expect(within(card).getByText("23")).toBeInTheDocument();
     expect(within(card).getByText("13")).toBeInTheDocument();
     // Each side's record going in, beside its name.
@@ -167,7 +176,7 @@ describe("WeekSchedule", () => {
     fireEvent.click(screen.getByRole("button", { name: "6" }));
     expect(links()).toEqual(["/team/GB?week=6", "/team/CHI?week=6"]);
     // A future game says when, not a score.
-    const card = screen.getByRole("row");
+    const card = gameRow();
     expect(within(card).queryAllByRole("img", { name: "Hidden" })).toEqual([]);
     expect(within(card).getByText("CBS")).toBeInTheDocument();
   });
@@ -222,7 +231,7 @@ describe("WeekSchedule", () => {
   it("points at both teams of a game, and lights up a pointed-at team's game", () => {
     const onPoint = vi.fn();
     renderSchedule(false, { onPoint, highlighted: new Set([TEAMS.NO.teamId]) });
-    const row = screen.getByRole("row");
+    const row = gameRow();
     expect(row).toHaveClass("bg-surface-raised");
     fireEvent.mouseEnter(row);
     expect(onPoint).toHaveBeenLastCalledWith([
@@ -235,7 +244,7 @@ describe("WeekSchedule", () => {
 
   it("tints the favorite team's game", () => {
     renderSchedule(false, { favoriteTeamId: TEAMS.MIN.teamId });
-    expect(screen.getByRole("row")).toHaveClass("bg-accent/10");
+    expect(gameRow()).toHaveClass("bg-accent/10");
   });
 
   describe("on a phone", () => {
@@ -313,7 +322,7 @@ describe("WeekSchedule", () => {
         favoriteTeamId: TEAMS.MIN.teamId,
         onPoint,
       });
-      const row = screen.getByRole("row");
+      const row = gameRow();
       expect(within(row).queryByText("MIN")).not.toBeInTheDocument();
       expect(within(row).queryAllByRole("link")).toEqual([]);
       expect(within(row).getAllByRole("img", { name: "Hidden" })).toHaveLength(
