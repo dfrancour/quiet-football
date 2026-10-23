@@ -1,25 +1,32 @@
 import { z } from "zod";
 import { createLocalStore } from "~/lib/local-store";
 
+const abbreviationSchema = z.string().regex(/^[A-Za-z]{2,4}$/);
+
 /**
- * The favorite team's abbreviation, kept in the browser; null for none. The
- * caller resolves it against the registry, so an unknown one marks nothing.
+ * The favorite teams' abbreviations, kept in the browser, in the order they
+ * were starred; empty for none. A lone abbreviation reads as a list of one.
+ * The caller resolves them against the registry, so an unknown one marks
+ * nothing.
  */
-const store = createLocalStore<string | null>(
+const store = createLocalStore<readonly string[]>(
   "favorite-team",
-  z
-    .string()
-    .regex(/^[A-Za-z]{2,4}$/)
-    .nullable(),
-  null,
+  z.union([
+    z.array(abbreviationSchema),
+    abbreviationSchema.transform((abbreviation) => [abbreviation]),
+    z.null().transform(() => []),
+  ]),
+  [],
 );
 
-export const subscribeToFavorite = store.subscribe;
-export const getFavorite = store.get;
-export const getServerFavorite = store.getServer;
-export const resetFavoriteCache = store.resetCache;
+export const subscribeToFavorites = store.subscribe;
+export const getFavorites = store.get;
+export const getServerFavorites = store.getServer;
+export const resetFavoritesCache = store.resetCache;
 
-/** Sets the one favorite; null clears it. */
-export function setFavorite(abbreviation: string | null): void {
-  store.set(abbreviation?.toUpperCase() ?? null);
+/** Stars or unstars a team, leaving the other favorites as they are. */
+export function setFavorite(abbreviation: string, on: boolean): void {
+  const team = abbreviation.toUpperCase();
+  const others = getFavorites().filter((favorite) => favorite !== team);
+  store.set(on ? [...others, team] : others);
 }

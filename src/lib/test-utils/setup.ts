@@ -2,7 +2,7 @@ import "@testing-library/jest-dom";
 import type * as Navigation from "next/navigation";
 import { afterEach, vi } from "vitest";
 import { resetBroadcastDelaysCache } from "~/lib/broadcast-delay";
-import { resetFavoriteCache } from "~/lib/favorite";
+import { resetFavoritesCache } from "~/lib/favorite";
 import { resetGameClocks } from "~/lib/game-clocks";
 import { resetPlayArrivals } from "~/lib/play-arrivals";
 import { resetCaughtUpCache, resetShowAllCache } from "~/lib/spoilers";
@@ -34,5 +34,5 @@ afterEach(() => {
   resetBroadcastDelaysCache();
   resetCaughtUpCache();
   resetShowAllCache();
-  resetFavoriteCache();
+  resetFavoritesCache();
 });

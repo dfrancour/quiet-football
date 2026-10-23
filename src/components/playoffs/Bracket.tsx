@@ -14,6 +14,7 @@ import {
 } from "~/lib/playoffs";
 import { teamPath } from "~/lib/routes";
 import { weekParam } from "~/lib/season-calendar";
+import { tintStyle } from "~/lib/team-tint";
 import { type Team } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
 
@@ -24,8 +25,8 @@ interface BracketProps {
   isShown: (game: GateGame) => boolean;
   /** Whether a playoff matchup may be shown (`playoffs.ts`). */
   isOpen: (gate: readonly GateGame[]) => boolean;
-  /** The viewer's team, whose line is tinted; null if they have none. */
-  favoriteTeamId: string | null;
+  /** The viewer's teams, each line tinted in its team's color. */
+  favorites: ReadonlySet<string>;
 }
 
 type Context = Omit<BracketProps, "bracket">;
@@ -84,9 +85,10 @@ function TeamLine({
       className={cn(
         LINE,
         "hover:bg-surface-sunken focus-visible:outline-accent-strong rounded-sm transition-colors focus-visible:outline-2",
-        favorite && "bg-accent/10",
+        favorite && "team-tint",
         outcome === "lost" && "opacity-45",
       )}
+      style={favorite ? tintStyle(team) : undefined}
     >
       <Seed seed={seed} />
       <TeamLogo team={team} />
@@ -158,7 +160,7 @@ function GameCard({ game, context }: { game: BracketGame; context: Context }) {
       </Card>
     );
   }
-  const { totalWeeks, isShown, favoriteTeamId } = context;
+  const { totalWeeks, isShown, favorites } = context;
   const started = game.status === "in_progress" || game.status === "final";
   const winner = decided(game, context);
   const week = weekParam(totalWeeks, game.week);
@@ -172,7 +174,7 @@ function GameCard({ game, context }: { game: BracketGame; context: Context }) {
           href={teamPath(side.team.abbreviation, week)}
           score={!started ? null : isShown(game) ? (side.score ?? 0) : "hidden"}
           outcome={winner === null ? null : winner === side ? "won" : "lost"}
-          favorite={side.team.teamId === favoriteTeamId}
+          favorite={favorites.has(side.team.teamId)}
         />
       ))}
     </Card>
@@ -210,7 +212,7 @@ function ByeCard({
         href={teamPath(bye.team.abbreviation)}
         score={null}
         outcome={null}
-        favorite={bye.team.teamId === context.favoriteTeamId}
+        favorite={context.favorites.has(bye.team.teamId)}
       />
       <span className={cn(LINE, "text-ink-faint text-xs italic")}>
         <Seed seed={null} />

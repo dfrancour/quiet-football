@@ -24,6 +24,7 @@ function team(
     nickname,
     location,
     color: null,
+    alternateColor: null,
     conference,
     division,
     logo: `https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbreviation.toLowerCase()}.png`,

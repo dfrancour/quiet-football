@@ -13,6 +13,7 @@ export const teamSchema = z.object({
   location: z.string(),
   /** Hex without the hash; null for a team no scoreboard has named. */
   color: z.string().nullable(),
+  alternateColor: z.string().nullable(),
   /** Null only on the stand-in for a team the registry lacks. */
   conference: conferenceSchema.nullable(),
   division: divisionSchema.nullable(),

@@ -84,11 +84,13 @@ describe("StandingsTables", () => {
     const table = renderStandings(true, {
       onPoint,
       highlighted: new Set([TEAMS.CHI.teamId]),
-      favoriteTeamId: TEAMS.MIN.teamId,
+      favorites: new Set([TEAMS.MIN.teamId, TEAMS.CHI.teamId]),
     });
     const [min, chi] = within(table).getAllByRole("row");
+    // Pointed at, a favorite lights up as any team does.
     expect(chi).toHaveClass("bg-surface-raised");
-    expect(min).toHaveClass("bg-accent/10");
+    expect(chi).not.toHaveClass("team-tint");
+    expect(min).toHaveClass("team-tint");
     fireEvent.mouseEnter(min!);
     expect(onPoint).toHaveBeenLastCalledWith([TEAMS.MIN.teamId]);
   });

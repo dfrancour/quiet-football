@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   pickLogoHref,
   teamColors,
+  type TeamColors,
   teamRegistryFromEspn,
 } from "~/lib/team-fetch";
 
@@ -38,7 +39,7 @@ function standingsPayload(
   };
 }
 
-const NO_COLORS = new Map<string, string>();
+const NO_COLORS = new Map<string, TeamColors>();
 
 describe("pickLogoHref", () => {
   it("takes the full dark mark over the default", () => {
@@ -68,7 +69,9 @@ describe("teamColors", () => {
           competitions: [
             {
               competitors: [
-                { team: { id: 16, color: "4f2683" } },
+                {
+                  team: { id: 16, color: "4f2683", alternateColor: "ffc62f" },
+                },
                 { team: { id: "18", color: "d3bc8d" } },
                 { team: { id: "9" } },
               ],
@@ -78,8 +81,8 @@ describe("teamColors", () => {
       ],
     });
     expect([...colors]).toEqual([
-      ["16", "4f2683"],
-      ["18", "d3bc8d"],
+      ["16", { color: "4f2683", alternateColor: "ffc62f" }],
+      ["18", { color: "d3bc8d", alternateColor: null }],
     ]);
     expect(teamColors({ events: "nope" }).size).toBe(0);
   });
@@ -103,7 +106,7 @@ describe("teamRegistryFromEspn", () => {
         },
         { conference: "AFC", name: "AFC East", teams: [espnTeam("2", "BUF")] },
       ]),
-      new Map([["16", "4f2683"]]),
+      new Map([["16", { color: "4f2683", alternateColor: "ffc62f" }]]),
     );
     expect(registry.teams.map((team) => team.abbreviation)).toEqual([
       "BUF",
@@ -118,12 +121,14 @@ describe("teamRegistryFromEspn", () => {
       nickname: "MINs",
       location: "MIN City",
       color: "4f2683",
+      alternateColor: "ffc62f",
       conference: "NFC",
       division: "North",
       logo: "https://example.test/min.png",
     });
     expect(registry.teams[1]).toMatchObject({
       color: null,
+      alternateColor: null,
       logo: null,
       conference: "NFC",
       division: "North",

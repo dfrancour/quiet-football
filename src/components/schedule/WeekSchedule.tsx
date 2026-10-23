@@ -34,6 +34,7 @@ import {
 } from "~/lib/season-calendar";
 import { type BoardGame } from "~/lib/score.schema";
 import { maskedScore, spoilerSafeClock } from "~/lib/spoilers";
+import { tintStyle } from "~/lib/team-tint";
 import { type WeekGame, type WeekSide } from "~/lib/week";
 import { cn } from "~/lib/utils";
 
@@ -58,8 +59,8 @@ interface WeekScheduleProps {
   showsRecordsBefore: (week: number) => boolean;
   /** Teams pointed at elsewhere on the page; their games light up. */
   highlighted: ReadonlySet<string>;
-  /** The viewer's team, whose game is tinted; null if they have none. */
-  favoriteTeamId: string | null;
+  /** The viewer's teams, each tinted on its own side of a game. */
+  favorites: ReadonlySet<string>;
   /** Points at a game's two teams, or at nothing. */
   onPoint: (teamIds: readonly string[]) => void;
 }
@@ -283,7 +284,7 @@ function GameRow({
   showRecords,
   totalWeeks,
   highlighted,
-  favorite,
+  favorites,
   onPoint,
 }: {
   game: WeekGame;
@@ -295,7 +296,7 @@ function GameRow({
   showRecords: boolean;
   totalWeeks: number;
   highlighted: boolean;
-  favorite: boolean;
+  favorites: ReadonlySet<string>;
   onPoint: (teamIds: readonly string[]) => void;
 }) {
   const started = phase === "live" || phase === "final";
@@ -309,6 +310,14 @@ function GameRow({
       : 0;
   const score = (value: number | null) =>
     started ? maskedScore(value, revealed) : "";
+  // A favorite's own side of the game is tinted, not the whole row.
+  const sideCell = (side: WeekSide) =>
+    favorites.has(side.team.teamId)
+      ? {
+          className: cn(teamCellClass, "team-tint"),
+          style: tintStyle(side.team),
+        }
+      : { className: teamCellClass };
 
   return (
     <tr
@@ -322,15 +331,11 @@ function GameRow({
       className={cn(
         "border-edge border-t transition-colors",
         isFirstInSlot && "border-edge-strong",
-        phase === "live"
-          ? "bg-live/10"
-          : highlighted
-            ? "bg-surface-raised"
-            : favorite && "bg-accent/10",
+        phase === "live" ? "bg-live/10" : highlighted && "bg-surface-raised",
       )}
     >
       {isFirstInSlot && <SlotTime slot={slot} />}
-      <td className={teamCellClass}>
+      <td {...sideCell(game.away)}>
         <TeamCell
           side={game.away}
           score={score(awayScore)}
@@ -341,7 +346,7 @@ function GameRow({
         />
       </td>
       <td className="text-ink-faint w-5 text-center text-xs">@</td>
-      <td className={teamCellClass}>
+      <td {...sideCell(game.home)}>
         <TeamCell
           side={game.home}
           score={score(homeScore)}
@@ -575,7 +580,7 @@ export function WeekSchedule({
   isOpen,
   showsRecordsBefore,
   highlighted,
-  favoriteTeamId,
+  favorites,
   onPoint,
 }: WeekScheduleProps) {
   const now = useNow();
@@ -670,10 +675,7 @@ export function WeekSchedule({
                           highlighted.has(game.away.team.teamId) ||
                           highlighted.has(game.home.team.teamId)
                         }
-                        favorite={
-                          favoriteTeamId === game.away.team.teamId ||
-                          favoriteTeamId === game.home.team.teamId
-                        }
+                        favorites={favorites}
                         onPoint={onPoint}
                       />
                     );

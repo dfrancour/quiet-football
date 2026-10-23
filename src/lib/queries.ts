@@ -71,7 +71,7 @@ export function standingsQuery(season: number) {
 /**
  * The 32 teams, once a session, and saved for a week of visits: ESPN's
  * standings name them under their divisions, and the season's first week,
- * in which every team plays, gives each its color.
+ * in which every team plays, gives each its colors.
  */
 export function teamsQuery(season: number) {
   return queryOptions({

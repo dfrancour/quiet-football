@@ -11,7 +11,7 @@ import { fetchUpstream } from "~/lib/upstream";
 /**
  * The registry comes from ESPN's standings endpoint: it names every team with
  * its conference and division and answers cross-origin requests, which the
- * teams endpoint does not. It omits each team's color, which a scoreboard
+ * teams endpoint does not. It omits each team's colors, which a scoreboard
  * carries (`teamColors`).
  */
 
@@ -78,15 +78,22 @@ export function pickLogoHref(
   return dark?.href ?? fallback?.href ?? null;
 }
 
-/** Each team's color by id, from any scoreboard naming it. */
-export function teamColors(scoreboard: unknown): Map<string, string> {
-  const colors = new Map<string, string>();
+export type TeamColors = Pick<Team, "color" | "alternateColor">;
+
+/** Each team's colors by id, from any scoreboard naming it. */
+export function teamColors(scoreboard: unknown): Map<string, TeamColors> {
+  const colors = new Map<string, TeamColors>();
   const parsed = scoreboardSchema.safeParse(scoreboard);
   if (!parsed.success) return colors;
   for (const event of parsed.data.events ?? []) {
     for (const competitor of event.competitions?.[0]?.competitors ?? []) {
-      const { id, color } = competitor.team ?? {};
-      if (id != null && color) colors.set(String(id), color);
+      const { id, color, alternateColor } = competitor.team ?? {};
+      if (id != null && (color || alternateColor)) {
+        colors.set(String(id), {
+          color: color || null,
+          alternateColor: alternateColor || null,
+        });
+      }
     }
   }
   return colors;
@@ -95,11 +102,11 @@ export function teamColors(scoreboard: unknown): Map<string, string> {
 /**
  * Every team under its conference and division. Refuses an empty league, and
  * a conference or division it does not know, which would silently drop its
- * teams from the standings. A team the scoreboard did not name has no color.
+ * teams from the standings. A team the scoreboard did not name has no colors.
  */
 export function teamRegistryFromEspn(
   standingsPayload: unknown,
-  colors: ReadonlyMap<string, string>,
+  colors: ReadonlyMap<string, TeamColors>,
 ): TeamRegistry {
   const teams: Team[] = [];
   const unplaced: string[] = [];
@@ -120,6 +127,7 @@ export function teamRegistryFromEspn(
           unplaced.push(team.abbreviation);
           continue;
         }
+        const palette = colors.get(String(team.id));
         teams.push({
           teamId: String(team.id),
           abbreviation: team.abbreviation,
@@ -128,7 +136,8 @@ export function teamRegistryFromEspn(
             team.shortDisplayName ?? team.name ?? team.abbreviation,
           nickname: team.name ?? team.shortDisplayName ?? team.abbreviation,
           location: team.location ?? "",
-          color: colors.get(String(team.id)) ?? null,
+          color: palette?.color ?? null,
+          alternateColor: palette?.alternateColor ?? null,
           conference: conferenceName as Conference,
           division: divisionName as Division,
           logo: pickLogoHref(team.logos),

@@ -30,8 +30,9 @@ const competitorSchema = z.object({
       abbreviation: z.string().nullish(),
       displayName: z.string().nullish(),
       shortDisplayName: z.string().nullish(),
-      /** The team's color as a hex string without the hash. */
+      /** The team's colors as hex strings without the hash. */
       color: z.string().nullish(),
+      alternateColor: z.string().nullish(),
     })
     .nullish(),
 });

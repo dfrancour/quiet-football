@@ -98,6 +98,12 @@
     );
   }
 
+  /* A favorite team's wash, in the color `tintStyle()` sets
+     (`src/lib/team-tint.ts`). In this layer, a hover utility still wins. */
+  .team-tint {
+    background-color: color-mix(in oklch, var(--team-tint) 18%, transparent);
+  }
+
   .redacted-reveal {
     @apply cursor-pointer transition-colors;
   }
@@ -221,13 +227,11 @@
 }
 
 .animate-field-kick {
-  animation: field-kick var(--field-draw, 1s) cubic-bezier(0.3, 0, 0.2, 1)
-    both;
+  animation: field-kick var(--field-draw, 1s) cubic-bezier(0.3, 0, 0.2, 1) both;
 }
 
 .animate-field-land {
-  animation: field-land 250ms ease-out calc(var(--field-draw, 1s) - 100ms)
-    both;
+  animation: field-land 250ms ease-out calc(var(--field-draw, 1s) - 100ms) both;
 }
 
 .animate-field-light {
@@ -236,8 +240,7 @@
 
 .animate-field-draw {
   transform-box: fill-box;
-  animation: field-draw var(--field-draw, 1s) cubic-bezier(0.3, 0, 0.2, 1)
-    both;
+  animation: field-draw var(--field-draw, 1s) cubic-bezier(0.3, 0, 0.2, 1) both;
 }
 
 .animate-field-run {

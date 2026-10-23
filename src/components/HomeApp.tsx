@@ -9,7 +9,7 @@ import {
   StandingsTables,
   type StandingsView,
 } from "~/components/standings/StandingsTables";
-import { useFavorite } from "~/hooks/useFavorite";
+import { useFavorites } from "~/hooks/useFavorites";
 import {
   usePlayoffMarks,
   useSeason,
@@ -113,10 +113,17 @@ function HomeView({ registry, data }: HomeViewProps) {
   });
   const { through, showAll, standingsThrough, marksShown } = spoilers;
 
-  const favorite = useFavorite();
-  const favoriteTeamId = favorite
-    ? (teamByAbbreviation(registry, favorite)?.teamId ?? null)
-    : null;
+  const favoriteAbbreviations = useFavorites();
+  const favorites = useMemo(
+    () =>
+      new Set(
+        favoriteAbbreviations.flatMap((abbreviation) => {
+          const team = teamByAbbreviation(registry, abbreviation);
+          return team ? [team.teamId] : [];
+        }),
+      ),
+    [registry, favoriteAbbreviations],
+  );
 
   // A viewer behind the league opens on the week after the one they are
   // caught up through.
@@ -221,7 +228,7 @@ function HomeView({ registry, data }: HomeViewProps) {
             isOpen={spoilers.isOpen}
             showsRecordsBefore={spoilers.showsRecordsBefore}
             highlighted={highlighted}
-            favoriteTeamId={favoriteTeamId}
+            favorites={favorites}
             onPoint={setPointed}
           />
         </section>
@@ -239,7 +246,7 @@ function HomeView({ registry, data }: HomeViewProps) {
               totalWeeks={totalWeeks}
               isShown={spoilers.isShown}
               isOpen={spoilers.isOpen}
-              favoriteTeamId={favoriteTeamId}
+              favorites={favorites}
             />
           </section>
         ) : (
@@ -254,7 +261,7 @@ function HomeView({ registry, data }: HomeViewProps) {
               standings={standings}
               showSpoilers={standingsThrough > 0}
               highlighted={highlighted}
-              favoriteTeamId={favoriteTeamId}
+              favorites={favorites}
               onPoint={setPointed}
               week={weekParam(totalWeeks, week)}
             />

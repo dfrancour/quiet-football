@@ -1,19 +1,19 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { useFavorite } from "~/hooks/useFavorite";
+import { useFavorites } from "~/hooks/useFavorites";
 import { setFavorite } from "~/lib/favorite";
 import { cn } from "~/lib/utils";
 
-/** Toggles the viewer's single favorite team. */
+/** Stars the team among the viewer's favorites, or lets it go. */
 export function FavoriteStar({ abbreviation }: { abbreviation: string }) {
-  const favorite = useFavorite() === abbreviation.toUpperCase();
+  const favorite = useFavorites().includes(abbreviation.toUpperCase());
   return (
     <button
       type="button"
       aria-label="Favorite team"
       aria-pressed={favorite}
-      onClick={() => setFavorite(favorite ? null : abbreviation)}
+      onClick={() => setFavorite(abbreviation, !favorite)}
       className={cn(
         "-m-2 shrink-0 cursor-pointer rounded-md p-2 transition-colors",
         favorite ? "text-ink-muted" : "text-ink-faint/60 hover:text-ink-muted",

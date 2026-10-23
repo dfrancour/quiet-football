@@ -32,7 +32,7 @@ the query layer is the cache.
 | Query (`src/lib/queries.ts`) | Holds                                                   | Fetched again                                       |
 | ---------------------------- | ------------------------------------------------------- | --------------------------------------------------- |
 | `standings`                  | ESPN's standings: teams by division, seeds, clinches    | after `marksStaleMs`, and only if marks are shown   |
-| `teams`                      | The 32 teams, with conference, division, color and logo | never in a session; saved for `teamsStaleMs`        |
+| `teams`                      | The 32 teams, with conference, division, colors, logo   | never in a session; saved for `teamsStaleMs`        |
 | `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..."          |
 | `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | as the scoreboard shows a new play; once when over  |
 | `recaps`                     | The season's file from the recap dataset                | on `recapsPoll`'s schedule while a recap is awaited |
@@ -41,7 +41,7 @@ Playoff marks are not a query of their own: `playoffMarksQuery` is the
 standings query with a `select`.
 
 The viewer's own state lives in `localStorage` (`src/lib/local-store.ts`):
-the week caught up through per season, the favorite team, watch progress and
+the week caught up through per season, the favorite teams, watch progress and
 broadcast delays.
 
 ### Games are held once for the league
@@ -107,8 +107,9 @@ standings endpoint (`teamRegistryFromEspn()`, `src/lib/team-fetch.ts`), which
 names every team under its division and answers cross-origin requests; the
 teams endpoint does neither. A team outside a known conference or division
 is refused, since it would silently drop out of the standings. The one thing
-the standings omit is each team's color, so `teamsQuery` reads it from the
-season's first week, in which every team plays. The registry is saved for
+the standings omit is each team's colors, so `teamsQuery` reads them (ESPN's
+color and alternate) from the season's first week, in which every team
+plays. The registry is saved for
 the next visit and trusted for `teamsStaleMs`, so a return visit asks for
 the standings only when the marks are shown.
 
@@ -310,12 +311,21 @@ weeks in place, not by route. The shown week's scores and clocks come from its
 own `WeekBoard`. Each side of a game links to that team's page on the game's
 week (`/team/MIN?week=5`).
 
-### Favorite team
+### Favorite teams
 
-No team is followed by default. The star on a team page sets the favorite in
-`localStorage` (`src/lib/favorite.ts`, `useFavorite`); starring another
-replaces it. The home page tints the favorite's game and standings row,
-nothing more. The star is drawn like the possession football — muted, filled
+No team is followed by default. The star on a team page adds the team to the
+favorites in `localStorage` (`src/lib/favorite.ts`, `useFavorites`), or takes
+it off; there can be any number. The home page tints each favorite's
+standings row, bracket line and its own side of a game, never the opponent's,
+nothing more.
+
+The tint is the team's color (`teamTint()`, `src/lib/team-tint.ts`): its hue
+at one lightness and a narrow range of chroma, so navy, gold and red read
+alike on the dark surface, washed in by `.team-tint`. ESPN gives a few teams
+black, which has no hue and would tint like a hovered row's grey; those take
+their alternate color (Pittsburgh's gold), and a team with neither the
+site's accent. A hovered cell or line, and a standings row pointed at, show
+that instead. The star is drawn like the possession football — muted, filled
 when on.
 
 ### Team page

@@ -6,6 +6,7 @@ import { type PlayoffMark } from "~/lib/playoff-marks.schema";
 import { teamPath } from "~/lib/routes";
 import { formatRecord } from "~/lib/schedule";
 import { type StandingsRow } from "~/lib/standings";
+import { tintStyle } from "~/lib/team-tint";
 import { type Conference, type Division } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
 
@@ -52,8 +53,8 @@ interface StandingsTablesProps {
   showSpoilers: boolean;
   /** Teams pointed at elsewhere on the page; their rows light up. */
   highlighted?: ReadonlySet<string>;
-  /** The viewer's team, whose row is tinted; null if they have none. */
-  favoriteTeamId?: string | null;
+  /** The viewer's teams, each row tinted in its team's color. */
+  favorites?: ReadonlySet<string>;
   /** Points at a team, or at nothing. */
   onPoint?: (teamIds: readonly string[]) => void;
   /** The week a team's page opens on, as `weekParam()` names it; its default if absent. */
@@ -68,7 +69,7 @@ function DivisionTable({
   rows,
   showSpoilers,
   highlighted,
-  favoriteTeamId,
+  favorites,
   onPoint,
   week,
 }: {
@@ -90,44 +91,48 @@ function DivisionTable({
         <span className="sr-only">{conference}</span> {division}
       </caption>
       <tbody>
-        {ordered.map(({ team, record, mark }) => (
-          <tr
-            key={team.teamId}
-            onMouseEnter={() => onPoint([team.teamId])}
-            onMouseLeave={() => onPoint([])}
-            onFocus={() => onPoint([team.teamId])}
-            onBlur={() => onPoint([])}
-            className={cn(
-              "border-edge relative border-t transition-colors",
-              highlighted.has(team.teamId)
-                ? "bg-surface-raised"
-                : team.teamId === favoriteTeamId && "bg-accent/10",
-            )}
-          >
-            <th scope="row" className="py-2 pr-2 pl-1 text-left font-normal">
-              {/* The overlay makes the whole row one target and ring. */}
-              <Link
-                href={teamPath(team.abbreviation, week)}
-                className="text-ink focus-visible:after:outline-accent-strong flex items-center gap-2 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2"
-              >
-                <TeamLogo team={team} />
-                <span className="truncate">{team.nickname}</span>
-                {showSpoilers && mark?.clincher && (
-                  <Clincher code={mark.clincher} />
-                )}
-              </Link>
-            </th>
-            <td className="w-4 py-2 text-right font-mono text-xs tabular-nums">
-              {showSpoilers &&
-                mark?.seed != null &&
-                mark.seed <= PLAYOFF_SEEDS && <SeedFigure seed={mark.seed} />}
-            </td>
-            <td className="text-ink-muted py-2 pr-1 text-right font-mono text-xs whitespace-nowrap tabular-nums">
-              <span className="sr-only">Record </span>
-              {showSpoilers ? formatRecord(record) : <Redacted chars={3} />}
-            </td>
-          </tr>
-        ))}
+        {ordered.map(({ team, record, mark }) => {
+          const favorite = favorites.has(team.teamId);
+          return (
+            <tr
+              key={team.teamId}
+              onMouseEnter={() => onPoint([team.teamId])}
+              onMouseLeave={() => onPoint([])}
+              onFocus={() => onPoint([team.teamId])}
+              onBlur={() => onPoint([])}
+              className={cn(
+                "border-edge relative border-t transition-colors",
+                highlighted.has(team.teamId)
+                  ? "bg-surface-raised"
+                  : favorite && "team-tint",
+              )}
+              style={favorite ? tintStyle(team) : undefined}
+            >
+              <th scope="row" className="py-2 pr-2 pl-1 text-left font-normal">
+                {/* The overlay makes the whole row one target and ring. */}
+                <Link
+                  href={teamPath(team.abbreviation, week)}
+                  className="text-ink focus-visible:after:outline-accent-strong flex items-center gap-2 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2"
+                >
+                  <TeamLogo team={team} />
+                  <span className="truncate">{team.nickname}</span>
+                  {showSpoilers && mark?.clincher && (
+                    <Clincher code={mark.clincher} />
+                  )}
+                </Link>
+              </th>
+              <td className="w-4 py-2 text-right font-mono text-xs tabular-nums">
+                {showSpoilers &&
+                  mark?.seed != null &&
+                  mark.seed <= PLAYOFF_SEEDS && <SeedFigure seed={mark.seed} />}
+              </td>
+              <td className="text-ink-muted py-2 pr-1 text-right font-mono text-xs whitespace-nowrap tabular-nums">
+                <span className="sr-only">Record </span>
+                {showSpoilers ? formatRecord(record) : <Redacted chars={3} />}
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
@@ -142,7 +147,7 @@ export function StandingsTables({
   standings,
   showSpoilers,
   highlighted = NOTHING,
-  favoriteTeamId = null,
+  favorites = NOTHING,
   onPoint = () => undefined,
   week,
 }: StandingsTablesProps) {
@@ -161,7 +166,7 @@ export function StandingsTables({
               rows={rows}
               showSpoilers={showSpoilers}
               highlighted={highlighted}
-              favoriteTeamId={favoriteTeamId}
+              favorites={favorites}
               onPoint={onPoint}
               week={week}
             />

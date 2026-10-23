@@ -65,7 +65,7 @@ function renderSchedule(
     board = [] as readonly BoardGame[],
     currentWeek = 5,
     highlighted = new Set<string>(),
-    favoriteTeamId = null as string | null,
+    favorites = new Set<string>() as ReadonlySet<string>,
     onPoint = () => undefined,
     isOpen = () => true,
   }: {
@@ -73,7 +73,7 @@ function renderSchedule(
     board?: readonly BoardGame[];
     currentWeek?: number;
     highlighted?: ReadonlySet<string>;
-    favoriteTeamId?: string | null;
+    favorites?: ReadonlySet<string>;
     onPoint?: (teamIds: readonly string[]) => void;
     isOpen?: (gate: readonly GateGame[]) => boolean;
   } = {},
@@ -97,7 +97,7 @@ function renderSchedule(
         isOpen={isOpen}
         showsRecordsBefore={() => revealed}
         highlighted={highlighted}
-        favoriteTeamId={favoriteTeamId}
+        favorites={favorites}
         onPoint={onPoint}
       />
     );
@@ -242,9 +242,13 @@ describe("WeekSchedule", () => {
     expect(onPoint).toHaveBeenLastCalledWith([]);
   });
 
-  it("tints the favorite team's game", () => {
-    renderSchedule(false, { favoriteTeamId: TEAMS.MIN.teamId });
-    expect(gameRow()).toHaveClass("bg-accent/10");
+  it("tints a favorite's side of its game, not its opponent's", () => {
+    renderSchedule(false, { favorites: new Set([TEAMS.MIN.teamId]) });
+    const [away, , home] = within(gameRow()).getAllByRole("cell");
+    expect(gameRow()).not.toHaveClass("team-tint");
+    expect(away).toHaveClass("team-tint");
+    expect(away!.style.getPropertyValue("--team-tint")).not.toBe("");
+    expect(home).not.toHaveClass("team-tint");
   });
 
   describe("on a phone", () => {
@@ -319,7 +323,7 @@ describe("WeekSchedule", () => {
         games: [wildCard],
         currentWeek: 19,
         isOpen: (gate) => !gate.some((entry) => entry.gameId === played.gameId),
-        favoriteTeamId: TEAMS.MIN.teamId,
+        favorites: new Set([TEAMS.MIN.teamId]),
         onPoint,
       });
       const row = gameRow();
@@ -329,7 +333,7 @@ describe("WeekSchedule", () => {
         2,
       );
       // Neither the tint nor the standings may say who is playing.
-      expect(row).not.toHaveClass("bg-accent/10");
+      expect(row.querySelector(".team-tint")).toBeNull();
       fireEvent.mouseEnter(row);
       expect(onPoint).not.toHaveBeenCalled();
     });

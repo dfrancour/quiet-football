@@ -53,6 +53,7 @@ function unknownTeam(teamId: string): Team {
     nickname: "Unknown",
     location: "",
     color: null,
+    alternateColor: null,
     conference: null,
     division: null,
     logo: null,

@@ -63,7 +63,7 @@ function renderBracket(
       totalWeeks={18}
       isShown={() => seen}
       isOpen={() => open}
-      favoriteTeamId={null}
+      favorites={new Set()}
     />,
   );
 }

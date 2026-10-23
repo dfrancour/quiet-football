@@ -13,7 +13,7 @@ import { teamRegistrySchema, type TeamRegistry } from "~/lib/teams.schema";
  */
 
 /** Bumped when a schema gains a field a saved copy would lack. */
-const FORMAT = 2;
+const FORMAT = 3;
 
 export const WEEK_PREFIX = "scoreboard:";
 export const TEAMS_PREFIX = "teams:";
