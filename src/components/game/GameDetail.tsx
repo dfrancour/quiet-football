@@ -19,6 +19,7 @@ import {
 } from "~/hooks/useBroadcast";
 import { useReplay } from "~/hooks/useReplay";
 import { useTimeZone } from "~/hooks/useTimeZone";
+import { useWakeLock } from "~/hooks/useWakeLock";
 import {
   useKeepWatchProgress,
   useWatchProgress,
@@ -351,6 +352,8 @@ export function GameDetail({
     showSpoilers ? null : (stored?.playId ?? null),
     delayMs,
   );
+  // Pressing play is watching: the screen stays on until it pauses or ends.
+  useWakeLock(replay.running);
   const seenThrough = useKeepWatchProgress(
     gameId,
     plays,

@@ -689,6 +689,12 @@ Pausing or leaving stops it there; **Resume** replays from the place, at any
 speed, and on reaching the newest play is live again. Followed to the final
 play, the game is seen to the end.
 
+While a replay runs, live or not, the screen is kept awake (`useWakeLock`,
+the browser's Screen Wake Lock), so a phone left on the table does not dim
+mid-drive; paused, ended or never started, it sleeps as usual. The browser
+drops the lock whenever the page is hidden, so it is asked for again on
+return; where it is missing or refused, nothing is said.
+
 The panel's eyebrow label skips ahead: while the result is hidden, a live
 game's **Live** label joins at the newest play, and a finished game's
 **Final** label sees the game to the end (`finishGame()`). The same label
