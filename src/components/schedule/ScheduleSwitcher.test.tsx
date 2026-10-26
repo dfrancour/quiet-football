@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScheduleSwitcher } from "~/components/schedule/ScheduleSwitcher";
@@ -79,6 +79,22 @@ describe("ScheduleSwitcher", () => {
     await user.click(screen.getByRole("button", { name: /Week 5/ }));
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps Tab within the open schedule", async () => {
+    const user = userEvent.setup();
+    renderSwitcher();
+    await user.click(screen.getByRole("button", { name: /Week 5/ }));
+    const sheet = screen.getByRole("dialog");
+    const inSheet = within(sheet).getAllByRole("button");
+    const first = inSheet[0];
+    const last = inSheet.at(-1);
+    await user.tab({ shift: true });
+    expect(last).toHaveFocus();
+    await user.tab();
+    expect(first).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(last).toHaveFocus();
   });
 
   it("steps a week either way through the schedule, byes included", async () => {

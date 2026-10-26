@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useDismiss } from "~/hooks/useDismiss";
 
@@ -37,6 +37,25 @@ export function Sheet({ label, title = label, onClose, children }: SheetProps) {
     };
   }, []);
 
+  // Modal, so Tab goes round the sheet rather than into the page behind.
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab" || !ref.current) return;
+    const focusable = [
+      ...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE),
+    ].filter((element) => !element.hasAttribute("disabled"));
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || active === ref.current)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   return createPortal(
     <div className="fixed inset-0 z-30 flex flex-col justify-end">
       <div className="bg-surface-sunken/70 absolute inset-0" aria-hidden />
@@ -46,6 +65,7 @@ export function Sheet({ label, title = label, onClose, children }: SheetProps) {
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
+        onKeyDown={onKeyDown}
         className="border-edge bg-surface-raised relative flex max-h-[85dvh] flex-col rounded-t-xl border-t px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg outline-none"
       >
         <div className="mb-1 flex items-center justify-between gap-3 px-3">
@@ -65,3 +85,6 @@ export function Sheet({ label, title = label, onClose, children }: SheetProps) {
     document.body,
   );
 }
+
+const FOCUSABLE =
+  'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';

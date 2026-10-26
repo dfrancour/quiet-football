@@ -155,10 +155,9 @@ function overtime(completed: boolean) {
 describe("WeekSchedule", () => {
   it("opens on the current week", () => {
     renderSchedule(false);
-    expect(screen.getByRole("button", { name: "5" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(
+      screen.getByRole("button", { name: "Week 5, this week" }),
+    ).toHaveAttribute("aria-pressed", "true");
     expect(links()).toEqual(["/team/MIN?week=5", "/team/NO?week=5"]);
   });
 
@@ -181,7 +180,7 @@ describe("WeekSchedule", () => {
 
   it("moves between weeks in place", () => {
     renderSchedule(false);
-    fireEvent.click(screen.getByRole("button", { name: "6" }));
+    fireEvent.click(screen.getByRole("button", { name: "Week 6" }));
     expect(links()).toEqual(["/team/GB?week=6", "/team/CHI?week=6"]);
     // A future game says when, not a score.
     const card = gameRow();
@@ -286,7 +285,7 @@ describe("WeekSchedule", () => {
       renderSchedule(false);
       fireEvent.click(bar());
       const sheet = screen.getByRole("dialog", { name: "Weeks" });
-      fireEvent.click(within(sheet).getByRole("button", { name: "6" }));
+      fireEvent.click(within(sheet).getByRole("button", { name: "Week 6" }));
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(bar()).toHaveTextContent("Week 6");
       expect(bar()).toHaveFocus();
@@ -305,7 +304,9 @@ describe("WeekSchedule", () => {
 
     it("offers each round set so far after the regular season", () => {
       renderSchedule(false, { games: [played, wildCard], currentWeek: 19 });
-      const round = screen.getByRole("button", { name: "Wild Card" });
+      const round = screen.getByRole("button", {
+        name: "Wild Card, this week",
+      });
       expect(round).toHaveTextContent("WC");
       expect(round).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("button", { expanded: false })).toHaveTextContent(

@@ -96,6 +96,19 @@ describe("CaughtUp with room", () => {
       screen.getByRole("group", { name: "Caught up through" }),
     ).toBeInTheDocument();
   });
+
+  it("hands focus back to its control when Escape closes it", async () => {
+    const user = userEvent.setup();
+    renderControl();
+    const control = screen.getByRole("button", { name: "Through Week 3" });
+    await user.click(control);
+    screen.getByRole("button", { name: "Through Week 2" }).focus();
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("group", { name: "Caught up through" }),
+    ).not.toBeInTheDocument();
+    expect(control).toHaveFocus();
+  });
 });
 
 describe("CaughtUp with a week in progress", () => {

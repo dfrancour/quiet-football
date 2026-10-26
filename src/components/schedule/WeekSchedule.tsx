@@ -385,16 +385,13 @@ function WeekButton({
   onChange: (week: number) => void;
 }) {
   const round = playoffRound(totalWeeks, entry);
+  const name = round ? ROUND_NAMES[round] : `Week ${entry}`;
   return (
     <button
       type="button"
       aria-pressed={entry === week}
-      aria-label={round ? ROUND_NAMES[round] : undefined}
-      title={
-        [round && ROUND_NAMES[round], entry === currentWeek && "This week"]
-          .filter(Boolean)
-          .join(" · ") || undefined
-      }
+      aria-label={entry === currentWeek ? `${name}, this week` : name}
+      title={entry === currentWeek ? `${name} · This week` : name}
       onClick={() => onChange(entry)}
       className={cn(
         "relative cursor-pointer rounded-md text-center font-mono text-xs tabular-nums transition-colors",

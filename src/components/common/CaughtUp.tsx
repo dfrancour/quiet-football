@@ -114,8 +114,14 @@ export function CaughtUp({
     setOpened(false);
     markIntroduced();
   }, []);
-  // The popover closes on a press outside; the sheet sees to itself.
-  useDismiss(rootRef, open && wide, close);
+  // The popover closes on a press outside or Escape, handing focus back to
+  // the control if it held it; the sheet sees to itself.
+  const closePopover = useCallback(() => {
+    const held = rootRef.current?.contains(document.activeElement) ?? false;
+    close();
+    if (held) controlRef.current?.focus();
+  }, [close]);
+  useDismiss(rootRef, open && wide, closePopover);
   const closeSheet = useCallback(() => {
     close();
     controlRef.current?.focus();
