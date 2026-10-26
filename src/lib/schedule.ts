@@ -1,4 +1,4 @@
-import { type TeamRecord } from "~/lib/season";
+import { addOutcome, NO_RECORD, type TeamRecord } from "~/lib/season";
 import { ROUND_NAMES } from "~/lib/season-calendar";
 import { type TeamGame, type TeamSchedule } from "~/lib/team-view";
 
@@ -82,21 +82,12 @@ export function defaultGameId(
 
 /** The regular-season record; playoff games do not count. */
 export function teamRecord(games: readonly TeamGame[]): TeamRecord {
-  return games.reduce<TeamRecord>(
-    (record, game) => {
-      if (game.status !== "final" || !game.result || game.round !== null) {
-        return record;
-      }
-      switch (game.result.outcome) {
-        case "win":
-          return { ...record, wins: record.wins + 1 };
-        case "loss":
-          return { ...record, losses: record.losses + 1 };
-        case "tie":
-          return { ...record, ties: record.ties + 1 };
-      }
-    },
-    { wins: 0, losses: 0, ties: 0 },
+  return games.reduce(
+    (record, game) =>
+      game.status === "final" && game.result && game.round === null
+        ? addOutcome(record, game.result.outcome)
+        : record,
+    NO_RECORD,
   );
 }
 

@@ -1,9 +1,11 @@
 import { matchupGates, type GateGame } from "~/lib/playoffs";
 import {
   gamesForTeam,
-  recordAfter,
-  recordBefore,
-  recordThroughWeek,
+  NO_RECORD,
+  outcomeOf,
+  recordAsShown,
+  recordsAround,
+  type RecordsAround,
   type TeamRecord,
 } from "~/lib/season";
 import { playoffRound, type PlayoffRound } from "~/lib/season-calendar";
@@ -65,12 +67,6 @@ function unknownTeam(teamId: string): Team {
   };
 }
 
-function outcomeFor(teamScore: number, opponentScore: number): GameOutcome {
-  if (teamScore > opponentScore) return "win";
-  if (teamScore < opponentScore) return "loss";
-  return "tie";
-}
-
 export function buildTeamSchedule(
   season: SeasonFile,
   registry: TeamRegistry,
@@ -78,11 +74,15 @@ export function buildTeamSchedule(
 ): TeamSchedule {
   const team = teamById(registry, teamId) ?? unknownTeam(teamId);
   const gates = matchupGates(season, registry);
+  const records = recordsAround(season);
 
   const games: TeamGame[] = gamesForTeam(season, teamId).map((game) => {
     const isHome = game.home.teamId === teamId;
     const own = isHome ? game.home : game.away;
     const other = isHome ? game.away : game.home;
+    const around = records.get(game.gameId);
+    const ownRecords = around?.[isHome ? "home" : "away"] ?? UNRECORDED;
+    const otherRecords = around?.[isHome ? "away" : "home"] ?? UNRECORDED;
 
     const teamScore = own.score;
     const opponentScore = other.score;
@@ -104,16 +104,16 @@ export function buildTeamSchedule(
         ? {
             teamScore,
             opponentScore,
-            outcome: outcomeFor(teamScore, opponentScore),
+            outcome: outcomeOf(teamScore, opponentScore),
           }
         : null,
       recordsBefore: {
-        team: recordBefore(season, teamId, game.kickoff),
-        opponent: recordBefore(season, other.teamId, game.kickoff),
+        team: ownRecords.before,
+        opponent: otherRecords.before,
       },
       recordsAfter: {
-        team: recordAfter(season, teamId, game.kickoff),
-        opponent: recordAfter(season, other.teamId, game.kickoff),
+        team: ownRecords.after,
+        opponent: otherRecords.after,
       },
       periods:
         own.periods && other.periods
@@ -145,15 +145,16 @@ export function teamGameRecords(
   shown: RecordsShown,
 ): { team: TeamRecord; opponent: TeamRecord } | null {
   if (shown === null) return null;
-  switch (shown.at) {
-    case "after":
-      return game.recordsAfter;
-    case "before":
-      return game.recordsBefore;
-    case "through":
-      return {
-        team: recordThroughWeek(season, teamId, shown.week),
-        opponent: recordThroughWeek(season, game.opponent.teamId, shown.week),
-      };
-  }
+  return {
+    team: recordAsShown(season, shown, teamId, {
+      before: game.recordsBefore.team,
+      after: game.recordsAfter.team,
+    }),
+    opponent: recordAsShown(season, shown, game.opponent.teamId, {
+      before: game.recordsBefore.opponent,
+      after: game.recordsAfter.opponent,
+    }),
+  };
 }
+
+const UNRECORDED: RecordsAround = { before: NO_RECORD, after: NO_RECORD };

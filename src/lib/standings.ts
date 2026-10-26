@@ -1,4 +1,10 @@
-import { isRegularSeason, type TeamRecord } from "~/lib/season";
+import {
+  addOutcome,
+  isRegularSeason,
+  NO_RECORD,
+  outcomeOf,
+  type TeamRecord,
+} from "~/lib/season";
 import { CONFERENCE_ORDER } from "~/lib/teams";
 import { type GameOutcome, type SeasonFile } from "~/lib/season.schema";
 import {
@@ -31,8 +37,6 @@ export interface ConferenceStandings {
 
 const DIVISION_ORDER: readonly Division[] = ["North", "East", "South", "West"];
 
-const EMPTY: TeamRecord = { wins: 0, losses: 0, ties: 0 };
-
 export function gamesPlayed(record: TeamRecord): number {
   return record.wins + record.losses + record.ties;
 }
@@ -42,30 +46,13 @@ export function winPct(record: TeamRecord): number {
   return games === 0 ? 0 : (record.wins + record.ties / 2) / games;
 }
 
-function add(record: TeamRecord, outcome: GameOutcome): TeamRecord {
-  switch (outcome) {
-    case "win":
-      return { ...record, wins: record.wins + 1 };
-    case "loss":
-      return { ...record, losses: record.losses + 1 };
-    case "tie":
-      return { ...record, ties: record.ties + 1 };
-  }
-}
-
-function outcomeOf(own: number, other: number): GameOutcome {
-  if (own > other) return "win";
-  if (own < other) return "loss";
-  return "tie";
-}
-
 /** Each team's record against the opponents both have played. */
 function commonGames(
   a: StandingsRow,
   b: StandingsRow,
 ): [TeamRecord, TeamRecord] {
-  let own = EMPTY;
-  let other = EMPTY;
+  let own = NO_RECORD;
+  let other = NO_RECORD;
   for (const [opponentId, record] of a.headToHead) {
     if (opponentId === b.team.teamId) continue;
     const theirs = b.headToHead.get(opponentId);
@@ -149,19 +136,19 @@ export function buildStandings(
         headToHead.get(side.teamId) ?? new Map<string, TeamRecord>();
       meetings.set(
         other.teamId,
-        add(meetings.get(other.teamId) ?? EMPTY, outcome),
+        addOutcome(meetings.get(other.teamId) ?? NO_RECORD, outcome),
       );
       headToHead.set(side.teamId, meetings);
       if (sameConference) {
         conferenceRecords.set(
           side.teamId,
-          add(conferenceRecords.get(side.teamId) ?? EMPTY, outcome),
+          addOutcome(conferenceRecords.get(side.teamId) ?? NO_RECORD, outcome),
         );
       }
       if (sameDivision) {
         divisionRecords.set(
           side.teamId,
-          add(divisionRecords.get(side.teamId) ?? EMPTY, outcome),
+          addOutcome(divisionRecords.get(side.teamId) ?? NO_RECORD, outcome),
         );
       }
     }
@@ -169,14 +156,14 @@ export function buildStandings(
 
   const rowFor = (team: Team): StandingsRow => {
     const played = outcomes.get(team.teamId) ?? [];
-    const record = played.reduce(add, EMPTY);
+    const record = played.reduce(addOutcome, NO_RECORD);
 
     return {
       team,
       record,
       pct: winPct(record),
-      divisionRecord: divisionRecords.get(team.teamId) ?? EMPTY,
-      conferenceRecord: conferenceRecords.get(team.teamId) ?? EMPTY,
+      divisionRecord: divisionRecords.get(team.teamId) ?? NO_RECORD,
+      conferenceRecord: conferenceRecords.get(team.teamId) ?? NO_RECORD,
       headToHead: headToHead.get(team.teamId) ?? new Map(),
     };
   };

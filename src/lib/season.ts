@@ -1,5 +1,10 @@
 import { playoffRound } from "~/lib/season-calendar";
-import { type SeasonFile, type SeasonGame } from "~/lib/season.schema";
+import {
+  type GameOutcome,
+  type SeasonFile,
+  type SeasonGame,
+} from "~/lib/season.schema";
+import { type RecordsShown } from "~/lib/spoilers";
 
 /** Games involving a team, in kickoff order. */
 export function gamesForTeam(season: SeasonFile, teamId: string) {
@@ -24,52 +29,72 @@ export interface TeamRecord {
   ties: number;
 }
 
-/** A team's regular-season record from the finals `counts` takes. */
-function recordOf(
-  season: SeasonFile,
-  teamId: string,
-  counts: (game: SeasonGame) => boolean,
+export const NO_RECORD: TeamRecord = { wins: 0, losses: 0, ties: 0 };
+
+export function outcomeOf(own: number, other: number): GameOutcome {
+  if (own > other) return "win";
+  if (own < other) return "loss";
+  return "tie";
+}
+
+export function addOutcome(
+  record: TeamRecord,
+  outcome: GameOutcome,
 ): TeamRecord {
-  const record: TeamRecord = { wins: 0, losses: 0, ties: 0 };
-
-  for (const game of gamesForTeam(season, teamId)) {
-    if (game.status !== "final" || !isRegularSeason(season, game)) continue;
-    if (!counts(game)) continue;
-
-    const isHome = game.home.teamId === teamId;
-    const own = (isHome ? game.home : game.away).score;
-    const other = (isHome ? game.away : game.home).score;
-    if (own === null || other === null) continue;
-
-    if (own > other) record.wins += 1;
-    else if (own < other) record.losses += 1;
-    else record.ties += 1;
+  switch (outcome) {
+    case "win":
+      return { ...record, wins: record.wins + 1 };
+    case "loss":
+      return { ...record, losses: record.losses + 1 };
+    case "tie":
+      return { ...record, ties: record.ties + 1 };
   }
+}
 
-  return record;
+/** A final's outcome from one side; null for a game not final or unscored. */
+function finalOutcome(game: SeasonGame, side: "home" | "away") {
+  const own = game[side].score;
+  const other = game[side === "home" ? "away" : "home"].score;
+  return game.status === "final" && own !== null && other !== null
+    ? outcomeOf(own, other)
+    : null;
+}
+
+/** A side's regular-season record going into a game, and coming out of it. */
+export interface RecordsAround {
+  before: TeamRecord;
+  after: TeamRecord;
 }
 
 /**
- * A team's regular-season record from finals that kicked off before
- * `kickoff`; a playoff game's is the record the team finished with.
+ * Every game's records, by game id and side, from one pass in kickoff order:
+ * the side's regular-season finals before it, then with it. A playoff game
+ * counts for neither, so both are the record the team finished with.
  */
-export function recordBefore(
+export function recordsAround(
   season: SeasonFile,
-  teamId: string,
-  kickoff: string,
-): TeamRecord {
-  const cutoff = Date.parse(kickoff);
-  return recordOf(season, teamId, (game) => Date.parse(game.kickoff) < cutoff);
-}
-
-/** As `recordBefore`, counting the game kicking off at `kickoff` too. */
-export function recordAfter(
-  season: SeasonFile,
-  teamId: string,
-  kickoff: string,
-): TeamRecord {
-  const cutoff = Date.parse(kickoff);
-  return recordOf(season, teamId, (game) => Date.parse(game.kickoff) <= cutoff);
+): ReadonlyMap<string, Record<"home" | "away", RecordsAround>> {
+  const running = new Map<string, TeamRecord>();
+  const around = new Map<string, Record<"home" | "away", RecordsAround>>();
+  const byKickoff = [...season.games].sort(
+    (a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff),
+  );
+  const step = (game: SeasonGame, side: "home" | "away"): RecordsAround => {
+    const before = running.get(game[side].teamId) ?? NO_RECORD;
+    const outcome = isRegularSeason(season, game)
+      ? finalOutcome(game, side)
+      : null;
+    const after = outcome ? addOutcome(before, outcome) : before;
+    running.set(game[side].teamId, after);
+    return { before, after };
+  };
+  for (const game of byKickoff) {
+    around.set(game.gameId, {
+      home: step(game, "home"),
+      away: step(game, "away"),
+    });
+  }
+  return around;
 }
 
 /** A team's regular-season record from the finals of weeks through `week`. */
@@ -78,5 +103,31 @@ export function recordThroughWeek(
   teamId: string,
   week: number,
 ): TeamRecord {
-  return recordOf(season, teamId, (game) => game.week <= week);
+  let record = NO_RECORD;
+  for (const game of season.games) {
+    if (game.week > week || !isRegularSeason(season, game)) continue;
+    for (const side of ["home", "away"] as const) {
+      const outcome =
+        game[side].teamId === teamId ? finalOutcome(game, side) : null;
+      if (outcome) record = addOutcome(record, outcome);
+    }
+  }
+  return record;
+}
+
+/** A side's record as `shown` names it (`recordsShown`). */
+export function recordAsShown(
+  season: SeasonFile,
+  shown: NonNullable<RecordsShown>,
+  teamId: string,
+  around: RecordsAround,
+): TeamRecord {
+  switch (shown.at) {
+    case "after":
+      return around.after;
+    case "before":
+      return around.before;
+    case "through":
+      return recordThroughWeek(season, teamId, shown.week);
+  }
 }

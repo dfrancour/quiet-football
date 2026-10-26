@@ -1,9 +1,9 @@
 import { matchupGates, type GateGame } from "~/lib/playoffs";
 import { gamePhase } from "~/lib/schedule";
 import {
-  recordAfter,
-  recordBefore,
-  recordThroughWeek,
+  NO_RECORD,
+  recordAsShown,
+  recordsAround,
   type TeamRecord,
 } from "~/lib/season";
 import { playoffRound, type PlayoffRound } from "~/lib/season-calendar";
@@ -91,6 +91,7 @@ export function buildLeagueGames(
   registry: TeamRegistry,
 ): WeekGame[] {
   const gates = matchupGates(season, registry);
+  const records = recordsAround(season);
   return (
     [...season.games]
       // Games kicking off together keep the season file's order.
@@ -111,14 +112,14 @@ export function buildLeagueGames(
             away: {
               team: away,
               score: game.away.score,
-              recordBefore: recordBefore(season, away.teamId, game.kickoff),
-              recordAfter: recordAfter(season, away.teamId, game.kickoff),
+              recordBefore: records.get(game.gameId)?.away.before ?? NO_RECORD,
+              recordAfter: records.get(game.gameId)?.away.after ?? NO_RECORD,
             },
             home: {
               team: home,
               score: game.home.score,
-              recordBefore: recordBefore(season, home.teamId, game.kickoff),
-              recordAfter: recordAfter(season, home.teamId, game.kickoff),
+              recordBefore: records.get(game.gameId)?.home.before ?? NO_RECORD,
+              recordAfter: records.get(game.gameId)?.home.after ?? NO_RECORD,
             },
           },
         ];
@@ -133,15 +134,10 @@ export function weekGameRecords(
   shown: RecordsShown,
 ): { away: TeamRecord; home: TeamRecord } | null {
   if (shown === null) return null;
-  switch (shown.at) {
-    case "after":
-      return { away: game.away.recordAfter, home: game.home.recordAfter };
-    case "before":
-      return { away: game.away.recordBefore, home: game.home.recordBefore };
-    case "through":
-      return {
-        away: recordThroughWeek(season, game.away.team.teamId, shown.week),
-        home: recordThroughWeek(season, game.home.team.teamId, shown.week),
-      };
-  }
+  const sideRecord = (side: WeekSide) =>
+    recordAsShown(season, shown, side.team.teamId, {
+      before: side.recordBefore,
+      after: side.recordAfter,
+    });
+  return { away: sideRecord(game.away), home: sideRecord(game.home) };
 }
