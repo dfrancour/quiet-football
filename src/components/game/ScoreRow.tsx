@@ -99,8 +99,9 @@ export function ScoreRow({
         <p
           className={cn(
             "justify-self-center font-mono text-xs whitespace-nowrap",
+            // A clock's width, so the sides stay put as it runs.
             compact
-              ? "col-start-2 row-start-1"
+              ? "min-w-[8ch] text-center"
               : "col-span-3 row-start-2 @sm:col-span-1 @sm:col-start-2 @sm:row-start-1",
             hasPeriods && "@xl:self-end",
           )}

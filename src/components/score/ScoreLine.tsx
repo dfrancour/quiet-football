@@ -101,8 +101,7 @@ export function ScoreLine({
   );
 
   if (compact) {
-    // The ball sits with the timeouts under the name, so the block keeps
-    // to its width whoever has it.
+    // The ball sits with the timeouts under the name, inside the block.
     return (
       <div
         className={cn(
@@ -133,6 +132,8 @@ export function ScoreLine({
             >
               {team.abbreviation}
             </span>
+            {/* The ball's place is kept whoever has it, so a change of
+                possession only shows or hides it. */}
             {(pips || hasBall) && (
               <span
                 className={cn(
@@ -141,9 +142,12 @@ export function ScoreLine({
                 )}
               >
                 {pips}
-                {hasBall && (
-                  <FootballIcon className="text-ink-muted h-2.5 w-4 shrink-0" />
-                )}
+                <FootballIcon
+                  className={cn(
+                    "text-ink-muted h-2.5 w-4 shrink-0",
+                    !hasBall && "invisible",
+                  )}
+                />
               </span>
             )}
           </span>

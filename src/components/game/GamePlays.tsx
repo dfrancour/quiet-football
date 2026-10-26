@@ -536,10 +536,12 @@ export function GamePlays({
   if (sideways) {
     // The score heads the field's column, so it reads with the field and
     // not the feed, which runs the height beside them. The field fills what
-    // the column leaves it; with nothing in the feed, it has the width.
+    // the column leaves it; with nothing in the feed, it has the width. The
+    // controls' hit areas hang past their row, so the column keeps room
+    // beneath them rather than scroll the panel.
     return (
       <div className="flex min-h-0 flex-1 gap-4">
-        <div className="@container flex min-w-0 flex-1 flex-col gap-2">
+        <div className="@container flex min-w-0 flex-1 flex-col gap-2 pb-1">
           {head}
           <div
             ref={fieldBox}
