@@ -127,79 +127,73 @@ export const scoreboardSchema = z.object({
   events: z.array(eventSchema).nullish(),
 });
 
-export const gameStateSchema = z.enum(["pre", "in", "post"]);
+export type GameState = "pre" | "in" | "post";
 
-const sideSchema = z.enum(["team", "opponent"]);
+type Side = "team" | "opponent";
 
 /** Spots are yards from the home goal line; see `~/lib/field`. */
-export const fieldStateSchema = z.object({
-  offense: z.enum(["home", "away"]),
-  ballOn: z.number(),
+export interface FieldState {
+  offense: "home" | "away";
+  ballOn: number;
   /** Null when it is goal to go, or no snap is pending. */
-  lineToGain: z.number().nullable(),
+  lineToGain: number | null;
   /**
    * Oldest first, ending at `ballOn`. The scoreboard gives only the drive's
    * start; play-by-play fills in each snap.
    */
-  driveSpots: z.array(z.number()),
-});
+  driveSpots: number[];
+}
 
-export const situationStateSchema = z.object({
+export interface SituationState {
   /** "4th & 21 at SF 32"; null when no snap is pending. */
-  downDistance: z.string().nullable(),
-  possession: sideSchema.nullable(),
-  isRedZone: z.boolean(),
-  timeouts: z.object({
-    team: z.number().nullable(),
-    opponent: z.number().nullable(),
-  }),
-  lastPlay: z.string().nullable(),
+  downDistance: string | null;
+  possession: Side | null;
+  isRedZone: boolean;
+  timeouts: { team: number | null; opponent: number | null };
+  lastPlay: string | null;
   /** "10 plays, 35 yards, 6:17" for the drive the last play belongs to. */
-  drive: z.string().nullable(),
+  drive: string | null;
   /** Null when nobody has the ball: after a score, at the half. */
-  field: fieldStateSchema.nullable(),
-});
+  field: FieldState | null;
+}
 
-const sideScoreSchema = z.object({
-  abbreviation: z.string(),
-  score: z.number().nullable(),
+interface SideScore {
+  abbreviation: string;
+  score: number | null;
   /** Points per period so far, overtime included. */
-  periods: z.array(z.number()),
-});
+  periods: number[];
+}
 
-export const liveScoreSchema = z.object({
-  gameId: z.string(),
-  state: gameStateSchema,
-  detail: z.string(),
-  period: z.number().nullable(),
-  clock: z.string().nullable(),
-  completed: z.boolean(),
-  team: sideScoreSchema,
-  opponent: sideScoreSchema,
-  situation: situationStateSchema.nullable(),
-});
+/** A game on the scoreboard, from one team's side. */
+export interface LiveScore {
+  gameId: string;
+  state: GameState;
+  detail: string;
+  period: number | null;
+  clock: string | null;
+  completed: boolean;
+  team: SideScore;
+  opponent: SideScore;
+  situation: SituationState | null;
+}
 
-const boardSideSchema = z.object({
-  abbreviation: z.string(),
-  score: z.number().nullable(),
-});
+interface BoardSide {
+  abbreviation: string;
+  score: number | null;
+}
 
-export const boardGameSchema = z.object({
-  gameId: z.string(),
-  state: gameStateSchema,
-  detail: z.string(),
-  period: z.number().nullable(),
-  clock: z.string().nullable(),
-  completed: z.boolean(),
+/** A game's clock and score as the week's scoreboard has it. */
+export interface BoardGame {
+  gameId: string;
+  state: GameState;
+  detail: string;
+  period: number | null;
+  clock: string | null;
+  completed: boolean;
   /** The newest play's id, as in the game's summary; null when none is. */
-  lastPlayId: z.string().nullable(),
-  home: boardSideSchema,
-  away: boardSideSchema,
-});
+  lastPlayId: string | null;
+  home: BoardSide;
+  away: BoardSide;
+}
 
 export type Scoreboard = z.infer<typeof scoreboardSchema>;
-export type GameState = z.infer<typeof gameStateSchema>;
-export type LiveScore = z.infer<typeof liveScoreSchema>;
-export type SituationState = z.infer<typeof situationStateSchema>;
-export type FieldState = z.infer<typeof fieldStateSchema>;
-export type BoardGame = z.infer<typeof boardGameSchema>;

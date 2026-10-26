@@ -68,11 +68,7 @@ function readMark(stats: readonly z.infer<typeof statSchema>[]): PlayoffMark {
 }
 
 /** ESPN's conference standings, by team id. */
-export function playoffMarksFromEspn(
-  season: number,
-  payload: unknown,
-  fetchedAt: string,
-): PlayoffMarks {
+export function playoffMarksFromEspn(payload: unknown): PlayoffMarks {
   const teams: Record<string, PlayoffMark> = {};
   for (const conference of payloadSchema.parse(payload).children ?? []) {
     for (const entry of conference.standings?.entries ?? []) {
@@ -82,7 +78,7 @@ export function playoffMarksFromEspn(
     }
   }
   if (Object.keys(teams).length === 0) {
-    throw new Error(`ESPN's ${season} standings name no teams`);
+    throw new Error("ESPN's standings name no teams");
   }
-  return { season, fetchedAt, teams };
+  return { teams };
 }

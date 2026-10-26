@@ -81,52 +81,45 @@ export const summarySchema = z.object({
  * `snap`: a play from scrimmage. `kick`: no down (kickoff, try). `stoppage`:
  * a timeout or end of period, shown in the feed but not on the field.
  */
-export const playKindSchema = z.enum(["snap", "kick", "stoppage"]);
+export type PlayKind = "snap" | "kick" | "stoppage";
 
 /** Null on a play when it cannot be told, e.g. a pre-snap penalty. */
-export const playActionSchema = z.enum([
-  "run",
-  "pass",
-  "punt",
-  "kickoff",
-  "fieldGoal",
-]);
+export type PlayAction = "run" | "pass" | "punt" | "kickoff" | "fieldGoal";
 
 /** A play that ends a possession or puts points up, and how. */
-export const playOutcomeSchema = z.enum([
-  "touchdown",
-  "fieldGoal",
-  "noGood",
-  "safety",
-  "punt",
-  "interception",
-  "fumble",
-]);
+export type PlayOutcome =
+  | "touchdown"
+  | "fieldGoal"
+  | "noGood"
+  | "safety"
+  | "punt"
+  | "interception"
+  | "fumble";
 
-export const playSchema = z.object({
-  id: z.string(),
-  kind: playKindSchema,
-  action: playActionSchema.nullable(),
-  outcome: playOutcomeSchema.nullable(),
+export interface Play {
+  id: string;
+  kind: PlayKind;
+  action: PlayAction | null;
+  outcome: PlayOutcome | null;
   /** "7-yd Run", "Incompletion", "56-yd Punt". */
-  headline: z.string(),
+  headline: string;
   /** Null for anything but a timeout. */
-  timeoutBy: z.enum(["home", "away"]).nullable(),
-  text: z.string(),
-  period: z.number().nullable(),
-  clock: z.string().nullable(),
+  timeoutBy: "home" | "away" | null;
+  text: string;
+  period: number | null;
+  clock: string | null;
   /** "3rd & 3 at BAL 45" before the snap; null for anything but a snap. */
-  downDistance: z.string().nullable(),
+  downDistance: string | null;
   /** Null for anything but a snap. */
-  down: z.number().nullable(),
-  distance: z.number().nullable(),
+  down: number | null;
+  distance: number | null;
   /** Yards from the home goal line; null for a stoppage. */
-  start: z.number().nullable(),
+  start: number | null;
   /**
    * Same frame as `start`; null for a stoppage. The next snap's `start` is
    * more reliable, since it includes post-whistle penalty enforcement.
    */
-  end: z.number().nullable(),
+  end: number | null;
   /**
    * The down the snap left for the next, by ESPN's word: "1st & 10 at PHI
    * 38" and the yards it needs. Null for anything but a snap, or when ESPN
@@ -134,35 +127,28 @@ export const playSchema = z.object({
    * enforcement, so it stands in only until the next snap or the scoreboard
    * says otherwise.
    */
-  nextDown: z
-    .object({ downDistance: z.string(), distance: z.number() })
-    .nullable(),
-  scoring: z.boolean(),
-  turnover: z.boolean(),
-  penalty: z.boolean(),
+  nextDown: { downDistance: string; distance: number } | null;
+  scoring: boolean;
+  turnover: boolean;
+  penalty: boolean;
   /** The score once the play was over. */
-  score: z.object({ home: z.number(), away: z.number() }).nullable(),
-});
+  score: { home: number; away: number } | null;
+}
 
-export const driveSchema = z.object({
-  id: z.string(),
-  offense: z.enum(["home", "away"]).nullable(),
+export interface Drive {
+  id: string;
+  offense: "home" | "away" | null;
   /** "10 plays, 62 yards, 4:33". */
-  description: z.string().nullable(),
+  description: string | null;
   /** "Field Goal", "Punt"; null while the drive is still going. */
-  result: z.string().nullable(),
-  isScore: z.boolean(),
-  inProgress: z.boolean(),
+  result: string | null;
+  isScore: boolean;
+  inProgress: boolean;
   /** Oldest first. */
-  plays: z.array(playSchema),
-});
+  plays: Play[];
+}
 
 export type Summary = z.infer<typeof summarySchema>;
-export type PlayKind = z.infer<typeof playKindSchema>;
-export type PlayAction = z.infer<typeof playActionSchema>;
-export type PlayOutcome = z.infer<typeof playOutcomeSchema>;
-export type Play = z.infer<typeof playSchema>;
-export type Drive = z.infer<typeof driveSchema>;
 
 /**
  * One set of downs. `gainedBy` is how its first down was earned; null for the

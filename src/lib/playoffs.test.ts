@@ -81,8 +81,6 @@ describe("matchupGates", () => {
 
 describe("buildBracket", () => {
   const marks = {
-    season: 2026,
-    fetchedAt: "2027-01-05T00:00:00.000Z",
     teams: {
       [TEAMS.MIN.teamId]: { seed: 1, clincher: "*" },
       [TEAMS.GB.teamId]: { seed: 7, clincher: "x" },
@@ -145,8 +143,6 @@ describe("buildBracket", () => {
 
 describe("divisionalFeeders", () => {
   const marks = {
-    season: 2026,
-    fetchedAt: "2027-01-05T00:00:00.000Z",
     teams: {
       [TEAMS.MIN.teamId]: { seed: 1, clincher: "*" },
       [TEAMS.NYG.teamId]: { seed: 2, clincher: "z" },

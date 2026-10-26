@@ -8,7 +8,6 @@ import { noteGameClock } from "~/lib/game-clocks";
 import { noteSituations } from "~/lib/game-situations";
 import { notePlayArrivals } from "~/lib/play-arrivals";
 import { playoffMarksFromEspn } from "~/lib/playoff-marks";
-import { type PlayoffMarks } from "~/lib/playoff-marks.schema";
 import { readSummary, SUMMARY_URL } from "~/lib/plays";
 import { type PlayByPlay } from "~/lib/plays.schema";
 import { fetchRecapDataset } from "~/lib/recap-dataset";
@@ -293,18 +292,15 @@ export function playByPlayQuery(gameId: string, live: boolean) {
   });
 }
 
-/** One reader per season, so Query reuses its result between renders. */
-const marksReaders = new Map<number, (payload: unknown) => PlayoffMarks>();
-
-/** ESPN's playoff seeds and clinch codes, read off the season's standings. */
+/**
+ * ESPN's playoff seeds and clinch codes, read off the season's standings.
+ * The reader is one function, so Query keeps its result between renders.
+ */
 export function playoffMarksQuery(season: number) {
-  let read = marksReaders.get(season);
-  if (!read) {
-    read = (payload) =>
-      playoffMarksFromEspn(season, payload, new Date().toISOString());
-    marksReaders.set(season, read);
-  }
-  return queryOptions({ ...standingsQuery(season), select: read });
+  return queryOptions({
+    ...standingsQuery(season),
+    select: playoffMarksFromEspn,
+  });
 }
 
 /**
