@@ -105,14 +105,13 @@ export function buildTeamSchedule(
       opponent: teamById(registry, other.teamId) ?? unknownTeam(other.teamId),
       venue: game.venue,
       broadcast: game.broadcast,
-      result:
-        played && teamScore !== null && opponentScore !== null
-          ? {
-              teamScore,
-              opponentScore,
-              outcome: outcomeFor(teamScore, opponentScore),
-            }
-          : null,
+      result: played
+        ? {
+            teamScore,
+            opponentScore,
+            outcome: outcomeFor(teamScore, opponentScore),
+          }
+        : null,
       recordsBefore: {
         team: recordBefore(season, teamId, game.kickoff),
         opponent: recordBefore(season, other.teamId, game.kickoff),

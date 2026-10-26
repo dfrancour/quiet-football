@@ -75,10 +75,16 @@ function errorName(error: unknown): string | null {
     : null;
 }
 
+/** Why a signal aborted: its reason, which a browser gives as an Error. */
+function abortReason(signal: AbortSignal): Error {
+  const reason: unknown = signal.reason;
+  return reason instanceof Error ? reason : new Error(String(reason));
+}
+
 /** Rejects with the signal's reason once it aborts. */
 function abortion(signal: AbortSignal): Promise<never> {
   return new Promise((_, reject) => {
-    signal.addEventListener("abort", () => reject(signal.reason), {
+    signal.addEventListener("abort", () => reject(abortReason(signal)), {
       once: true,
     });
   });

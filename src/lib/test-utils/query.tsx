@@ -17,12 +17,21 @@ export function queryWrapper(client = makeQueryClient()) {
   };
 }
 
-/** Answers every fetch with one JSON body, or a status for a URL that matches. */
+/** The URL a fetch was asked for, however it was named. */
+export function requestUrl(input: RequestInfo | URL | undefined): string {
+  if (input === undefined) return "";
+  return input instanceof Request ? input.url : input.toString();
+}
+
+/**
+ * Answers every fetch with what `answer` gives for its URL: a Response as it
+ * is, anything else as its JSON body.
+ */
 export function stubFetch(
-  answer: (url: string) => unknown | Response,
+  answer: (url: string) => unknown,
 ): ReturnType<typeof vi.fn<typeof fetch>> {
   const mock = vi.fn<typeof fetch>(async (input) => {
-    const result = answer(String(input));
+    const result = answer(requestUrl(input));
     return result instanceof Response ? result : Response.json(result);
   });
   vi.stubGlobal("fetch", mock);

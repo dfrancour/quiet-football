@@ -64,7 +64,7 @@ export function useKeepWatchProgress(
   const unsaved =
     place !== null && (place.id !== storedId || finished !== storedFinished);
   useEffect(() => {
-    if (gameId === null || !unsaved || place === null) return;
+    if (gameId === null || !unsaved) return;
     recordWatchProgress(gameId, {
       playId: place.id,
       finished,

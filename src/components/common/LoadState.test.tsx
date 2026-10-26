@@ -26,7 +26,9 @@ describe("Loading", () => {
     vi.useFakeTimers();
     render(<Loading />, { wrapper: queryWrapper() });
     expect(screen.queryByText(/still waiting/i)).toBeNull();
-    act(() => vi.advanceTimersByTime(4_000));
+    act(() => {
+      vi.advanceTimersByTime(4_000);
+    });
     expect(
       screen.getByText(/still loading the games and standings/i),
     ).toBeInTheDocument();

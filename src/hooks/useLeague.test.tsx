@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSeason, useTeams, WeekLoadError } from "~/hooks/useLeague";
 import { scoreConfig } from "~/lib/config";
 import { GAME_ID, TEAMS } from "~/lib/test-utils/fixtures";
-import { queryWrapper, stubFetch } from "~/lib/test-utils/query";
+import { queryWrapper, requestUrl, stubFetch } from "~/lib/test-utils/query";
 import { savedTeams, savedWeek, saveWeek } from "~/lib/week-store";
 
 /** A week's scoreboard with one game, or none; final unless told otherwise. */
@@ -76,7 +76,8 @@ describe("useSeason", () => {
     expect(
       fetchMock.mock.calls.filter(
         ([url]) =>
-          params(String(url)).week === 1 && params(String(url)).type === 2,
+          params(requestUrl(url)).week === 1 &&
+          params(requestUrl(url)).type === 2,
       ),
     ).toHaveLength(1);
     vi.useRealTimers();
@@ -99,7 +100,8 @@ describe("useSeason", () => {
     expect(
       fetchMock.mock.calls.some(
         ([url]) =>
-          params(String(url)).week === 3 && params(String(url)).type === 2,
+          params(requestUrl(url)).week === 3 &&
+          params(requestUrl(url)).type === 2,
       ),
     ).toBe(false);
     vi.useRealTimers();
@@ -144,7 +146,7 @@ describe("useSeason", () => {
     });
     await waitFor(() => expect(result.current.data).not.toBeNull());
     const weeksFetched = fetchMock.mock.calls
-      .map(([url]) => params(String(url)))
+      .map(([url]) => params(requestUrl(url)))
       .filter(({ type }) => type === 2)
       .map(({ week }) => week);
     expect(weeksFetched).not.toContain(7);
@@ -174,7 +176,8 @@ describe("useSeason", () => {
     expect(
       fetchMock.mock.calls.some(
         ([url]) =>
-          params(String(url)).week === 7 && params(String(url)).type === 2,
+          params(requestUrl(url)).week === 7 &&
+          params(requestUrl(url)).type === 2,
       ),
     ).toBe(true);
     expect(result.current.data?.weeks.get(7)?.games[0]?.status).toBe(
@@ -237,7 +240,7 @@ describe("useSeason", () => {
     expect(result.current.data?.weeks.get(19)?.games).toEqual([]);
     expect(fetchMock).toHaveBeenCalledTimes(18);
     expect(
-      fetchMock.mock.calls.some(([url]) => params(String(url)).type === 3),
+      fetchMock.mock.calls.some(([url]) => params(requestUrl(url)).type === 3),
     ).toBe(false);
     vi.useRealTimers();
   });
@@ -361,11 +364,11 @@ describe("useTeams", () => {
     });
     await waitFor(() => expect(result.current.data).not.toBeNull());
     const standingsCalls = fetchMock.mock.calls.filter(([url]) =>
-      String(url).includes("/standings"),
+      requestUrl(url).includes("/standings"),
     );
     expect(standingsCalls).toHaveLength(1);
-    expect(String(standingsCalls[0]?.[0])).toContain("level=3");
-    expect(String(standingsCalls[0]?.[0])).toContain("season=2026");
+    expect(requestUrl(standingsCalls[0]?.[0])).toContain("level=3");
+    expect(requestUrl(standingsCalls[0]?.[0])).toContain("season=2026");
     expect(result.current.data?.teams.map((team) => team.abbreviation)).toEqual(
       ["MIN", "NO"],
     );

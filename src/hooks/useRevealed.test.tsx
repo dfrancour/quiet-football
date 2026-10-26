@@ -31,7 +31,9 @@ describe("useRevealed", () => {
     const body = screen.getByTestId("body");
     expect(body).toHaveClass("opacity-0");
     for (const img of body.querySelectorAll("img")) {
-      act(() => img.dispatchEvent(new Event("load")));
+      act(() => {
+        img.dispatchEvent(new Event("load"));
+      });
     }
     await waitFor(() => expect(body).toHaveClass("opacity-100"));
   });
@@ -40,7 +42,9 @@ describe("useRevealed", () => {
     vi.useFakeTimers();
     render(<Page marks={2} />);
     expect(screen.getByTestId("body")).toHaveClass("opacity-0");
-    act(() => vi.advanceTimersByTime(500));
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
     expect(screen.getByTestId("body")).toHaveClass("opacity-100");
   });
 });

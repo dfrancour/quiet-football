@@ -89,8 +89,8 @@ export function teamsQuery(season: number) {
         return saved.registry;
       }
       const [standings, opener] = await Promise.all([
-        client.ensureQueryData(standingsQuery(season)),
-        client.ensureQueryData(weekQuery(season, 1)),
+        client.query({ ...standingsQuery(season), staleTime: "static" }),
+        client.query({ ...weekQuery(season, 1), staleTime: "static" }),
       ]);
       const registry = teamRegistryFromEspn(
         standings,
@@ -138,7 +138,10 @@ async function roundIsSet(
   week: number,
 ): Promise<boolean> {
   if (!playoffRound(regularSeasonWeeks(season), week)) return true;
-  const before = await client.ensureQueryData(weekQuery(season, week - 1));
+  const before = await client.query({
+    ...weekQuery(season, week - 1),
+    staleTime: "static",
+  });
   return weekActivity(before.games, Date.now()) === "settled";
 }
 

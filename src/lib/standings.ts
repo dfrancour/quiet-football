@@ -156,7 +156,8 @@ export function buildStandings(
         ...(outcomes.get(side.teamId) ?? []),
         outcome,
       ]);
-      const meetings = headToHead.get(side.teamId) ?? new Map();
+      const meetings =
+        headToHead.get(side.teamId) ?? new Map<string, TeamRecord>();
       meetings.set(
         other.teamId,
         add(meetings.get(other.teamId) ?? EMPTY, outcome),

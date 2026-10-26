@@ -84,7 +84,7 @@ function combineWeeks(results: UseQueryResult<LoadedBoard>[]): WeeksSoFar {
       weeks: null,
       failed: {
         week: causes.size === 1 ? results.indexOf(first) + 1 : null,
-        error: first.error!,
+        error: first.error,
       },
       empty,
     };

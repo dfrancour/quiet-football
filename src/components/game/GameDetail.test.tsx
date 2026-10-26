@@ -448,7 +448,7 @@ describe("GameDetail quarter grid", () => {
   const rowText = (name: string) =>
     [...(grid()?.querySelectorAll("tbody tr") ?? [])]
       .map((row) => row.textContent)
-      .find((text) => text?.startsWith(name));
+      .find((text) => text.startsWith(name));
 
   it("shows each quarter of a live game, away side first", () => {
     renderDetail({
@@ -860,7 +860,7 @@ describe("GameDetail plays on the field", () => {
     fireEvent.click(screen.getByText("Watch from kickoff"));
     fireEvent.click(screen.getByLabelText("Pause"));
     expect(screen.getByLabelText("Play")).toBeInTheDocument();
-    while (!(screen.getByLabelText("On a drive") as HTMLButtonElement).disabled)
+    while (!screen.getByLabelText<HTMLButtonElement>("On a drive").disabled)
       fireEvent.click(screen.getByLabelText("On a drive"));
     expect(screen.getByLabelText("Watch again")).toBeInTheDocument();
     // A stoppage reads in the feed's words, not ESPN's.
@@ -875,10 +875,14 @@ describe("GameDetail plays on the field", () => {
     try {
       renderDetail(final);
       fireEvent.click(screen.getByText("Watch from kickoff"));
-      act(() => vi.advanceTimersByTime(4 * 60 * 60_000));
+      act(() => {
+        vi.advanceTimersByTime(4 * 60 * 60_000);
+      });
       expect(screen.getByLabelText("Watch again")).toBeInTheDocument();
       // Nothing left ticking once what the end set off has run.
-      act(() => vi.advanceTimersByTime(60_000));
+      act(() => {
+        vi.advanceTimersByTime(60_000);
+      });
       expect(vi.getTimerCount()).toBe(0);
     } finally {
       vi.useRealTimers();

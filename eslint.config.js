@@ -6,6 +6,10 @@ const config = [
     ignores: [".next", "out", "build", "next-env.d.ts"],
   },
   ...nextConfig,
+  ...tseslint.configs.recommendedTypeChecked.map((typeChecked) => ({
+    ...typeChecked,
+    files: ["**/*.ts", "**/*.tsx"],
+  })),
   {
     files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
@@ -14,8 +18,9 @@ const config = [
       },
     },
     rules: {
-      "@typescript-eslint/array-type": "off",
-      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/no-deprecated": "error",
+      "@typescript-eslint/no-unnecessary-condition": "error",
+      "@typescript-eslint/no-unnecessary-type-assertion": "error",
       "@typescript-eslint/consistent-type-imports": [
         "warn",
         { prefer: "type-imports", fixStyle: "inline-type-imports" },

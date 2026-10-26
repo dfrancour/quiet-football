@@ -209,7 +209,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   const loadPlays = useCallback(async (): Promise<PlayByPlay | null> => {
     if (selectedGameId === null) return null;
     setAsked((before) => new Set(before).add(selectedGameId));
-    return client.fetchQuery(playByPlayQuery(selectedGameId, selectedIsLive));
+    return client.query(playByPlayQuery(selectedGameId, selectedIsLive));
   }, [client, selectedGameId, selectedIsLive]);
   const scoreMark = score
     ? [

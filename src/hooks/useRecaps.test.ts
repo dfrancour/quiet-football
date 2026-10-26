@@ -8,7 +8,7 @@ import {
   makeSeason,
   makeSeasonGame,
 } from "~/lib/test-utils/fixtures";
-import { queryWrapper, stubFetch } from "~/lib/test-utils/query";
+import { queryWrapper, requestUrl, stubFetch } from "~/lib/test-utils/query";
 
 const KICKOFF = "2026-10-11T17:00:00.000Z";
 const season = makeSeason([makeSeasonGame({ status: "final" })]);
@@ -51,7 +51,7 @@ describe("useRecaps", () => {
         youtubeId: "GP9zR_SKRr0",
       }),
     );
-    expect(String(fetchMock.mock.calls[0]?.[0])).toMatch(/\/2026\.json$/);
+    expect(requestUrl(fetchMock.mock.calls[0]?.[0])).toMatch(/\/2026\.json$/);
   });
 
   it("has no recaps while the dataset cannot be read", async () => {

@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { scoreboardSchema } from "~/lib/score.schema";
 import {
-  type Conference,
   type Division,
   type Team,
   type TeamRegistry,
@@ -138,8 +137,8 @@ export function teamRegistryFromEspn(
           location: team.location ?? "",
           color: palette?.color ?? null,
           alternateColor: palette?.alternateColor ?? null,
-          conference: conferenceName as Conference,
-          division: divisionName as Division,
+          conference: conferenceName,
+          division: divisionName,
           logo: pickLogoHref(team.logos),
         });
       }

@@ -8,7 +8,7 @@ import {
 } from "~/lib/queries";
 import { readWeek } from "~/lib/season-sync";
 import { GAME_ID, TEAMS } from "~/lib/test-utils/fixtures";
-import { makeQueryClient, stubFetch } from "~/lib/test-utils/query";
+import { makeQueryClient, requestUrl, stubFetch } from "~/lib/test-utils/query";
 
 const NOW = Date.parse("2026-10-16T12:00:00Z");
 const HOUR = 60 * 60_000;
@@ -123,22 +123,22 @@ describe("weekQuery", () => {
     const client = makeQueryClient();
     const roundAsked = () =>
       fetchMock.mock.calls.filter(([url]) =>
-        String(url).includes("seasontype=3"),
+        requestUrl(url).includes("seasontype=3"),
       ).length;
 
-    await client.fetchQuery(weekQuery(2026, 18));
-    const waiting = await client.fetchQuery(weekQuery(2026, 19));
+    await client.query(weekQuery(2026, 18));
+    const waiting = await client.query(weekQuery(2026, 19));
     expect(waiting.waiting).toBe(true);
     expect(week(waiting).pollMs()).toBe(scoreConfig.livePollMs);
     // Waiting again is read from the cache, and is the same board.
-    expect(
-      await client.fetchQuery({ ...weekQuery(2026, 19), staleTime: 0 }),
-    ).toBe(waiting);
+    expect(await client.query({ ...weekQuery(2026, 19), staleTime: 0 })).toBe(
+      waiting,
+    );
     expect(roundAsked()).toBe(0);
 
     weekEighteen = FINAL;
-    await client.fetchQuery({ ...weekQuery(2026, 18), staleTime: 0 });
-    const set = await client.fetchQuery({
+    await client.query({ ...weekQuery(2026, 18), staleTime: 0 });
+    const set = await client.query({
       ...weekQuery(2026, 19),
       staleTime: 0,
     });

@@ -105,7 +105,7 @@ function readField(
     lastPlay?.team?.id !== null &&
     lastPlay?.team?.id !== undefined &&
     String(lastPlay.team.id) === competitorId(offenseCompetitor);
-  const driveStart = sameDrive ? lastPlay?.drive?.start?.yardLine : null;
+  const driveStart = sameDrive ? lastPlay.drive?.start?.yardLine : null;
 
   return {
     offense,

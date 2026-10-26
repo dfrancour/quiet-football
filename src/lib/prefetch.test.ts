@@ -3,7 +3,7 @@ import { PREFETCH_SCRIPT, takePrefetched } from "~/lib/prefetch";
 import { currentSeason } from "~/lib/season-calendar";
 import { weekScoreboardUrl } from "~/lib/season-sync";
 import { STANDINGS_URL } from "~/lib/team-fetch";
-import { stubFetch } from "~/lib/test-utils/query";
+import { requestUrl, stubFetch } from "~/lib/test-utils/query";
 import { saveTeams, saveWeek } from "~/lib/week-store";
 
 afterEach(() => {
@@ -13,8 +13,11 @@ afterEach(() => {
   delete window.__prefetched;
 });
 
+/** Runs the script as the page's head would. */
 function run() {
-  new Function(PREFETCH_SCRIPT)();
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval -- the script is a string the page inlines; running it is the test
+  const script = new Function(PREFETCH_SCRIPT) as () => void;
+  script();
 }
 
 describe("PREFETCH_SCRIPT", () => {
@@ -25,7 +28,7 @@ describe("PREFETCH_SCRIPT", () => {
     expect(season).toBe(2026);
     const fetchMock = stubFetch(() => ({}));
     run();
-    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    const urls = fetchMock.mock.calls.map(([url]) => requestUrl(url));
     expect(urls).toEqual([
       ...Array.from({ length: 18 }, (_, i) => weekScoreboardUrl(season, i + 1)),
       `${STANDINGS_URL}?level=3&season=${season}`,
@@ -40,7 +43,7 @@ describe("PREFETCH_SCRIPT", () => {
     saveTeams(2026, { teams: [] }, 0);
     const fetchMock = stubFetch(() => ({}));
     run();
-    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    const urls = fetchMock.mock.calls.map(([url]) => requestUrl(url));
     expect(urls).toHaveLength(17);
     expect(urls).not.toContain(weekScoreboardUrl(2026, 3));
     expect(urls.some((url) => url.startsWith(STANDINGS_URL))).toBe(false);

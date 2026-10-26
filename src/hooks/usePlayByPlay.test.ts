@@ -2,7 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePlayByPlay } from "~/hooks/usePlayByPlay";
 import { GAME_ID } from "~/lib/test-utils/fixtures";
-import { queryWrapper, stubFetch } from "~/lib/test-utils/query";
+import { queryWrapper, requestUrl, stubFetch } from "~/lib/test-utils/query";
 
 const OTHER_ID = "401872999";
 
@@ -36,7 +36,9 @@ describe("usePlayByPlay", () => {
       { wrapper, initialProps: { gameId: GAME_ID as string | null } },
     );
     await waitFor(() => expect(result.current?.gameId).toBe(GAME_ID));
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(`event=${GAME_ID}`);
+    expect(requestUrl(fetchMock.mock.calls[0]?.[0])).toContain(
+      `event=${GAME_ID}`,
+    );
 
     rerender({ gameId: OTHER_ID });
     await waitFor(() => expect(result.current?.gameId).toBe(OTHER_ID));

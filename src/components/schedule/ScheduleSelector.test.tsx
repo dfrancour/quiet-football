@@ -95,7 +95,7 @@ describe("ScheduleSelector results", () => {
     expect(
       screen
         .getAllByRole("button")
-        .filter((row) => !/bye/i.test(row.textContent ?? "")),
+        .filter((row) => !/bye/i.test(row.textContent)),
     ).toHaveLength(2);
   });
 });
