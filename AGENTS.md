@@ -320,7 +320,9 @@ Divisional, Conference — NFC above AFC, joined by lines into the Super Bowl.
 Every card is two lines, so a round's cards centre on their feeders and the
 lines are plain borders. Once a game is seen, its winner's line is drawn solid
 and its loser fades; a bye's line is always solid. A matchup not yet set is an
-empty card.
+empty card. A team's line is drawn 24px tall but taps at about 36: its tap
+area reaches past the card, away from the card's other line, into the room
+left between cards.
 
 The NFL reseeds after the Wild Card round, so which game fills which
 Divisional slot is known only from the results (`divisionalFeeders()`). Until

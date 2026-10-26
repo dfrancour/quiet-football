@@ -70,11 +70,17 @@ function TeamLine({
   score,
   outcome,
   favorite,
+  reach,
 }: {
   team: Team;
   seed: number | null;
   href: string;
   score: ScoreShown;
+  /**
+   * Which way its tap area reaches past the card: away from the card's other
+   * line, so a line drawn 24px tall is still about 36px to tap.
+   */
+  reach: "up" | "down";
   /** Known only once the game is seen. */
   outcome: "won" | "lost" | null;
   favorite: boolean;
@@ -84,7 +90,11 @@ function TeamLine({
       href={href}
       className={cn(
         LINE,
-        "hover:bg-surface-sunken focus-visible:outline-accent-strong rounded-sm transition-colors focus-visible:outline-2",
+        "hover:bg-surface-sunken focus-visible:outline-accent-strong relative rounded-sm transition-colors focus-visible:outline-2",
+        "after:absolute after:inset-x-0",
+        reach === "up"
+          ? "after:-top-2.5 after:bottom-0"
+          : "after:top-0 after:-bottom-2.5",
         favorite && "team-tint",
         outcome === "lost" && "opacity-45",
       )}
@@ -166,9 +176,10 @@ function GameCard({ game, context }: { game: BracketGame; context: Context }) {
   const week = weekParam(totalWeeks, game.week);
   return (
     <Card>
-      {[game.away, game.home].map((side) => (
+      {[game.away, game.home].map((side, index) => (
         <TeamLine
           key={side.team.teamId}
+          reach={index === 0 ? "up" : "down"}
           team={side.team}
           seed={side.seed}
           href={teamPath(side.team.abbreviation, week)}
@@ -207,6 +218,7 @@ function ByeCard({
   return (
     <Card>
       <TeamLine
+        reach="up"
         team={bye.team}
         seed={bye.seed}
         href={teamPath(bye.team.abbreviation)}
@@ -253,7 +265,8 @@ function Elbow({ first, advanced }: { first: boolean; advanced: boolean }) {
 
 function BranchView({ branch }: { branch: Branch }) {
   if (branch.children.length === 0) {
-    return <div className="py-1">{branch.card}</div>;
+    // Room between cards for each line's tap area to reach into.
+    return <div className="py-2">{branch.card}</div>;
   }
   const lit = branch.linked && branch.children.some((child) => child.advanced);
   return (
