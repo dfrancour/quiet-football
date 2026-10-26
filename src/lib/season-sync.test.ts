@@ -147,6 +147,10 @@ describe("readWeek", () => {
 
   it("refuses a payload that is not a scoreboard", () => {
     expect(() => readWeek(2026, 7, { events: "nope" })).toThrow(/unreadable/);
+    // An answer that is not a scoreboard, such as an error body.
+    expect(() => readWeek(2026, 7, { message: "Not found" })).toThrow(
+      /unreadable/,
+    );
   });
 });
 

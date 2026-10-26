@@ -70,7 +70,9 @@ function readMark(stats: readonly z.infer<typeof statSchema>[]): PlayoffMark {
 /** ESPN's conference standings, by team id. */
 export function playoffMarksFromEspn(payload: unknown): PlayoffMarks {
   const teams: Record<string, PlayoffMark> = {};
-  for (const conference of payloadSchema.parse(payload).children ?? []) {
+  const parsed = payloadSchema.safeParse(payload);
+  if (!parsed.success) throw new Error("ESPN's standings are unreadable");
+  for (const conference of parsed.data.children ?? []) {
     for (const entry of conference.standings?.entries ?? []) {
       if (entry.team) {
         teams[String(entry.team.id)] = readMark(entry.stats ?? []);

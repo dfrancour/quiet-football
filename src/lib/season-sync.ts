@@ -221,8 +221,9 @@ export function readWeek(
   week: number,
   payload: unknown,
 ): WeekBoard {
+  // Every field is optional, so a body with no events is no scoreboard.
   const parsed = scoreboardSchema.safeParse(payload);
-  if (!parsed.success) {
+  if (!parsed.success || !Array.isArray(parsed.data.events)) {
     throw new Error(`ESPN's ${season} week ${week} scoreboard is unreadable`);
   }
   const games = seasonGamesFromScoreboard(payload).games;

@@ -108,8 +108,9 @@ export function teamRegistryFromEspn(
 ): TeamRegistry {
   const teams: Team[] = [];
   const unplaced: string[] = [];
-  for (const conference of standingsPayloadSchema.parse(standingsPayload)
-    .children ?? []) {
+  const parsed = standingsPayloadSchema.safeParse(standingsPayload);
+  if (!parsed.success) throw new Error("ESPN's standings are unreadable");
+  for (const conference of parsed.data.children ?? []) {
     const conferenceName = conference.abbreviation;
     for (const division of conference.children ?? []) {
       // "NFC West" -> "West"

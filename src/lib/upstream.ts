@@ -21,6 +21,18 @@ export class UpstreamError extends Error {
   }
 }
 
+/**
+ * The browser could not reach the source at all. A refused connection, and
+ * a bot-block 403 without CORS headers, both reach it as a bare `TypeError`
+ * from `fetch`; any other `TypeError` is a bug, not the network.
+ */
+export class UnreachableError extends UpstreamError {
+  constructor(url: string) {
+    super(`${new URL(url).host} could not be reached`);
+    this.name = "UnreachableError";
+  }
+}
+
 /** The wait a source asked for, or null. */
 export function retryAfterOf(error: unknown): number | null {
   return error instanceof UpstreamError ? error.retryAfterMs : null;
@@ -54,18 +66,15 @@ export function isPermanentFailure(error: unknown): boolean {
   );
 }
 
-/**
- * A failure in the viewer's terms. A refused connection and a bot-block 403
- * without CORS headers both reach the browser as a bare `TypeError`.
- */
+/** A failure in the viewer's terms. */
 export function describeFailure(error: unknown): string {
+  if (error instanceof UnreachableError) {
+    return "ESPN could not be reached. Check your connection; a content blocker may be in the way.";
+  }
   if (error instanceof UpstreamError) return error.message;
   // A `DOMException`, which is not an `Error` in every realm.
   if (errorName(error) === "TimeoutError")
     return "ESPN did not answer in time.";
-  if (error instanceof TypeError) {
-    return "ESPN could not be reached. Check your connection; a content blocker may be in the way.";
-  }
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -110,6 +119,8 @@ async function respond(url: string, signal?: AbortSignal): Promise<Response> {
   }
   return fetch(url, {
     signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+  }).catch((error: unknown) => {
+    throw error instanceof TypeError ? new UnreachableError(url) : error;
   });
 }
 

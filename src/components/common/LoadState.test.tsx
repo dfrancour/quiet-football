@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { LoadFailed, Loading, Supported } from "~/components/common/LoadState";
 import { WeekLoadError } from "~/hooks/useLeague";
 import { queryWrapper } from "~/lib/test-utils/query";
-import { UpstreamError } from "~/lib/upstream";
+import { UnreachableError, UpstreamError } from "~/lib/upstream";
 
 afterEach(() => {
   onlineManager.setOnline(true);
@@ -60,7 +60,12 @@ describe("LoadFailed", () => {
   it("names the week and puts the cause in the viewer's terms", () => {
     render(
       <LoadFailed
-        error={new WeekLoadError("Week 7", new TypeError("Failed to fetch"))}
+        error={
+          new WeekLoadError(
+            "Week 7",
+            new UnreachableError("https://site.api.espn.com/x"),
+          )
+        }
       />,
       { wrapper: queryWrapper() },
     );

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   describeFailure,
+  UnreachableError,
   fetchUpstream,
   isPermanentFailure,
   retryAfterOf,
@@ -93,10 +94,30 @@ describe("isPermanentFailure", () => {
   });
 });
 
+describe("fetchUpstream unreachable", () => {
+  it("names a request the browser could not make at all", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    const failure = await fetchUpstream("https://example.test/x").catch(
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(UnreachableError);
+    expect(describeFailure(failure)).toMatch(/could not be reached/);
+  });
+});
+
 describe("describeFailure", () => {
   it("puts the browser's bare errors in the viewer's terms", () => {
-    expect(describeFailure(new TypeError("Failed to fetch"))).toMatch(
-      /could not be reached/,
+    expect(
+      describeFailure(new UnreachableError("https://example.test/x")),
+    ).toMatch(/could not be reached/);
+    // A TypeError from anything but fetch is a bug, not the network.
+    expect(describeFailure(new TypeError("x is undefined"))).toBe(
+      "x is undefined",
     );
     expect(
       describeFailure(new DOMException("signal timed out", "TimeoutError")),
