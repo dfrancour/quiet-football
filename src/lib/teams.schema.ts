@@ -8,9 +8,7 @@ export const teamSchema = z.object({
   teamId: z.string(),
   abbreviation: z.string(),
   displayName: z.string(),
-  shortDisplayName: z.string(),
   nickname: z.string(),
-  location: z.string(),
   /** Hex without the hash; null for a team no scoreboard has named. */
   color: z.string().nullable(),
   alternateColor: z.string().nullable(),

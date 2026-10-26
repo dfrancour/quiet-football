@@ -7,17 +7,11 @@ import {
   type TeamRegistry,
 } from "~/lib/teams.schema";
 
-export interface Streak {
-  outcome: GameOutcome;
-  length: number;
-}
-
 export interface StandingsRow {
   team: Team;
   record: TeamRecord;
   /** Ties count as half a win, as the NFL computes it. */
   pct: number;
-  streak: Streak | null;
   divisionRecord: TeamRecord;
   conferenceRecord: TeamRecord;
   /** By opponent team id. */
@@ -182,22 +176,10 @@ export function buildStandings(
     const played = outcomes.get(team.teamId) ?? [];
     const record = played.reduce(add, EMPTY);
 
-    let streak: Streak | null = null;
-    const last = played.at(-1);
-    if (last) {
-      let length = 0;
-      for (let index = played.length - 1; index >= 0; index -= 1) {
-        if (played[index] !== last) break;
-        length += 1;
-      }
-      streak = { outcome: last, length };
-    }
-
     return {
       team,
       record,
       pct: winPct(record),
-      streak,
       divisionRecord: divisionRecords.get(team.teamId) ?? EMPTY,
       conferenceRecord: conferenceRecords.get(team.teamId) ?? EMPTY,
       headToHead: headToHead.get(team.teamId) ?? new Map(),

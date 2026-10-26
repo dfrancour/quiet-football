@@ -28,7 +28,6 @@ const espnTeamSchema = z.object({
   displayName: z.string().optional(),
   shortDisplayName: z.string().optional(),
   name: z.string().optional(),
-  location: z.string().optional(),
   logos: z.array(logoSchema).optional(),
 });
 
@@ -131,10 +130,7 @@ export function teamRegistryFromEspn(
           teamId: String(team.id),
           abbreviation: team.abbreviation,
           displayName: team.displayName ?? team.abbreviation,
-          shortDisplayName:
-            team.shortDisplayName ?? team.name ?? team.abbreviation,
           nickname: team.name ?? team.shortDisplayName ?? team.abbreviation,
-          location: team.location ?? "",
           color: palette?.color ?? null,
           alternateColor: palette?.alternateColor ?? null,
           conference: conferenceName,

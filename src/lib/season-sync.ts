@@ -179,11 +179,6 @@ export function seasonGamesFromScoreboard(payload: unknown): SeasonScoreboard {
         status: readStatus(competition.status?.type),
         neutralSite: competition.neutralSite === true,
         broadcast: readBroadcast(competition),
-        venue: {
-          name: competition.venue?.fullName ?? null,
-          city: competition.venue?.address?.city ?? null,
-          state: competition.venue?.address?.state ?? null,
-        },
         home: toSide(home, String(homeId)),
         away: toSide(away, String(awayId)),
       },

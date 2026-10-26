@@ -117,9 +117,7 @@ describe("teamRegistryFromEspn", () => {
       teamId: "16",
       abbreviation: "MIN",
       displayName: "MIN Team",
-      shortDisplayName: "MIN",
       nickname: "MINs",
-      location: "MIN City",
       color: "4f2683",
       alternateColor: "ffc62f",
       conference: "NFC",
@@ -153,9 +151,7 @@ describe("teamRegistryFromEspn", () => {
     expect(registry.teams[0]).toMatchObject({
       teamId: "9",
       displayName: "GB",
-      shortDisplayName: "GB",
       nickname: "GB",
-      location: "",
       color: null,
     });
   });

@@ -99,7 +99,7 @@ a playoff game's `recordsBefore` is the record the team finished with.
 
 ### Standings are derived; seeds and clinching are ESPN's
 
-`buildStandings()` (`src/lib/standings.ts`) computes W, L, T, Pct and streak
+`buildStandings()` (`src/lib/standings.ts`) computes W, L, T and Pct
 from the regular season's finals. Within a division it applies the NFL
 tiebreakers in order — head-to-head, division record, common games,
 conference record — pairwise, and stops there.

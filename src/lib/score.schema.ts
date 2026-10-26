@@ -90,14 +90,6 @@ const competitionSchema = z.object({
   situation: situationSchema.nullish(),
   competitors: z.array(competitorSchema).nullish(),
   neutralSite: z.boolean().nullish(),
-  venue: z
-    .object({
-      fullName: z.string().nullish(),
-      address: z
-        .object({ city: z.string().nullish(), state: z.string().nullish() })
-        .nullish(),
-    })
-    .nullish(),
   broadcasts: z
     .array(
       z.object({

@@ -7,12 +7,6 @@ export type GameStatus =
 
 export type GameOutcome = "win" | "loss" | "tie";
 
-export interface Venue {
-  name: string | null;
-  city: string | null;
-  state: string | null;
-}
-
 export interface GameSide {
   teamId: string;
   score: number | null;
@@ -29,7 +23,6 @@ export interface SeasonGame {
   status: GameStatus;
   neutralSite: boolean;
   broadcast: string | null;
-  venue: Venue;
   home: GameSide;
   away: GameSide;
 }

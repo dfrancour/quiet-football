@@ -11,7 +11,6 @@ import {
   type GameOutcome,
   type GameStatus,
   type SeasonFile,
-  type Venue,
 } from "~/lib/season.schema";
 import { type RecordsShown } from "~/lib/spoilers";
 import { teamById } from "~/lib/teams";
@@ -30,7 +29,6 @@ export interface TeamGame {
   homeAway: "home" | "away";
   neutralSite: boolean;
   opponent: Team;
-  venue: Venue;
   broadcast: string | null;
   result: {
     teamScore: number;
@@ -58,9 +56,7 @@ function unknownTeam(teamId: string): Team {
     teamId,
     abbreviation: "???",
     displayName: "Unknown",
-    shortDisplayName: "Unknown",
     nickname: "Unknown",
-    location: "",
     color: null,
     alternateColor: null,
     conference: null,
@@ -103,7 +99,6 @@ export function buildTeamSchedule(
       homeAway: isHome ? "home" : "away",
       neutralSite: game.neutralSite,
       opponent: teamById(registry, other.teamId) ?? unknownTeam(other.teamId),
-      venue: game.venue,
       broadcast: game.broadcast,
       result: played
         ? {

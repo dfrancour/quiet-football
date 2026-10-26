@@ -74,7 +74,6 @@ describe("seasonGamesFromScoreboard", () => {
         status: "final",
         neutralSite: false,
         broadcast: "FOX",
-        venue: { name: "Caesars Superdome", city: "New Orleans", state: "LA" },
         home: { teamId: TEAMS.NO.teamId, score: 13, periods: [0, 10, 0, 3] },
         away: { teamId: TEAMS.MIN.teamId, score: 23, periods: [7, 3, 6, 7] },
       },

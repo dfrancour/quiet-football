@@ -14,8 +14,6 @@ export type Competition = NonNullable<
 >[number];
 export type Competitor = NonNullable<Competition["competitors"]>[number];
 
-type RawScore = Parameters<typeof readScore>[0];
-
 /** Collapses ESPN's three score encodings into a number. */
 export function readScore(
   raw:
@@ -310,5 +308,3 @@ export function formatGameClock(
   }
   return `${periodLabel(period)} - ${minutes.padStart(2, "0")}:${seconds}`;
 }
-
-export type { RawScore };

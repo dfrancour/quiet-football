@@ -54,7 +54,7 @@ describe("buildStandings", () => {
     ]);
   });
 
-  it("derives records and the current streak from finals in kickoff order", () => {
+  it("derives records from finals", () => {
     const standings = buildStandings(
       makeSeason([
         final(1, TEAMS.MIN, 10, TEAMS.GB, 20),
@@ -68,7 +68,6 @@ describe("buildStandings", () => {
       ?.rows.find((row) => row.team.abbreviation === "MIN");
 
     expect(min?.record).toEqual({ wins: 2, losses: 1, ties: 0 });
-    expect(min?.streak).toEqual({ outcome: "win", length: 2 });
   });
 
   it("counts the regular season only", () => {
