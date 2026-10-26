@@ -1,8 +1,14 @@
 import { matchupGates, type GateGame } from "~/lib/playoffs";
 import { gamePhase } from "~/lib/schedule";
-import { recordBefore, type TeamRecord } from "~/lib/season";
+import {
+  recordAfter,
+  recordBefore,
+  recordThroughWeek,
+  type TeamRecord,
+} from "~/lib/season";
 import { playoffRound, type PlayoffRound } from "~/lib/season-calendar";
 import { type SeasonFile, type SeasonGame } from "~/lib/season.schema";
+import { type RecordsShown } from "~/lib/spoilers";
 import { teamById } from "~/lib/teams";
 import { type Team, type TeamRegistry } from "~/lib/teams.schema";
 
@@ -10,6 +16,8 @@ export interface WeekSide {
   team: Team;
   score: number | null;
   recordBefore: TeamRecord;
+  /** Counting this game too, once it is final and in the regular season. */
+  recordAfter: TeamRecord;
 }
 
 export interface WeekGame {
@@ -104,14 +112,36 @@ export function buildLeagueGames(
               team: away,
               score: game.away.score,
               recordBefore: recordBefore(season, away.teamId, game.kickoff),
+              recordAfter: recordAfter(season, away.teamId, game.kickoff),
             },
             home: {
               team: home,
               score: game.home.score,
               recordBefore: recordBefore(season, home.teamId, game.kickoff),
+              recordAfter: recordAfter(season, home.teamId, game.kickoff),
             },
           },
         ];
       })
   );
+}
+
+/** The records `shown` names for both sides of a game; null for none. */
+export function weekGameRecords(
+  season: SeasonFile,
+  game: WeekGame,
+  shown: RecordsShown,
+): { away: TeamRecord; home: TeamRecord } | null {
+  if (shown === null) return null;
+  switch (shown.at) {
+    case "after":
+      return { away: game.away.recordAfter, home: game.home.recordAfter };
+    case "before":
+      return { away: game.away.recordBefore, home: game.home.recordBefore };
+    case "through":
+      return {
+        away: recordThroughWeek(season, game.away.team.teamId, shown.week),
+        home: recordThroughWeek(season, game.home.team.teamId, shown.week),
+      };
+  }
 }

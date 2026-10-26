@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { LoadFailed, Loading } from "~/components/common/LoadState";
 import { SiteHeader } from "~/components/layout/SiteHeader";
 import { Bracket } from "~/components/playoffs/Bracket";
@@ -28,7 +28,9 @@ import {
   buildLeagueGames,
   currentWeekNow,
   settledThrough,
+  weekGameRecords,
   weekInProgress,
+  type WeekGame,
 } from "~/lib/week";
 
 /** The league: the week's games and the standings, once both have loaded. */
@@ -162,6 +164,11 @@ function HomeView({ registry, data }: HomeViewProps) {
     () => buildLeagueGames(seasonFile, registry),
     [seasonFile, registry],
   );
+  const { recordsAt } = spoilers;
+  const recordsFor = useCallback(
+    (game: WeekGame) => weekGameRecords(seasonFile, game, recordsAt(game)),
+    [seasonFile, recordsAt],
+  );
   const bracket = useMemo(
     () => buildBracket(seasonFile, registry, marks),
     [seasonFile, registry, marks],
@@ -226,7 +233,7 @@ function HomeView({ registry, data }: HomeViewProps) {
             isShown={spoilers.isShown}
             isCaughtUpLive={spoilers.isCaughtUpLive}
             isOpen={spoilers.isOpen}
-            showsRecordsBefore={spoilers.showsRecordsBefore}
+            recordsFor={recordsFor}
             highlighted={highlighted}
             favorites={favorites}
             onPoint={setPointed}

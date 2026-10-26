@@ -21,7 +21,7 @@ import { standingsPath, teamPath } from "~/lib/routes";
 import { defaultGameId, gamePhase } from "~/lib/schedule";
 import { parseWeekParam, weekParam } from "~/lib/season-calendar";
 import { extractTeamScore } from "~/lib/score";
-import { buildTeamSchedule } from "~/lib/team-view";
+import { buildTeamSchedule, teamGameRecords } from "~/lib/team-view";
 import { teamByAbbreviation } from "~/lib/teams";
 import { type Team, type TeamRegistry } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
@@ -80,7 +80,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     currentWeek: currentWeekNow(seasonFile),
     inProgress: useMemo(() => weekInProgress(seasonFile), [seasonFile]),
   });
-  const { isOpen, recordThrough } = spoilers;
+  const { isOpen, recordThrough, recordsAt } = spoilers;
 
   const fullSchedule = useMemo(
     () => buildTeamSchedule(seasonFile, registry, team.teamId),
@@ -156,6 +156,18 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   const selectedGame =
     schedule.games.find((game) => game.gameId === selectedGameId) ?? null;
   const recaps = useRecaps(seasonFile, registry, selectedGame);
+  // Records reveal games the viewer did not uncover.
+  const records = useMemo(
+    () =>
+      selectedGame &&
+      teamGameRecords(
+        seasonFile,
+        team.teamId,
+        selectedGame,
+        recordsAt(selectedGame),
+      ),
+    [seasonFile, team.teamId, selectedGame, recordsAt],
+  );
 
   const selectedPhase =
     now !== null && selectedGame !== null ? gamePhase(selectedGame, now) : null;
@@ -295,11 +307,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
               showSpoilers={
                 selectedGame !== null && spoilers.isShown(selectedGame)
               }
-              // The record reveals games the viewer did not uncover.
-              showRecords={
-                selectedGame !== null &&
-                spoilers.showsRecordsBefore(selectedGame.week)
-              }
+              records={records}
               recaps={recaps}
               playByPlay={playByPlay}
               onLoadPlays={playable && !playsWanted ? loadPlays : undefined}

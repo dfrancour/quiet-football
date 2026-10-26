@@ -490,26 +490,35 @@ describe("GameDetail quarter grid", () => {
   });
 });
 
-describe("GameDetail records before the game", () => {
+describe("GameDetail records", () => {
   const game = makeTeamGame({
     status: "final",
     result: { teamScore: 23, opponentScore: 13, outcome: "win" },
-    recordsBefore: {
-      team: { wins: 4, losses: 0, ties: 0 },
-      opponent: { wins: 1, losses: 2, ties: 1 },
-    },
   });
+  const records = {
+    team: { wins: 5, losses: 0, ties: 0 },
+    opponent: { wins: 1, losses: 3, ties: 1 },
+  };
 
   it("shows each side's record under its label", () => {
-    renderDetail({ game, showSpoilers: true });
-    expect(screen.getByText("4-0")).toBeInTheDocument();
-    expect(screen.getByText("1-2-1")).toBeInTheDocument();
+    renderDetail({ game, showSpoilers: true, records });
+    expect(screen.getByText("5-0")).toBeInTheDocument();
+    expect(screen.getByText("1-3-1")).toBeInTheDocument();
   });
 
-  it("hides the records with the rest of the results", () => {
-    renderDetail({ game });
-    expect(screen.queryByText("4-0")).not.toBeInTheDocument();
-    expect(screen.queryByText("1-2-1")).not.toBeInTheDocument();
+  it("shows none while they would give a result away", () => {
+    renderDetail({ game, records: null });
+    expect(screen.queryByText("5-0")).not.toBeInTheDocument();
+    expect(screen.queryByText("1-3-1")).not.toBeInTheDocument();
+  });
+
+  it("gives a game to come the opponent's record beside its name", () => {
+    renderDetail({
+      game: makeTeamGame(),
+      now: KICKOFF_MS - PREGAME_WINDOW_MS - 60_000,
+      records,
+    });
+    expect(screen.getByText("1-3-1")).toBeInTheDocument();
   });
 });
 

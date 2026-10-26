@@ -30,11 +30,13 @@ const played: WeekGame = {
     team: TEAMS.MIN,
     score: 23,
     recordBefore: { wins: 4, losses: 0, ties: 0 },
+    recordAfter: { wins: 5, losses: 0, ties: 0 },
   },
   home: {
     team: TEAMS.NO,
     score: 13,
     recordBefore: { wins: 1, losses: 3, ties: 0 },
+    recordAfter: { wins: 1, losses: 4, ties: 0 },
   },
 };
 
@@ -50,11 +52,13 @@ const next: WeekGame = {
     team: TEAMS.GB,
     score: null,
     recordBefore: { wins: 0, losses: 0, ties: 0 },
+    recordAfter: { wins: 0, losses: 0, ties: 0 },
   },
   home: {
     team: TEAMS.CHI,
     score: null,
     recordBefore: { wins: 0, losses: 0, ties: 0 },
+    recordAfter: { wins: 0, losses: 0, ties: 0 },
   },
 };
 
@@ -95,7 +99,11 @@ function renderSchedule(
           getWatchProgress()[gameId]?.playId === lastPlayId
         }
         isOpen={isOpen}
-        showsRecordsBefore={() => revealed}
+        recordsFor={(game) =>
+          revealed
+            ? { away: game.away.recordAfter, home: game.home.recordAfter }
+            : null
+        }
         highlighted={highlighted}
         favorites={favorites}
         onPoint={onPoint}
@@ -158,7 +166,7 @@ describe("WeekSchedule", () => {
     renderSchedule(false);
     expect(hidden()).toHaveLength(2);
     expect(screen.queryByText("23")).not.toBeInTheDocument();
-    expect(screen.queryByText("4-0")).not.toBeInTheDocument();
+    expect(screen.queryByText("5-0")).not.toBeInTheDocument();
   });
 
   it("shows the scores once spoilers are on", () => {
@@ -166,9 +174,9 @@ describe("WeekSchedule", () => {
     const card = gameRow();
     expect(within(card).getByText("23")).toBeInTheDocument();
     expect(within(card).getByText("13")).toBeInTheDocument();
-    // Each side's record going in, beside its name.
-    expect(within(card).getByText("4-0")).toBeInTheDocument();
-    expect(within(card).getByText("1-3")).toBeInTheDocument();
+    // Each side's record, beside its name.
+    expect(within(card).getByText("5-0")).toBeInTheDocument();
+    expect(within(card).getByText("1-4")).toBeInTheDocument();
   });
 
   it("moves between weeks in place", () => {

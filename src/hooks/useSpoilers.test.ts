@@ -153,7 +153,16 @@ describe("useSpoilers", () => {
       expect(result.current.showAll).toBe(true);
       expect(result.current.isShown({ gameId: "x", week: 12 })).toBe(true);
       expect(result.current.isOpen([{ gameId: "w18", week: 18 }])).toBe(true);
-      expect(result.current.showsRecordsBefore(19)).toBe(true);
+      expect(
+        result.current.recordsAt({ gameId: "x", week: 12, status: "final" }),
+      ).toEqual({ at: "after" });
+      expect(
+        result.current.recordsAt({
+          gameId: "y",
+          week: 19,
+          status: "scheduled",
+        }),
+      ).toEqual({ at: "before" });
       expect(result.current.recordThrough([won("a", 6), won("b", 9)])).toEqual({
         wins: 2,
         losses: 0,

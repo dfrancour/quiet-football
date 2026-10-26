@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createLocalStore } from "~/lib/local-store";
 import { formatGameClock } from "~/lib/score";
 import { type LiveScore } from "~/lib/score.schema";
-import { type GameOutcome } from "~/lib/season.schema";
+import { type GameOutcome, type GameStatus } from "~/lib/season.schema";
 import { type TeamGame } from "~/lib/team-view";
 
 /**
@@ -57,15 +57,32 @@ export function catchUpThrough(season: number, week: number): void {
 }
 
 /**
- * The records going into a game in `week` say how every earlier week went;
- * a playoff game's, how the regular season ended.
+ * Which records a game may show beside its teams. After it once its result
+ * is shown, since the result is the one game they add. Going into it once
+ * every earlier week is (a playoff game's, the regular season), since they
+ * say how every earlier week went. A game still to be played that the
+ * viewer is not caught up to shows the records through the week they are,
+ * as the standings do; caught up through none, nothing.
  */
-export function recordsShownBefore(
-  week: number,
+export type RecordsShown =
+  | { at: "after" }
+  | { at: "before" }
+  | { at: "through"; week: number }
+  | null;
+
+export function recordsShown(
+  game: { week: number; status: GameStatus },
+  resultShown: boolean,
   through: number,
   totalWeeks: number,
-): boolean {
-  return through >= Math.min(week - 1, totalWeeks);
+): RecordsShown {
+  if (through >= Math.min(game.week - 1, totalWeeks)) {
+    return game.status === "final" && resultShown
+      ? { at: "after" }
+      : { at: "before" };
+  }
+  if (game.status === "final" || through === 0) return null;
+  return { at: "through", week: through };
 }
 
 /** Null while hidden, for the caller to cover with `Redacted`. */

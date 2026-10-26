@@ -10,11 +10,13 @@ import {
   getServerCaughtUp,
   getServerShowAll,
   getShowAll,
-  recordsShownBefore,
+  recordsShown,
   setShowAll,
   subscribeToCaughtUp,
   subscribeToShowAll,
+  type RecordsShown,
 } from "~/lib/spoilers";
+import { type GameStatus } from "~/lib/season.schema";
 import { type TeamGame } from "~/lib/team-view";
 import { clearWatchProgress, finishGames } from "~/lib/watch-progress";
 import { type WeekInProgress } from "~/lib/week";
@@ -133,10 +135,13 @@ export function useSpoilers({
     [isShown],
   );
 
-  /** The records going into a game in this week give nothing unseen away. */
-  const showsRecordsBefore = useCallback(
-    (week: number) => showAll || recordsShownBefore(week, through, totalWeeks),
-    [showAll, through, totalWeeks],
+  /** The records a game may show beside its teams (`recordsShown()`). */
+  const recordsAt = useCallback(
+    (game: GateGame & { status: GameStatus }): RecordsShown =>
+      showAll
+        ? { at: game.status === "final" ? "after" : "before" }
+        : recordsShown(game, isShown(game), through, totalWeeks),
+    [showAll, isShown, through, totalWeeks],
   );
 
   /** A team's record through the viewer's week; null through none. */
@@ -170,7 +175,7 @@ export function useSpoilers({
       isShown,
       isCaughtUpLive,
       isOpen,
-      showsRecordsBefore,
+      recordsAt,
       recordThrough,
     }),
     [
@@ -186,7 +191,7 @@ export function useSpoilers({
       isShown,
       isCaughtUpLive,
       isOpen,
-      showsRecordsBefore,
+      recordsAt,
       recordThrough,
     ],
   );

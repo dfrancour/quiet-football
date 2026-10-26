@@ -24,7 +24,12 @@ import {
 } from "~/lib/dates";
 import { type GateGame } from "~/lib/playoffs";
 import { teamPath } from "~/lib/routes";
-import { formatRecord, gamePhase, type GamePhase } from "~/lib/schedule";
+import {
+  formatRecord,
+  gamePhase,
+  type GamePhase,
+  type TeamRecord,
+} from "~/lib/schedule";
 import {
   playoffRound,
   ROUND_ABBREVIATIONS,
@@ -55,8 +60,8 @@ interface WeekScheduleProps {
   isCaughtUpLive: (gameId: string, lastPlayId: string | null) => boolean;
   /** Whether a playoff matchup may be shown (`playoffs.ts`). */
   isOpen: (gate: readonly GateGame[]) => boolean;
-  /** Whether the records going into a week's games give nothing away. */
-  showsRecordsBefore: (week: number) => boolean;
+  /** The records a game may show beside its teams; null for none. */
+  recordsFor: (game: WeekGame) => { away: TeamRecord; home: TeamRecord } | null;
   /** Teams pointed at elsewhere on the page; their games light up. */
   highlighted: ReadonlySet<string>;
   /** The viewer's teams, each tinted on its own side of a game. */
@@ -151,7 +156,7 @@ function TeamCell({
   href,
   align,
   leading,
-  showRecord,
+  record,
 }: {
   side: WeekSide;
   /** Null while hidden; empty before the game starts. */
@@ -159,7 +164,8 @@ function TeamCell({
   href: string;
   align: "end" | "start";
   leading: boolean;
-  showRecord: boolean;
+  /** Null while it would give a result away. */
+  record: TeamRecord | null;
 }) {
   return (
     <Link
@@ -187,10 +193,9 @@ function TeamCell({
       >
         {side.team.abbreviation}
       </span>
-      {/* A record going in reveals earlier results. */}
-      {showRecord && (
+      {record && (
         <span className="text-ink-faint hidden font-mono text-xs sm:inline">
-          {formatRecord(side.recordBefore)}
+          {formatRecord(record)}
         </span>
       )}
     </Link>
@@ -281,7 +286,7 @@ function GameRow({
   phase,
   board,
   revealed,
-  showRecords,
+  records,
   totalWeeks,
   highlighted,
   favorites,
@@ -293,7 +298,7 @@ function GameRow({
   phase: GamePhase | null;
   board: BoardGame | undefined;
   revealed: boolean;
-  showRecords: boolean;
+  records: { away: TeamRecord; home: TeamRecord } | null;
   totalWeeks: number;
   highlighted: boolean;
   favorites: ReadonlySet<string>;
@@ -342,7 +347,7 @@ function GameRow({
           href={teamPath(game.away.team.abbreviation, week)}
           align="end"
           leading={lead > 0}
-          showRecord={showRecords}
+          record={records?.away ?? null}
         />
       </td>
       <td className="text-ink-faint w-5 text-center text-xs">@</td>
@@ -353,7 +358,7 @@ function GameRow({
           href={teamPath(game.home.team.abbreviation, week)}
           align="start"
           leading={lead < 0}
-          showRecord={showRecords}
+          record={records?.home ?? null}
         />
       </td>
       <td className="w-20 py-1.5 pl-2 text-right font-mono text-xs sm:w-24 sm:pl-3">
@@ -578,7 +583,7 @@ export function WeekSchedule({
   isShown,
   isCaughtUpLive,
   isOpen,
-  showsRecordsBefore,
+  recordsFor,
   highlighted,
   favorites,
   onPoint,
@@ -669,7 +674,7 @@ export function WeekSchedule({
                               board?.lastPlayId ?? null,
                             ))
                         }
-                        showRecords={showsRecordsBefore(game.week)}
+                        records={recordsFor(game)}
                         totalWeeks={totalWeeks}
                         highlighted={
                           highlighted.has(game.away.team.teamId) ||

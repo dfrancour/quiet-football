@@ -373,7 +373,7 @@ gains a chevron there, reading as the way back.
 The data age is a readout, not a control.
 | `final` | Score row, field, plays; recap icon in the top row |
 | `pregame` | Countdown, kickoff details |
-| `upcoming` | When and on what, and nothing else |
+| `upcoming` | When and on what, and the opponent's record |
 | `postponed`/`canceled` | The status and the original details |
 
 Live and final panels lead with `ScoreRow`: away left, home right, matching
@@ -565,8 +565,11 @@ than scores:
 
 - the W/L letter: `resultVisibility()` collapses a played game to `"Final"`
 - records: a team's is counted only through the week caught up through, and
-  the records going into a game show only once every week before it does
-  (`recordsShownBefore()`)
+  the records beside a game are the ones after it once its result is shown
+  (Week 1's read 1-0), going into it once every week before it is, and for
+  a game still to come that the viewer is not caught up to, the records
+  through the week caught up through, as the standings count them
+  (`recordsShown()`); caught up through none, a game further on has none
 - the standings: built from the weeks caught up through only; caught up
   through none, every figure is masked and divisions are listed
   alphabetically, since order reveals results. ESPN's seeds and clinch codes

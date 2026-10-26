@@ -4,7 +4,7 @@ import {
   catchUpThrough,
   getCaughtUp,
   maskedScore,
-  recordsShownBefore,
+  recordsShown,
   resultVisibility,
   spoilerSafeClock,
 } from "~/lib/spoilers";
@@ -143,15 +143,39 @@ describe("catchUpThrough", () => {
   });
 });
 
-describe("recordsShownBefore", () => {
+describe("recordsShown", () => {
+  const upcoming = (week: number) => ({ week, status: "scheduled" as const });
+  const final = (week: number) => ({ week, status: "final" as const });
+
   it("shows a week's records going in once every week before is", () => {
-    expect(recordsShownBefore(1, 0, 18)).toBe(true);
-    expect(recordsShownBefore(8, 7, 18)).toBe(true);
-    expect(recordsShownBefore(9, 7, 18)).toBe(false);
+    expect(recordsShown(upcoming(1), false, 0, 18)).toEqual({ at: "before" });
+    expect(recordsShown(upcoming(8), false, 7, 18)).toEqual({ at: "before" });
+    expect(recordsShown(final(8), false, 7, 18)).toEqual({ at: "before" });
+  });
+
+  it("counts a game's own result once it is shown", () => {
+    expect(recordsShown(final(1), true, 1, 18)).toEqual({ at: "after" });
+    expect(recordsShown(final(8), true, 7, 18)).toEqual({ at: "after" });
+  });
+
+  it("shows a game to come the records through the week caught up through", () => {
+    expect(recordsShown(upcoming(12), false, 7, 18)).toEqual({
+      at: "through",
+      week: 7,
+    });
+    expect(recordsShown(upcoming(12), false, 0, 18)).toBeNull();
+  });
+
+  it("shows a played game past the week caught up through no records", () => {
+    expect(recordsShown(final(9), false, 7, 18)).toBeNull();
+    // Seen to the end, it still says how the week between went.
+    expect(recordsShown(final(9), true, 7, 18)).toBeNull();
   });
 
   it("shows a playoff game's once the regular season is", () => {
-    expect(recordsShownBefore(20, 18, 18)).toBe(true);
-    expect(recordsShownBefore(19, 17, 18)).toBe(false);
+    expect(recordsShown(upcoming(20), false, 18, 18)).toEqual({
+      at: "before",
+    });
+    expect(recordsShown(final(19), false, 17, 18)).toBeNull();
   });
 });

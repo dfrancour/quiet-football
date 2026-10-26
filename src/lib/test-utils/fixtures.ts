@@ -105,6 +105,10 @@ export function makeTeamGame(overrides: Partial<TeamGame> = {}): TeamGame {
       team: { wins: 0, losses: 0, ties: 0 },
       opponent: { wins: 0, losses: 0, ties: 0 },
     },
+    recordsAfter: {
+      team: { wins: 0, losses: 0, ties: 0 },
+      opponent: { wins: 0, losses: 0, ties: 0 },
+    },
     ...overrides,
   };
 }

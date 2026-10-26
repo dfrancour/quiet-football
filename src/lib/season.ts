@@ -24,21 +24,17 @@ export interface TeamRecord {
   ties: number;
 }
 
-/**
- * A team's regular-season record from finals that kicked off before
- * `kickoff`; a playoff game's is the record the team finished with.
- */
-export function recordBefore(
+/** A team's regular-season record from the finals `counts` takes. */
+function recordOf(
   season: SeasonFile,
   teamId: string,
-  kickoff: string,
+  counts: (game: SeasonGame) => boolean,
 ): TeamRecord {
-  const cutoff = Date.parse(kickoff);
   const record: TeamRecord = { wins: 0, losses: 0, ties: 0 };
 
   for (const game of gamesForTeam(season, teamId)) {
-    if (Date.parse(game.kickoff) >= cutoff) break;
     if (game.status !== "final" || !isRegularSeason(season, game)) continue;
+    if (!counts(game)) continue;
 
     const isHome = game.home.teamId === teamId;
     const own = (isHome ? game.home : game.away).score;
@@ -51,4 +47,36 @@ export function recordBefore(
   }
 
   return record;
+}
+
+/**
+ * A team's regular-season record from finals that kicked off before
+ * `kickoff`; a playoff game's is the record the team finished with.
+ */
+export function recordBefore(
+  season: SeasonFile,
+  teamId: string,
+  kickoff: string,
+): TeamRecord {
+  const cutoff = Date.parse(kickoff);
+  return recordOf(season, teamId, (game) => Date.parse(game.kickoff) < cutoff);
+}
+
+/** As `recordBefore`, counting the game kicking off at `kickoff` too. */
+export function recordAfter(
+  season: SeasonFile,
+  teamId: string,
+  kickoff: string,
+): TeamRecord {
+  const cutoff = Date.parse(kickoff);
+  return recordOf(season, teamId, (game) => Date.parse(game.kickoff) <= cutoff);
+}
+
+/** A team's regular-season record from the finals of weeks through `week`. */
+export function recordThroughWeek(
+  season: SeasonFile,
+  teamId: string,
+  week: number,
+): TeamRecord {
+  return recordOf(season, teamId, (game) => game.week <= week);
 }

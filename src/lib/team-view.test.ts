@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTeamSchedule } from "~/lib/team-view";
+import { buildTeamSchedule, teamGameRecords } from "~/lib/team-view";
 import {
   REGISTRY,
   TEAMS,
@@ -177,10 +177,16 @@ describe("records before a game", () => {
     ).games;
 
     expect(tie?.recordsBefore.team).toEqual({ wins: 0, losses: 0, ties: 0 });
+    expect(tie?.recordsAfter.team).toEqual({ wins: 0, losses: 0, ties: 1 });
     // The meeting's own result is not part of either record going into it.
     expect(meeting?.recordsBefore).toEqual({
       team: { wins: 0, losses: 0, ties: 1 },
       opponent: { wins: 1, losses: 0, ties: 0 },
+    });
+    // After it, it is.
+    expect(meeting?.recordsAfter).toEqual({
+      team: { wins: 1, losses: 0, ties: 1 },
+      opponent: { wins: 1, losses: 1, ties: 0 },
     });
   });
 
@@ -204,6 +210,69 @@ describe("records before a game", () => {
     expect(game?.recordsBefore).toEqual({
       team: { wins: 1, losses: 0, ties: 0 },
       opponent: { wins: 0, losses: 0, ties: 0 },
+    });
+  });
+});
+
+describe("teamGameRecords", () => {
+  const season = makeSeason([
+    makeSeasonGame({
+      gameId: "1",
+      week: 1,
+      kickoff: "2026-09-13T17:00:00.000Z",
+      status: "final",
+      home: { teamId: TEAMS.MIN.teamId, score: 20 },
+      away: { teamId: TEAMS.GB.teamId, score: 10 },
+    }),
+    makeSeasonGame({
+      gameId: "2",
+      week: 2,
+      kickoff: "2026-09-20T17:00:00.000Z",
+      status: "final",
+      home: { teamId: TEAMS.GB.teamId, score: 24 },
+      away: { teamId: TEAMS.CHI.teamId, score: 3 },
+    }),
+    makeSeasonGame({
+      gameId: "3",
+      week: 5,
+      kickoff: "2026-10-11T17:00:00.000Z",
+      home: { teamId: TEAMS.GB.teamId, score: null },
+      away: { teamId: TEAMS.MIN.teamId, score: null },
+    }),
+  ]);
+  const [opener, rematch] = buildTeamSchedule(
+    season,
+    REGISTRY,
+    TEAMS.MIN.teamId,
+  ).games;
+
+  it("names the records before or after the game", () => {
+    if (!opener) throw new Error("no opener");
+    expect(
+      teamGameRecords(season, TEAMS.MIN.teamId, opener, { at: "after" }),
+    ).toEqual({
+      team: { wins: 1, losses: 0, ties: 0 },
+      opponent: { wins: 0, losses: 1, ties: 0 },
+    });
+    expect(
+      teamGameRecords(season, TEAMS.MIN.teamId, opener, { at: "before" }),
+    ).toEqual({
+      team: { wins: 0, losses: 0, ties: 0 },
+      opponent: { wins: 0, losses: 0, ties: 0 },
+    });
+    expect(teamGameRecords(season, TEAMS.MIN.teamId, opener, null)).toBeNull();
+  });
+
+  it("counts both sides through a week for a game further on", () => {
+    if (!rematch) throw new Error("no rematch");
+    expect(
+      teamGameRecords(season, TEAMS.MIN.teamId, rematch, {
+        at: "through",
+        week: 1,
+      }),
+    ).toEqual({
+      team: { wins: 1, losses: 0, ties: 0 },
+      opponent: { wins: 0, losses: 1, ties: 0 },
     });
   });
 });
@@ -249,6 +318,16 @@ describe("playoff games", () => {
     const divisional = buildTeamSchedule(season, REGISTRY, TEAMS.MIN.teamId)
       .games[2];
     expect(divisional?.recordsBefore.team).toEqual({
+      wins: 1,
+      losses: 0,
+      ties: 0,
+    });
+  });
+
+  it("leave a playoff result out of the record after it", () => {
+    const wildCard = buildTeamSchedule(season, REGISTRY, TEAMS.MIN.teamId)
+      .games[1];
+    expect(wildCard?.recordsAfter.team).toEqual({
       wins: 1,
       losses: 0,
       ties: 0,

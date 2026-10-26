@@ -1,5 +1,11 @@
 import { matchupGates, type GateGame } from "~/lib/playoffs";
-import { gamesForTeam, recordBefore, type TeamRecord } from "~/lib/season";
+import {
+  gamesForTeam,
+  recordAfter,
+  recordBefore,
+  recordThroughWeek,
+  type TeamRecord,
+} from "~/lib/season";
 import { playoffRound, type PlayoffRound } from "~/lib/season-calendar";
 import {
   type GameOutcome,
@@ -7,6 +13,7 @@ import {
   type SeasonFile,
   type Venue,
 } from "~/lib/season.schema";
+import { type RecordsShown } from "~/lib/spoilers";
 import { teamById } from "~/lib/teams";
 import { type Team, type TeamRegistry } from "~/lib/teams.schema";
 
@@ -33,6 +40,8 @@ export interface TeamGame {
   /** Points per period for each side; null until both sides have any. */
   periods: { team: number[]; opponent: number[] } | null;
   recordsBefore: { team: TeamRecord; opponent: TeamRecord };
+  /** Counting this game too, once it is final and in the regular season. */
+  recordsAfter: { team: TeamRecord; opponent: TeamRecord };
 }
 
 export interface TeamSchedule {
@@ -108,6 +117,10 @@ export function buildTeamSchedule(
         team: recordBefore(season, teamId, game.kickoff),
         opponent: recordBefore(season, other.teamId, game.kickoff),
       },
+      recordsAfter: {
+        team: recordAfter(season, teamId, game.kickoff),
+        opponent: recordAfter(season, other.teamId, game.kickoff),
+      },
       periods:
         own.periods && other.periods
           ? { team: own.periods, opponent: other.periods }
@@ -128,4 +141,25 @@ export function buildTeamSchedule(
     games,
     byeWeeks,
   };
+}
+
+/** The records `shown` names for both sides of a team's game; null for none. */
+export function teamGameRecords(
+  season: SeasonFile,
+  teamId: string,
+  game: TeamGame,
+  shown: RecordsShown,
+): { team: TeamRecord; opponent: TeamRecord } | null {
+  if (shown === null) return null;
+  switch (shown.at) {
+    case "after":
+      return game.recordsAfter;
+    case "before":
+      return game.recordsBefore;
+    case "through":
+      return {
+        team: recordThroughWeek(season, teamId, shown.week),
+        opponent: recordThroughWeek(season, game.opponent.teamId, shown.week),
+      };
+  }
 }

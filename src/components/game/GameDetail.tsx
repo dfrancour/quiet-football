@@ -36,6 +36,7 @@ import {
   gamePhase,
   matchupLabel,
   weekLabel,
+  type TeamRecord,
 } from "~/lib/schedule";
 import { broadcastPhase, cycleBroadcastDelay } from "~/lib/broadcast-delay";
 import { maskedScore, spoilerSafeClock } from "~/lib/spoilers";
@@ -55,8 +56,8 @@ interface GameDetailProps {
   scoreUpdatedAt?: number | null;
   /** Caught up through its week; a game seen to the end is shown too. */
   showSpoilers: boolean;
-  /** Records reveal earlier results. Defaults to `showSpoilers`. */
-  showRecords?: boolean;
+  /** Each side's record, or null while it would give a result away. */
+  records?: { team: TeamRecord; opponent: TeamRecord } | null;
   recaps: RecapsFile;
   /** With spoilers hidden, shown only as far as the viewer has watched. */
   playByPlay?: PlayByPlay | null;
@@ -69,7 +70,16 @@ interface GameDetailProps {
   onToggleExpanded?: () => void;
 }
 
-function Matchup({ game, team }: { game: TeamGame; team: Team }) {
+/** The team's own record is in the page's header; the opponent's is here. */
+function Matchup({
+  game,
+  team,
+  opponentRecord,
+}: {
+  game: TeamGame;
+  team: Team;
+  opponentRecord: TeamRecord | null;
+}) {
   const { away, home } = sides(game, team);
 
   return (
@@ -86,7 +96,18 @@ function Matchup({ game, team }: { game: TeamGame; team: Team }) {
         <p className="text-ink text-2xl font-semibold">{matchupLabel(game)}</p>
         <p className="text-ink-muted mt-0.5 text-sm">
           {game.opponent.displayName}
-          {game.neutralSite && " · neutral site"}
+          {opponentRecord && (
+            <>
+              <Dot />
+              <span className="font-mono">{formatRecord(opponentRecord)}</span>
+            </>
+          )}
+          {game.neutralSite && (
+            <>
+              <Dot />
+              neutral site
+            </>
+          )}
         </p>
         <p className="sr-only">
           {team.displayName}, {weekLabel(game)}
@@ -313,7 +334,7 @@ export function GameDetail({
   scoreError,
   scoreUpdatedAt = null,
   showSpoilers: caughtUp,
-  showRecords = caughtUp,
+  records = null,
   recaps,
   playByPlay = null,
   onLoadPlays,
@@ -429,7 +450,11 @@ export function GameDetail({
             {phase}
           </span>
         </Eyebrow>
-        <Matchup game={game} team={team} />
+        <Matchup
+          game={game}
+          team={team}
+          opponentRecord={records?.opponent ?? null}
+        />
         <div className="border-edge mt-4 border-t pt-3">
           <Meta game={game} />
         </div>
@@ -452,14 +477,14 @@ export function GameDetail({
     );
     const situation = showSpoilers ? (activeScore?.situation ?? null) : null;
     const followed = {
-      record: showRecords ? formatRecord(game.recordsBefore.team) : null,
+      record: records && formatRecord(records.team),
       ...standing.followed,
       display: maskedScore(teamScore, showSpoilers),
       hasBall: situation?.possession === "team",
       timeouts: situation?.timeouts.team ?? null,
     };
     const opposing = {
-      record: showRecords ? formatRecord(game.recordsBefore.opponent) : null,
+      record: records && formatRecord(records.opponent),
       ...standing.opposing,
       display: maskedScore(opponentScore, showSpoilers),
       hasBall: situation?.possession === "opponent",
@@ -575,17 +600,13 @@ export function GameDetail({
             game={game}
             team={team}
             followed={{
-              record: showRecords
-                ? formatRecord(game.recordsBefore.team)
-                : null,
+              record: records && formatRecord(records.team),
               ...standing.followed,
               display: maskedScore(result?.teamScore ?? null, showSpoilers),
               ...watched?.followed,
             }}
             opposing={{
-              record: showRecords
-                ? formatRecord(game.recordsBefore.opponent)
-                : null,
+              record: records && formatRecord(records.opponent),
               ...standing.opposing,
               display: maskedScore(result?.opponentScore ?? null, showSpoilers),
               ...watched?.opposing,
@@ -652,7 +673,11 @@ export function GameDetail({
         )}
       </Eyebrow>
 
-      <Matchup game={game} team={team} />
+      <Matchup
+        game={game}
+        team={team}
+        opponentRecord={records?.opponent ?? null}
+      />
 
       <div className="border-edge mt-4 border-t pt-3">
         <Meta game={game} leading />
