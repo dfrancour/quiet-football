@@ -5,9 +5,15 @@ import {
   seasonGamesFromScoreboard,
   weekActivity,
 } from "~/lib/season-sync";
+import { scoreboardSchema } from "~/lib/score.schema";
 import { GAME_ID, TEAMS, makeSeasonGame } from "~/lib/test-utils/fixtures";
 
 /** MIN at NO in week 5, as ESPN's scoreboard reports it. */
+/** A raw scoreboard's games, read as `readWeek` reads them. */
+function gamesOf(payload: unknown) {
+  return seasonGamesFromScoreboard(scoreboardSchema.parse(payload));
+}
+
 function scoreboard(status: unknown, scores: [string, string] = ["23", "13"]) {
   return {
     season: { year: 2026, type: 2 },
@@ -63,7 +69,7 @@ const FINAL = {
 
 describe("seasonGamesFromScoreboard", () => {
   it("reads a finished game as stored, quarters in order", () => {
-    const board = seasonGamesFromScoreboard(scoreboard(FINAL));
+    const board = gamesOf(scoreboard(FINAL));
     expect(board.season).toBe(2026);
     expect(board.seasonType).toBe(2);
     expect(board.games).toEqual([
@@ -81,7 +87,7 @@ describe("seasonGamesFromScoreboard", () => {
   });
 
   it("counts halftime as under way", () => {
-    const board = seasonGamesFromScoreboard(
+    const board = gamesOf(
       scoreboard({ type: { name: "STATUS_HALFTIME", state: "in" } }),
     );
     expect(board.games[0]?.status).toBe("in_progress");
@@ -105,7 +111,7 @@ describe("seasonGamesFromScoreboard", () => {
       };
     };
     const weekOf = (payload: unknown) =>
-      seasonGamesFromScoreboard(payload).games.map((game) => game.week);
+      gamesOf(payload).games.map((game) => game.week);
 
     expect(weekOf(playoffs(1, "NFC Wild Card Playoffs"))).toEqual([19]);
     expect(weekOf(playoffs(3, "NFC Championship"))).toEqual([21]);
@@ -130,11 +136,7 @@ describe("seasonGamesFromScoreboard", () => {
         })),
       })),
     };
-    expect(seasonGamesFromScoreboard(tbd).games).toEqual([]);
-  });
-
-  it("reads a malformed payload as no games", () => {
-    expect(seasonGamesFromScoreboard({ events: "nope" }).games).toEqual([]);
+    expect(gamesOf(tbd).games).toEqual([]);
   });
 });
 

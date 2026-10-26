@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { scoreboardSchema } from "~/lib/score.schema";
+import { type Scoreboard } from "~/lib/score.schema";
 import {
   type Division,
   type Team,
@@ -79,11 +79,9 @@ export function pickLogoHref(
 export type TeamColors = Pick<Team, "color" | "alternateColor">;
 
 /** Each team's colors by id, from any scoreboard naming it. */
-export function teamColors(scoreboard: unknown): Map<string, TeamColors> {
+export function teamColors(scoreboard: Scoreboard): Map<string, TeamColors> {
   const colors = new Map<string, TeamColors>();
-  const parsed = scoreboardSchema.safeParse(scoreboard);
-  if (!parsed.success) return colors;
-  for (const event of parsed.data.events ?? []) {
+  for (const event of scoreboard.events ?? []) {
     for (const competitor of event.competitions?.[0]?.competitors ?? []) {
       const { id, color, alternateColor } = competitor.team ?? {};
       if (id != null && (color || alternateColor)) {

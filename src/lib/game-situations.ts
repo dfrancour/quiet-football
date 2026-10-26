@@ -1,5 +1,5 @@
 import { teamSituation, type Competition } from "~/lib/score";
-import { scoreboardSchema, type SituationState } from "~/lib/score.schema";
+import { type Scoreboard, type SituationState } from "~/lib/score.schema";
 
 /**
  * By game, then by the play the scoreboard last named, the game as the
@@ -11,10 +11,8 @@ import { scoreboardSchema, type SituationState } from "~/lib/score.schema";
 const after = new Map<string, Map<string, Competition>>();
 
 /** Notes each game's situation on a scoreboard, against its last play. */
-export function noteSituations(payload: unknown): void {
-  const parsed = scoreboardSchema.safeParse(payload);
-  if (!parsed.success) return;
-  for (const event of parsed.data.events ?? []) {
+export function noteSituations(scoreboard: Scoreboard): void {
+  for (const event of scoreboard.events ?? []) {
     const competition = event.competitions?.[0];
     const playId = competition?.situation?.lastPlay?.id;
     if (!competition || playId === null || playId === undefined) continue;

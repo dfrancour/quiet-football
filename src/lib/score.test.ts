@@ -4,13 +4,14 @@ import {
   extractTeamScore,
   formatGameClock,
 } from "~/lib/score";
+import { scoreboardSchema } from "~/lib/score.schema";
 
 function scoreboard(
   competitors: unknown,
   statusOverrides: unknown = {},
   situation: unknown = undefined,
 ) {
-  return {
+  return scoreboardSchema.parse({
     events: [
       {
         id: 401872951,
@@ -32,7 +33,7 @@ function scoreboard(
         ],
       },
     ],
-  };
+  });
 }
 
 /** Real ESPN ids: Seattle is 26, San Francisco 25. */
@@ -184,7 +185,7 @@ describe("extractTeamScore", () => {
   });
 
   it("skips other games to find the right one", () => {
-    const payload = {
+    const payload = scoreboardSchema.parse({
       events: [
         {
           id: 1,
@@ -215,17 +216,11 @@ describe("extractTeamScore", () => {
           ],
         },
       ],
-    };
+    });
 
     const result = extractTeamScore(payload, "MIN");
     expect(result?.gameId).toBe("2");
     expect(result?.team.score).toBe(28);
-  });
-
-  it("returns null for a malformed payload instead of throwing", () => {
-    expect(extractTeamScore(null, "MIN")).toBeNull();
-    expect(extractTeamScore({ events: "nope" }, "MIN")).toBeNull();
-    expect(extractTeamScore({}, "MIN")).toBeNull();
   });
 
   it("defaults the detail when ESPN omits every status label", () => {

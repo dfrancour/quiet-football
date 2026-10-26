@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { noteSituations, situationAfter } from "~/lib/game-situations";
+import { scoreboardSchema } from "~/lib/score.schema";
 
 /** ATL hosting BAL, ATL's ball after play `playId`. */
 function board(playId: string, yardLine: number) {
-  return {
+  return scoreboardSchema.parse({
     events: [
       {
         id: "g1",
@@ -27,7 +28,7 @@ function board(playId: string, yardLine: number) {
         ],
       },
     ],
-  };
+  });
 }
 
 describe("situationAfter", () => {
@@ -62,6 +63,5 @@ describe("situationAfter", () => {
     noteSituations(board("p3", 42));
     expect(situationAfter("g1", "p2", "ATL")).toBeNull();
     expect(situationAfter("g2", "p3", "ATL")).toBeNull();
-    noteSituations({ events: "not a scoreboard" });
   });
 });

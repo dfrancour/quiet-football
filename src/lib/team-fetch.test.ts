@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { scoreboardSchema } from "~/lib/score.schema";
 import {
   pickLogoHref,
   teamColors,
@@ -62,29 +63,30 @@ describe("pickLogoHref", () => {
 
 describe("teamColors", () => {
   it("reads each team's color from a scoreboard, by id", () => {
-    const colors = teamColors({
-      events: [
-        {
-          id: 1,
-          competitions: [
-            {
-              competitors: [
-                {
-                  team: { id: 16, color: "4f2683", alternateColor: "ffc62f" },
-                },
-                { team: { id: "18", color: "d3bc8d" } },
-                { team: { id: "9" } },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const colors = teamColors(
+      scoreboardSchema.parse({
+        events: [
+          {
+            id: 1,
+            competitions: [
+              {
+                competitors: [
+                  {
+                    team: { id: 16, color: "4f2683", alternateColor: "ffc62f" },
+                  },
+                  { team: { id: "18", color: "d3bc8d" } },
+                  { team: { id: "9" } },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
     expect([...colors]).toEqual([
       ["16", { color: "4f2683", alternateColor: "ffc62f" }],
       ["18", { color: "d3bc8d", alternateColor: null }],
     ]);
-    expect(teamColors({ events: "nope" }).size).toBe(0);
   });
 });
 

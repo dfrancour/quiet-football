@@ -1,6 +1,5 @@
 import { isOnField, lineToGain, type FieldSide } from "~/lib/field";
 import {
-  scoreboardSchema,
   type GameState,
   type LiveScore,
   type BoardGame,
@@ -190,12 +189,9 @@ function lastPlayId(competition: Competition): string | null {
   return id === null || id === undefined ? null : String(id);
 }
 
-/** Every game on the scoreboard; a malformed payload reads as empty. */
-export function extractScoreboard(payload: unknown): BoardGame[] {
-  const parsed = scoreboardSchema.safeParse(payload);
-  if (!parsed.success) return [];
-
-  return (parsed.data.events ?? []).flatMap((event) => {
+/** Every game on the scoreboard. */
+export function extractScoreboard(scoreboard: Scoreboard): BoardGame[] {
+  return (scoreboard.events ?? []).flatMap((event) => {
     const competition = event.competitions?.[0];
     const competitors = competition?.competitors ?? [];
     const home = competitors.find((entry) => entry.homeAway === "home");
@@ -245,13 +241,10 @@ export function teamSituation(
 
 /** Null when the team has no game on the board. */
 export function extractTeamScore(
-  payload: unknown,
+  scoreboard: Scoreboard,
   teamAbbreviation: string,
 ): LiveScore | null {
-  const parsed = scoreboardSchema.safeParse(payload);
-  if (!parsed.success) return null;
-
-  for (const event of parsed.data.events ?? []) {
+  for (const event of scoreboard.events ?? []) {
     const competition = event.competitions?.[0];
     if (!competition) continue;
     const sides = sidesFor(competition, teamAbbreviation);

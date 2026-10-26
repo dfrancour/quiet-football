@@ -5,7 +5,11 @@ import {
   type Competition,
   type Competitor,
 } from "~/lib/score";
-import { scoreboardSchema, type BoardGame } from "~/lib/score.schema";
+import {
+  scoreboardSchema,
+  type BoardGame,
+  type Scoreboard,
+} from "~/lib/score.schema";
 import {
   PLAYOFF_ROUNDS,
   playoffRound,
@@ -135,10 +139,7 @@ export interface SeasonScoreboard {
  * a team, kickoff or week are dropped, as are playoff games not yet set (ESPN
  * lists them with "TBD" teams) and the Pro Bowl.
  */
-export function seasonGamesFromScoreboard(payload: unknown): SeasonScoreboard {
-  const parsed = scoreboardSchema.safeParse(payload);
-  if (!parsed.success) return { season: null, seasonType: null, games: [] };
-  const board = parsed.data;
+export function seasonGamesFromScoreboard(board: Scoreboard): SeasonScoreboard {
   const season = board.season?.year ?? null;
   const seasonType = board.season?.type ?? null;
 
@@ -205,7 +206,7 @@ export interface WeekBoard {
    * ESPN's payload trimmed to the fields read, for a team's live score
    * (`extractTeamScore`) and for saving a settled week (`week-store.ts`).
    */
-  payload: unknown;
+  payload: Scoreboard;
   games: SeasonGame[];
   /** Each game's clock and score, for the week view. */
   board: BoardGame[];
@@ -226,15 +227,16 @@ export function readWeek(
   if (!parsed.success || !Array.isArray(parsed.data.events)) {
     throw new Error(`ESPN's ${season} week ${week} scoreboard is unreadable`);
   }
-  const games = seasonGamesFromScoreboard(payload).games;
+  const scoreboard = parsed.data;
+  const games = seasonGamesFromScoreboard(scoreboard).games;
   return {
     season,
     week,
-    payload: parsed.data,
+    payload: scoreboard,
     games: playoffRound(regularSeasonWeeks(season), week)
       ? games
       : games.map((game) => ({ ...game, week })),
-    board: extractScoreboard(payload),
+    board: extractScoreboard(scoreboard),
   };
 }
 
