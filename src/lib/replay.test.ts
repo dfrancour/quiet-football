@@ -3,6 +3,7 @@ import { type Play } from "~/lib/plays.schema";
 import { type Drive } from "~/lib/plays.schema";
 import {
   IDLE_REPLAY,
+  frameIndex,
   isLive,
   replayFrame,
   replayFrames,
@@ -33,6 +34,7 @@ function play(id: string, kind: Play["kind"] = "snap"): Play {
     distance: kind === "snap" ? 10 : null,
     start: kind === "snap" ? 25 : null,
     end: null,
+    nextDown: null,
     scoring: false,
     turnover: false,
     penalty: false,
@@ -66,6 +68,17 @@ describe("replayFrames", () => {
       "b:snap",
       "b:result",
     ]);
+  });
+
+  it("ends a game under way after its newest play, to wait there", () => {
+    const live = replayFrames([play("k", "kick"), play("a")], true);
+    expect(live.map((frame) => `${frame.playId}:${frame.stage}`)).toEqual([
+      "k:result",
+      "a:snap",
+      "a:result",
+      "a:after",
+    ]);
+    expect(replayFrames([], true)).toEqual([]);
   });
 
   it("gives a kick that may be run back time for both its parts", () => {
@@ -130,10 +143,12 @@ describe("replayFrame", () => {
     };
 
     expect(frameAt(arrived - 1)).toBe("b:result");
-    expect(frameAt(arrived)).toBe("c:snap");
-    expect(frameAt(arrived + LINE_UP_MS)).toBe("c:result");
-    // The second waits its turn behind the first.
-    expect(frameAt(arrived + LINE_UP_MS + DRAW_MS + HOLD_MS)).toBe("d:snap");
+    // The wait showed it lined up, so it is played at once.
+    expect(frameAt(arrived)).toBe("c:result");
+    // The second waits its turn behind the first, lined up as usual.
+    expect(frameAt(arrived + DRAW_MS + HOLD_MS - 1)).toBe("c:result");
+    expect(frameAt(arrived + DRAW_MS + HOLD_MS)).toBe("d:snap");
+    expect(frameAt(arrived + DRAW_MS + HOLD_MS + LINE_UP_MS)).toBe("d:result");
   });
 
   it("plays what arrived after it started at 1×, as live is watched", () => {
@@ -151,8 +166,60 @@ describe("replayFrame", () => {
     );
   });
 
+  it("moves on to the game as it stands once the newest play is drawn", () => {
+    const live = replayFrames([play("k", "kick"), play("a"), play("b")], true);
+    const frameAt = (now: number) => {
+      const frame = replayFrame(running(), live, now);
+      return frame && `${frame.playId}:${frame.stage}`;
+    };
+    const bPlayed = since + 2 * LINE_UP_MS + DRAW_MS + HOLD_MS;
+    expect(frameAt(bPlayed)).toBe("b:result");
+    expect(frameAt(bPlayed + DRAW_MS + HOLD_MS)).toBe("b:after");
+    expect(frameAt(bPlayed + 60_000)).toBe("b:after");
+  });
+
+  it("follows from long before, at the game as it stands", () => {
+    const live = replayFrames([play("k", "kick"), play("a"), play("b")], true);
+    const following: Replay = {
+      ...IDLE_REPLAY,
+      running: { from: { playId: "k", stage: "result" }, since: -Infinity },
+    };
+    expect(replayFrame(following, live, since)?.stage).toBe("after");
+    // A play that lands is played at once, then waited after.
+    const more = replayFrames(
+      [play("k", "kick"), play("a"), play("b"), play("c")],
+      true,
+    );
+    const arrivedAt = (id: string) => (id === "c" ? since : 0);
+    const frameAt = (now: number) => {
+      const frame = replayFrame(following, more, now, arrivedAt);
+      return frame && `${frame.playId}:${frame.stage}`;
+    };
+    expect(frameAt(since - 1)).toBe("b:result");
+    expect(frameAt(since)).toBe("c:result");
+    expect(frameAt(since + DRAW_MS + HOLD_MS)).toBe("c:after");
+  });
+
   it("holds still before the clock has started", () => {
     expect(at(running(), null)).toBe("a:snap");
+  });
+});
+
+describe("frameIndex", () => {
+  it("takes the moment after a play, once the next is known, as it lined up", () => {
+    const after = { playId: "a", stage: "after" } as const;
+    const live = replayFrames([play("k", "kick"), play("a")], true);
+    expect(live[frameIndex(live, after)]?.stage).toBe("after");
+    // "b" arrives: the moment after "a" is "b" lined up.
+    expect(frameIndex(frames, after)).toBe(3);
+    expect(frames[3]).toMatchObject({ playId: "b", stage: "snap" });
+  });
+
+  it("leaves it on the play when what came next is never lined up", () => {
+    const withKick = replayFrames([play("a"), play("t", "kick")]);
+    expect(
+      withKick[frameIndex(withKick, { playId: "a", stage: "after" })],
+    ).toMatchObject({ playId: "a", stage: "result" });
   });
 });
 
@@ -205,6 +272,11 @@ describe("isLive", () => {
 
   it("is behind while plays that were already there are left", () => {
     expect(isLive(running(), frames, 1, () => 0)).toBe(false);
+  });
+
+  it("is caught up on the newest play, with only the wait after it to go", () => {
+    const live = replayFrames([play("k", "kick"), play("a"), play("b")], true);
+    expect(isLive(running(), live, live.length - 2, () => 0)).toBe(true);
   });
 
   it("is never live while paused", () => {

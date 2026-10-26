@@ -153,7 +153,10 @@ control: nothing the viewer does asks ESPN for a week sooner than its
 policy says.
 
 A game's clock is noted as each poll lands (`noteGameClock`), so a delayed
-broadcast can be shown its own moment.
+broadcast can be shown its own moment, and so is its situation, against the
+play it follows (`noteSituations`, `game-situations.ts`), so a viewer at
+that play is shown the game as it then stood, however far the scoreboard
+has moved on.
 
 A week fetched without a game under way is saved, trimmed to the schema's
 fields (about 11 KB), under its season and week with when it arrived;
@@ -433,8 +436,21 @@ ending at the ball; the scoreboard supplies only `[start, ball]`, and
 `GamePlays` connects them. Selecting a play puts it on the field via
 `fieldAtPlay()`: the line of scrimmage and line to gain, its set of downs so
 far, and the snap itself as the last bar. `FieldView` draws the ball at the end
-of the last bar. With nothing selected, a live field follows the scoreboard and
-a finished one stays empty.
+of the last bar. With nothing selected, a finished game's field stays empty.
+
+There is one way to follow a game under way: a replay caught up with it.
+With the result shown it starts that way (a replay begun before the first
+play, long since caught up), and with it hidden, joining or reaching the
+newest play is the same. Past the newest play's result is one more frame,
+`after`: the game as it now stands, until the next play is known
+(`fieldAfterPlay()`). The ball where it was spotted, the down and distance,
+the line to gain, who has the ball, the timeouts and the game's clock. It
+comes from the scoreboard's situation noted after that play, or failing
+that from the play's own word on the next down (`situationAfterPlay()`,
+`nextDown`), which holds only while the same side keeps the ball. After a
+kick, a score or a change of possession, the play stays on the field as it
+ended, with the caption and score row moving on. Before the first play the
+field is the scoreboard's, once the result may be shown.
 
 The feed is newest first whatever the game's state — live, finished, running
 or paused — since the newest play is always the viewer's place, and a feed
@@ -447,17 +463,24 @@ Replay steps through the game a frame at a time, manually or automatically.
 Each snap is two frames: lined up (ball on the line of scrimmage, down and
 distance only), then the result, animated as the bar grows and the ball moves
 to where the play ended. The set of downs stacks from the top so each bar keeps
-its place. Kicks and stoppages have only a result frame. There is one mode:
-whatever is on the field, picked or paused on, can be stepped from, and play
-runs on from it. With a play on the field, the controls — a drive back or
-on, step, play/pause, speed — sit between field and feed; the arrow keys
+its place. The set that earned a first down stays on the field, the chains
+moved, until the new set's first snap is played: lined up for it, or after
+the play that earned it, the field still shows how it was earned. Kicks and
+stoppages have only a result frame. A snap that arrives while a replay waits
+after the play before has no lined-up frame: the wait showed it. There is
+one mode: whatever is on the field, picked or paused on, can be stepped
+from, and play runs on from it. With a play on the field, the controls — a
+drive back or on, step, play/pause, speed — sit between field and feed; the arrow keys
 step as they do, and shifted skip a drive. A drive on lands on its last
 play's result (`skipIndex()`), the next drive's from there; a drive back
 lands on the drive before's end, so the field stands as this one began.
 Either way a running replay runs on from there. At the end of a finished
 game the play control reads **Watch again**. With
-nothing on it, the panel offers **Watch from kickoff** (or **Resume**). A
-hidden live region announces the play on the field. Caught up with a live
+nothing on it, the panel offers **Watch from kickoff** (or **Resume**), and
+while a game is under way **Watch live**, which joins at the newest play and
+follows; the transport offers **Live** while a replay is behind or paused
+short of it. Neither shows once the viewer is there. A hidden live region
+announces the play on the field. Caught up with a live
 game (`isLive()`), there is no speed to choose: what arrives after a replay
 started plays at 1×.
 
@@ -709,26 +732,29 @@ week caught up through.
   "Final"), under the same overtime rule as everywhere
 
 Watching live is being at the newest play. A replay that reaches the end of a
-game under way holds there and plays each new snap out as it arrives
-(`play-arrivals.ts` notes when each one did), so the place follows the game.
+game under way waits after it, on the game as it now stands, and plays each
+new snap out as it arrives (`play-arrivals.ts` notes when each one did), so
+the place follows the game. A viewer whose place is the newest play sees
+the game as it stands too, without watching on.
 Pausing or leaving stops it there; **Resume** replays from the place, at any
 speed, and on reaching the newest play is live again. Followed to the final
 play, the game is seen to the end.
 
 While a replay runs, live or not, the screen is kept awake (`useWakeLock`,
 the browser's Screen Wake Lock), so a phone left on the table does not dim
-mid-drive; paused, ended or never started, it sleeps as usual. The browser
-drops the lock whenever the page is hidden, so it is asked for again on
-return; where it is missing or refused, nothing is said.
+mid-drive, and a game under way with its result shown is always followed.
+Paused, ended or never started, it sleeps as usual. The browser drops the
+lock whenever the page is hidden, so it is asked for again on return; where
+it is missing or refused, nothing is said.
 
-The panel's eyebrow label skips ahead: while the result is hidden, a live
-game's **Live** label joins at the newest play, and a finished game's
-**Final** label sees the game to the end (`finishGame()`). The same label
-in the same place, whether the score is covered or the row stands at a play.
-Tapping a covered score does the same. Add no button and no explanatory
-text for any of these: with a pointer the hover state is the only hint, and
-nothing is spelled out for a finger. A recap is watched outside the app and
-moves nothing.
+Every way into a game is a control that says what it does. Prefer an
+obvious control to a hidden gesture, and never explain a hidden gesture in
+text: make it a control instead. The panel's eyebrow label and a covered
+score are shortcuts besides: a live game's **Live** label joins at the
+newest play (with the result shown, it goes back to following), a finished
+game's **Final** label sees the game to the end (`finishGame()`), and
+tapping a covered score does the same as its label. A recap is watched
+outside the app and moves nothing.
 
 The place reveals nothing unseen, so it does not expire.
 

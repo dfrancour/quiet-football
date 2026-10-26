@@ -36,7 +36,8 @@ interface ScriptedPlay {
   clock: string;
   /** A snap's down, distance and spot; a kick's spot alone. */
   start?: readonly [down: number, distance: number, yardLine: number] | number;
-  end?: number;
+  /** Where it left the ball; with the next down, as ESPN gives it mid-drive. */
+  end?: readonly [down: number, distance: number, yardLine: number] | number;
   /** The score once this play is over, when it changed. */
   score?: readonly [home: number, away: number];
   scoring?: boolean;
@@ -135,7 +136,23 @@ export function makeSummary({ home, away, drives, live }: SummaryScript) {
           ? { penalty: { type: { text: play.penalty } } }
           : {}),
         ...(start ? { start } : {}),
-        ...(play.end === undefined ? {} : { end: { yardLine: play.end } }),
+        ...(play.end === undefined
+          ? {}
+          : typeof play.end === "number"
+            ? { end: { yardLine: play.end } }
+            : {
+                end: {
+                  down: play.end[0],
+                  distance: play.end[1],
+                  yardLine: play.end[2],
+                  downDistanceText: downDistanceText(
+                    ...play.end,
+                    drive.team,
+                    home,
+                    away,
+                  ),
+                },
+              }),
       };
     }),
   }));

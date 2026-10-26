@@ -5,17 +5,23 @@ import {
   drivesByQuarter,
   drivesThrough,
   extractPlayByPlay,
+  fieldAfterPlay,
   fieldAtPlay,
   scoreAfter,
   playsInOrder,
   pointsByPeriod,
   scoreByDrive,
+  situationAfterPlay,
   timeoutsLeft,
   withDriveSpots,
 } from "~/lib/plays";
 import { type Play } from "~/lib/plays.schema";
 import { type FieldState } from "~/lib/score.schema";
-import { FULL_GAME, SHORT_GAME } from "~/lib/test-utils/espn-summaries";
+import {
+  FULL_GAME,
+  SHORT_GAME,
+  makeSummary,
+} from "~/lib/test-utils/espn-summaries";
 
 /** BAL (33) at ATL (1), early in the second quarter. */
 const drives = extractPlayByPlay(SHORT_GAME);
@@ -360,6 +366,25 @@ describe("fieldAtPlay", () => {
     const linedUp = fieldAtPlay(drives, id, "snap");
     expect(linedUp.field).toEqual(fieldAtPlay(drives, id).field);
     expect(linedUp.set.map(({ from, to }) => [from, to])).toEqual([[24, 19]]);
+    // The snap joins this set: its row is held.
+    expect(linedUp.waiting).toBe(true);
+  });
+
+  it("keeps the set that earned a first down until the next set's first snap", () => {
+    // The 21-yard run on 3rd & 3 earned 1st & 10 at ATL 24.
+    const id = idOf("1st & 10 at ATL 24");
+    const linedUp = fieldAtPlay(drives, id, "snap");
+    expect(linedUp.field).toMatchObject({ ballOn: 24, lineToGain: 14 });
+    expect(linedUp.set.map(({ from, to, yards }) => [from, to, yards])).toEqual(
+      [
+        [52, 45, 7],
+        [45, 45, 0],
+        [45, 24, 21],
+      ],
+    );
+    expect(linedUp.waiting).toBe(false);
+    // Played, the new set starts.
+    expect(steps(id)).toEqual([[24, 19, 5]]);
   });
 
   it("kicks a field goal try at the posts, the set left behind it", () => {
@@ -426,6 +451,7 @@ describe("fieldAtPlay", () => {
         returned: true,
       },
       scoredBy: null,
+      waiting: false,
     });
   });
 
@@ -452,7 +478,154 @@ describe("fieldAtPlay", () => {
       set: [],
       kick: null,
       scoredBy: null,
+      waiting: false,
     });
+  });
+});
+
+/**
+ * ATL's drive under way: 4 yards, 1 yard, then 7 on 3rd & 5 for a first
+ * down. ESPN says where each left the ball, as it does mid-drive.
+ */
+const UNDER_WAY = extractPlayByPlay(
+  makeSummary({
+    home: { id: "1", abbreviation: "ATL" },
+    away: { id: "33", abbreviation: "BAL" },
+    live: true,
+    drives: [
+      {
+        id: "d1",
+        team: "home",
+        plays: [
+          {
+            type: "Rush",
+            period: 1,
+            clock: "10:00",
+            start: [1, 10, 30],
+            end: [2, 6, 34],
+            text: "B.Robinson up the middle to ATL 34 for 4 yards (R.Smith).",
+          },
+          {
+            type: "Rush",
+            period: 1,
+            clock: "9:24",
+            start: [2, 6, 34],
+            end: [3, 5, 35],
+            text: "B.Robinson left guard to ATL 35 for 1 yard (R.Smith).",
+          },
+          {
+            type: "Pass Reception",
+            period: 1,
+            clock: "8:51",
+            start: [3, 5, 35],
+            end: [1, 10, 42],
+            text: "K.Cousins pass short right to D.London to ATL 42 for 7 yards.",
+          },
+        ],
+      },
+    ],
+  }),
+);
+const [run, shortRun, conversion] = playsInOrder(UNDER_WAY);
+if (!run || !shortRun || !conversion) throw new Error("Three plays");
+
+describe("fieldAfterPlay", () => {
+  const field = (ballOn: number, lineToGain: number | null): FieldState => ({
+    offense: "home",
+    ballOn,
+    lineToGain,
+    driveSpots: [ballOn],
+  });
+  const bars = (id: string, after: FieldState | null) =>
+    fieldAfterPlay(UNDER_WAY, id, after).set.map(({ from, to, yards }) => [
+      from,
+      to,
+      yards,
+    ]);
+
+  it("rolls over to a new set, keeping the set that earned it", () => {
+    const after = fieldAfterPlay(UNDER_WAY, conversion.id, field(42, 52));
+    expect(after.field).toEqual({
+      offense: "home",
+      ballOn: 42,
+      lineToGain: 52,
+      driveSpots: [30, 34, 35, 42],
+    });
+    expect(bars(conversion.id, field(42, 52))).toEqual([
+      [30, 34, 4],
+      [34, 35, 1],
+      [35, 42, 7],
+    ]);
+    // A new set starts with the next snap, so no row is held for it.
+    expect(after.waiting).toBe(false);
+  });
+
+  it("moves to the next down of the same set, a row held for it", () => {
+    const after = fieldAfterPlay(UNDER_WAY, run.id, field(34, 40));
+    expect(after.field).toMatchObject({ ballOn: 34, lineToGain: 40 });
+    expect(bars(run.id, field(34, 40))).toEqual([[30, 34, 4]]);
+    expect(after.waiting).toBe(true);
+  });
+
+  it("runs the last bar to where the ball was spotted", () => {
+    // Half the distance for a late hit, enforced after the whistle.
+    expect(bars(shortRun.id, field(50, 50)).at(-1)).toEqual([34, 50, 16]);
+  });
+
+  it("leaves the play as it ended when the ball goes over", () => {
+    expect(
+      fieldAfterPlay(UNDER_WAY, conversion.id, {
+        ...field(42, 32),
+        offense: "away",
+      }),
+    ).toEqual(fieldAtPlay(UNDER_WAY, conversion.id));
+    expect(fieldAfterPlay(UNDER_WAY, conversion.id, null)).toEqual(
+      fieldAtPlay(UNDER_WAY, conversion.id),
+    );
+  });
+});
+
+describe("situationAfterPlay", () => {
+  it("reads the next down from ESPN's word on the play", () => {
+    expect(conversion.nextDown).toEqual({
+      downDistance: "1st & 10 at ATL 42",
+      distance: 10,
+    });
+    expect(situationAfterPlay(UNDER_WAY, conversion.id, "home")).toEqual({
+      downDistance: "1st & 10 at ATL 42",
+      possession: "team",
+      isRedZone: false,
+      timeouts: { team: null, opponent: null },
+      lastPlay: null,
+      drive: null,
+      field: { offense: "home", ballOn: 42, lineToGain: 52, driveSpots: [42] },
+    });
+    expect(
+      situationAfterPlay(UNDER_WAY, conversion.id, "away")?.possession,
+    ).toBe("opponent");
+  });
+
+  it("says nothing where ESPN's word cannot be trusted", () => {
+    const changed = (overrides: Partial<Play>) =>
+      situationAfterPlay(
+        UNDER_WAY.map((drive) => ({
+          ...drive,
+          plays: drive.plays.map((play) =>
+            play.id === conversion.id ? { ...play, ...overrides } : play,
+          ),
+        })),
+        conversion.id,
+        "home",
+      );
+    expect(changed({ turnover: true })).toBeNull();
+    expect(changed({ scoring: true, outcome: "touchdown" })).toBeNull();
+    // Short on fourth down, the ball goes over.
+    expect(changed({ down: 4, distance: 8 })).toBeNull();
+    expect(changed({ down: 4, distance: 7 })).not.toBeNull();
+    // Nothing from a drive under way whose plays give no next down.
+    expect(
+      situationAfterPlay(drives, idOf("1st & 10 at BAL 25"), "home"),
+    ).toBeNull();
   });
 });
 
@@ -629,6 +802,7 @@ function play(overrides: Partial<Play>): Play {
     turnover: false,
     penalty: false,
     end: null,
+    nextDown: null,
     score: null,
     ...overrides,
   };

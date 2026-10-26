@@ -1,6 +1,7 @@
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { scoreConfig } from "~/lib/config";
 import { noteGameClock } from "~/lib/game-clocks";
+import { noteSituations } from "~/lib/game-situations";
 import { notePlayArrivals } from "~/lib/play-arrivals";
 import { playoffMarksFromEspn } from "~/lib/playoff-marks";
 import { type PlayoffMarks } from "~/lib/playoff-marks.schema";
@@ -159,8 +160,10 @@ async function fetchWeek(
     week,
     await fetchUpstream(weekScoreboardUrl(season, week), signal),
   );
-  // Noted as each poll lands, so a delayed broadcast can be shown its moment.
+  // Noted as each poll lands, so a delayed broadcast can be shown its moment,
+  // and a viewer at a play the game as it stood after it.
   for (const game of board.board) noteGameClock(game.gameId, game, at);
+  noteSituations(board.payload);
   if (weekActivity(board.games, at) !== "live") {
     saveWeek(season, week, board.payload, at);
   }

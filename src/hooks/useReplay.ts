@@ -31,6 +31,16 @@ const subscribeToReplayClock = (listener: () => void) =>
   subscribeToClock(listener, REPLAY_TICK_MS);
 const subscribeToNothing = () => () => {};
 
+const isResult = (frame: ReplayAt) => frame.stage === "result";
+
+function lastIndexOf<T>(items: readonly T[], test: (item: T) => boolean) {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const item = items[index];
+    if (item !== undefined && test(item)) return index;
+  }
+  return -1;
+}
+
 export interface ReplayControls {
   /** The play on the field; null follows the game, or rests at the place. */
   play: Play | null;
@@ -40,6 +50,8 @@ export interface ReplayControls {
    * lined up, null before kickoff's result.
    */
   revealedId: string | null;
+  /** Past a live game's newest play: the game as it now stands. */
+  atEdge: boolean;
   /** Advancing on its own; false once a finished game's last play is reached. */
   running: boolean;
   /** Caught up with a game under way, taking each play as it comes. */
@@ -49,6 +61,7 @@ export interface ReplayControls {
   atEnd: boolean;
   /** Puts a play's result on the field; a running replay stops on it. */
   select: (playId: string) => void;
+  /** Takes the play off the field, or back to following if that is the default. */
   clear: () => void;
   /**
    * Plays on from the frame on the field, or else from the place, or from
@@ -57,7 +70,7 @@ export interface ReplayControls {
   run: () => void;
   /** Plays on from the play after this one, or from kickoff. */
   resume: (afterId: string | null) => void;
-  /** Plays from the latest play, taking each new one as it comes. */
+  /** Plays the latest play, then each new one as it comes. */
   follow: () => void;
   /**
    * Starts on drives just loaded, before a render has them: from kickoff,
@@ -78,11 +91,15 @@ export interface ReplayControls {
  * them: running, or paused on a frame.
  *
  * State carries its game id, so another game starts fresh without an effect.
- * `ongoing` keeps a replay caught up with a live game running.
+ * `ongoing` keeps a replay caught up with a live game running, and ends its
+ * frames past the newest play, where it waits for the next.
  *
  * `placeId` is the viewer's place when the result is hidden: with nothing on
  * the field, a replay and the arrow keys start from it. `delayMs` holds each
  * arriving play back that long, to match a broadcast.
+ *
+ * `follows` starts it following the game rather than idle: a replay that
+ * began before the first play and has long since caught up.
  */
 export function useReplay(
   gameId: string | null,
@@ -90,16 +107,26 @@ export function useReplay(
   ongoing: boolean,
   placeId: string | null = null,
   delayMs = 0,
+  follows = false,
 ): ReplayControls {
   const [state, setState] = useState<Replay & { gameId: string | null }>({
     ...IDLE_REPLAY,
     gameId: null,
   });
-  const replay = state.gameId === gameId ? state : IDLE_REPLAY;
 
   const plays = useMemo(() => playsInOrder(drives ?? []), [drives]);
   const arrivedAt = (playId: string) => playArrivedAt(playId) + delayMs;
-  const frames = useMemo(() => replayFrames(plays), [plays]);
+  const frames = useMemo(() => replayFrames(plays, ongoing), [plays, ongoing]);
+  const first = frames[0];
+  const idle: Partial<Replay> =
+    follows && first
+      ? {
+          frame: null,
+          running: { from: first, since: Number.NEGATIVE_INFINITY },
+        }
+      : { frame: null, running: null };
+  const replay: Replay =
+    state.gameId === gameId ? state : { ...IDLE_REPLAY, ...idle };
   // While running, the frame is read off the clock, but only a change of
   // frame re-renders: the snapshot is the frame's index, not the time.
   const runningIndex = useSyncExternalStore(
@@ -115,22 +142,22 @@ export function useReplay(
     ? (frames[runningIndex] ?? replay.running.from)
     : replay.frame;
   const index = frameIndex(frames, frame);
-  // With nothing on the field, stepping starts from the place.
+  // With nothing on the field, stepping starts from the place: after it, at
+  // a live game's newest play.
   const origin =
     index !== -1
       ? index
-      : frames.findIndex(
+      : lastIndexOf(
+          frames,
           (candidate) =>
-            candidate.playId === placeId && candidate.stage === "result",
+            candidate.playId === placeId && candidate.stage !== "snap",
         );
   const playIndex = plays.findIndex((play) => play.id === frame?.playId);
   const play = plays[playIndex] ?? null;
   const stage = frame?.stage ?? "result";
   const atEnd = origin === frames.length - 1;
   const revealedId =
-    stage === "result"
-      ? (play?.id ?? null)
-      : (plays[playIndex - 1]?.id ?? null);
+    stage === "snap" ? (plays[playIndex - 1]?.id ?? null) : (play?.id ?? null);
   const running = replay.running !== null && (ongoing || !atEnd);
 
   const update = (next: Partial<Replay>) =>
@@ -139,6 +166,7 @@ export function useReplay(
     start === undefined
       ? { frame: null, running: null }
       : { frame: start, running: { from: start, since: Date.now() } };
+  const newest = frames[lastIndexOf(frames, isResult)];
   const after = (playId: string | null) => {
     const at =
       playId === null
@@ -171,6 +199,7 @@ export function useReplay(
     play,
     stage,
     revealedId,
+    atEdge: frames[origin]?.stage === "after",
     running,
     live: running && ongoing && isLive(replay, frames, index, arrivedAt),
     speed: replay.speed,
@@ -178,7 +207,7 @@ export function useReplay(
     atEnd,
     select: (id) =>
       update({ frame: { playId: id, stage: "result" }, running: null }),
-    clear: () => update({ frame: null, running: null }),
+    clear: () => update(idle),
     run: () =>
       update(
         from(
@@ -188,10 +217,12 @@ export function useReplay(
         ),
       ),
     resume: (afterId) => update(from(after(afterId))),
-    follow: () => update(from(frames.at(-1))),
+    follow: () => update(from(newest)),
     start: (loaded, atEnd) => {
-      const loadedFrames = replayFrames(playsInOrder(loaded));
-      update(from(atEnd ? loadedFrames.at(-1) : loadedFrames[0]));
+      const loadedFrames = replayFrames(playsInOrder(loaded), ongoing);
+      update(
+        from(loadedFrames[atEnd ? lastIndexOf(loadedFrames, isResult) : 0]),
+      );
     },
     pause: () => update({ frame, running: null }),
     step,

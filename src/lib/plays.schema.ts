@@ -127,6 +127,16 @@ export const playSchema = z.object({
    * more reliable, since it includes post-whistle penalty enforcement.
    */
   end: z.number().nullable(),
+  /**
+   * The down the snap left for the next, by ESPN's word: "1st & 10 at PHI
+   * 38" and the yards it needs. Null for anything but a snap, or when ESPN
+   * gives none, as after a score. Like `end`, it misses post-whistle
+   * enforcement, so it stands in only until the next snap or the scoreboard
+   * says otherwise.
+   */
+  nextDown: z
+    .object({ downDistance: z.string(), distance: z.number() })
+    .nullable(),
   scoring: z.boolean(),
   turnover: z.boolean(),
   penalty: z.boolean(),

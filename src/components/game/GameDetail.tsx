@@ -24,7 +24,7 @@ import {
   useKeepWatchProgress,
   useWatchProgress,
 } from "~/hooks/useWatchProgress";
-import { playsInOrder } from "~/lib/plays";
+import { playsInOrder, situationAfterPlay } from "~/lib/plays";
 import { formatDateTime } from "~/lib/dates";
 import { type PlayByPlay } from "~/lib/plays.schema";
 import { findRecap, type Recap, type RecapsFile } from "~/lib/recaps";
@@ -61,6 +61,11 @@ interface GameDetailProps {
   recaps: RecapsFile;
   /** With spoilers hidden, shown only as far as the viewer has watched. */
   playByPlay?: PlayByPlay | null;
+  /**
+   * The game as the scoreboard left it after a play, if a poll saw it
+   * (`game-situations.ts`): shown past the newest play until the next.
+   */
+  situationAfter?: (playId: string) => SituationState | null;
   /**
    * Given while the plays have not been asked for: the viewer's first move
    * to watch asks for them. Resolves to the plays, or null if none came.
@@ -337,6 +342,7 @@ export function GameDetail({
   records = null,
   recaps,
   playByPlay = null,
+  situationAfter,
   onLoadPlays,
   expanded = false,
   onToggleExpanded,
@@ -366,14 +372,17 @@ export function GameDetail({
     stored?.playId ?? null,
   );
   const plays = useMemo(() => playsInOrder(drives ?? []), [drives]);
+  // With the result shown, a game under way is followed from the start: the
+  // newest play as it lands, and the game as it stands between plays.
   const replay = useReplay(
     gameId,
     drives,
     ongoing,
     showSpoilers ? null : (stored?.playId ?? null),
     delayMs,
+    showSpoilers && ongoing,
   );
-  // Pressing play is watching: the screen stays on until it pauses or ends.
+  // Watching is keeping the screen on, until it pauses or ends.
   useWakeLock(replay.running);
   const seenThrough = useKeepWatchProgress(
     gameId,
@@ -399,6 +408,22 @@ export function GameDetail({
           !ongoing && shownThrough === plays.at(-1)?.id,
         )
       : null;
+
+  // Past the newest play, the game as it now stands: as the scoreboard left
+  // it after that play, or the play's own word on where the ball is. Before
+  // the first play, the scoreboard's, once the result may be shown.
+  const activeScore = score?.gameId === gameId ? score : null;
+  const newest = plays.at(-1) ?? null;
+  const edge =
+    !game || !ongoing
+      ? null
+      : newest
+        ? (situationAfter?.(newest.id) ??
+          situationAfterPlay(drives ?? [], newest.id, game.homeAway))
+        : showSpoilers
+          ? (activeScore?.situation ?? null)
+          : null;
+  const { atEdge } = replay;
 
   if (!game) {
     return (
@@ -463,8 +488,6 @@ export function GameDetail({
   }
 
   if (phase === "live") {
-    const matchesLiveScore = score?.gameId === game.gameId;
-    const activeScore = matchesLiveScore ? score : null;
     // The game's own clock, as of the viewer's broadcast.
     const gameClock = broadcastClock ?? activeScore;
     const teamScore = activeScore?.team.score ?? null;
@@ -490,6 +513,26 @@ export function GameDetail({
       hasBall: situation?.possession === "opponent",
       timeouts: situation?.timeouts.opponent ?? null,
     };
+    // Between plays, who has the ball and the timeouts are the game's now.
+    const edgeFigures = (
+      side: "team" | "opponent",
+      watchedTimeouts?: number | null,
+    ) =>
+      atEdge && edge
+        ? {
+            hasBall: edge.possession === side,
+            timeouts: edge.timeouts[side] ?? watchedTimeouts ?? null,
+          }
+        : {};
+    const clockNow = gameClock
+      ? spoilerSafeClock(gameClock, showSpoilers)
+      : null;
+    // Shown, a viewer not following can go back to it.
+    const onFollow = showSpoilers
+      ? plays.length > 0 && !replay.live
+        ? replay.clear
+        : undefined
+      : onReveal;
     const updatedMs =
       activeScore && scoreUpdatedAt !== null ? scoreUpdatedAt : Number.NaN;
 
@@ -500,12 +543,8 @@ export function GameDetail({
           <LiveLabel
             game={game}
             // The row stands at a play; the game itself is here.
-            clock={
-              watched && gameClock
-                ? spoilerSafeClock(gameClock, showSpoilers)
-                : null
-            }
-            onFollow={onReveal}
+            clock={watched && !atEdge ? clockNow : null}
+            onFollow={onFollow}
           />
           {!Number.isNaN(updatedMs) && (
             <span className="text-ink-faint flex items-center gap-1 font-mono text-xs whitespace-nowrap">
@@ -518,14 +557,22 @@ export function GameDetail({
         <ScoreRow
           game={game}
           team={team}
-          followed={{ ...followed, ...watched?.followed }}
-          opposing={{ ...opposing, ...watched?.opposing }}
+          followed={{
+            ...followed,
+            ...watched?.followed,
+            ...edgeFigures("team", watched?.followed.timeouts),
+          }}
+          opposing={{
+            ...opposing,
+            ...watched?.opposing,
+            ...edgeFigures("opponent", watched?.opposing.timeouts),
+          }}
           status={
             <span className="text-ink">
-              {watched?.status ??
-                (gameClock
-                  ? spoilerSafeClock(gameClock, showSpoilers)
-                  : "In progress")}
+              {(atEdge ? clockNow : null) ??
+                watched?.status ??
+                clockNow ??
+                "In progress"}
             </span>
           }
           onReveal={onReveal}
@@ -546,13 +593,14 @@ export function GameDetail({
             {...sides(game, team)}
             replay={replay}
             ongoing
-            situation={situation}
+            edge={edge}
             delay={{
               seconds: delayMs / 1000,
               onCycle: () => cycleBroadcastDelay(selectedId),
             }}
             seenThrough={limit}
             onLoadPlays={loadPlays}
+            onWatchLive={onFollow}
           />
         ) : (
           situation && (

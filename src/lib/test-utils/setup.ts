@@ -4,6 +4,7 @@ import { afterEach, vi } from "vitest";
 import { resetBroadcastDelaysCache } from "~/lib/broadcast-delay";
 import { resetFavoritesCache } from "~/lib/favorite";
 import { resetGameClocks } from "~/lib/game-clocks";
+import { resetGameSituations } from "~/lib/game-situations";
 import { resetPlayArrivals } from "~/lib/play-arrivals";
 import { resetCaughtUpCache, resetShowAllCache } from "~/lib/spoilers";
 import { resetWatchProgressCache } from "~/lib/watch-progress";
@@ -23,11 +24,12 @@ vi.mock("next/navigation", async (importOriginal) => ({
   useRouter: () => router,
 }));
 
-// Plays' arrivals and games' clocks are kept in memory, and what the viewer
+// Plays' arrivals and games' clocks and situations are kept in memory, and what the viewer
 // chose in localStorage; reset them between tests. Node tests have no window.
 afterEach(() => {
   resetPlayArrivals();
   resetGameClocks();
+  resetGameSituations();
   if (typeof window === "undefined") return;
   window.localStorage.clear();
   resetWatchProgressCache();

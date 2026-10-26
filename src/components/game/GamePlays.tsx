@@ -16,6 +16,7 @@ import { nextBroadcastDelay } from "~/lib/broadcast-delay";
 import {
   currentSet,
   drivesThrough,
+  fieldAfterPlay,
   fieldAtPlay,
   withDriveSpots,
   type PlayOnField,
@@ -76,6 +77,16 @@ function Caption({
   return <span aria-hidden />;
 }
 
+/** The live action's mark: the pulsing dot of the panel's Live label. */
+function LiveDot() {
+  return (
+    <span
+      aria-hidden
+      className="bg-live animate-pulse-dot size-1.5 shrink-0 rounded-full"
+    />
+  );
+}
+
 /** How far a live game is held back, to match a broadcast. */
 interface BroadcastDelay {
   seconds: number;
@@ -86,16 +97,20 @@ interface BroadcastDelay {
  * A drive back or on, a step back or on, play or pause, and speed. Paused,
  * the frame stays on the field to browse from. Caught up with a live game
  * there is no speed to choose; the same place holds the delay instead.
+ * Behind a live game, or paused short of its newest play, a way to the
+ * live action.
  */
 function Transport({
   replay,
   delay,
   over,
+  onWatchLive,
 }: {
   replay: ReplayControls;
   delay?: BroadcastDelay;
   /** The game is over, so playing from its end starts it again. */
   over: boolean;
+  onWatchLive?: () => void;
 }) {
   const { running, live, speed, atStart, atEnd } = replay;
   const again = over && atEnd && !running;
@@ -183,32 +198,56 @@ function Transport({
           </button>
         )
       )}
+      {onWatchLive && !replay.live && !replay.atEdge && (
+        <button
+          type="button"
+          onClick={onWatchLive}
+          className={cn(TRANSPORT, "w-auto gap-1.5 px-1.5 text-xs")}
+          aria-label="Watch live"
+          title="Watch live"
+        >
+          <LiveDot />
+          Live
+        </button>
+      )}
     </div>
   );
 }
 
 /**
  * Entry points into watching, with nothing on the field. With the result
- * hidden: unwatched leads with kickoff, partway with resume.
+ * hidden: unwatched leads with kickoff, partway with resume. A game under
+ * way can be joined at its newest play, unless the viewer is already there.
  */
 function WatchActions({
   replay,
   limited,
   seen,
   onLoad,
+  onWatchLive,
 }: {
   replay: ReplayControls;
   limited: boolean;
   seen: string | null;
   /** The plays are not here yet; pressing asks for them and starts. */
   onLoad?: () => void;
+  onWatchLive?: () => void;
 }) {
+  const live = onWatchLive && (
+    <button type="button" onClick={onWatchLive} className={CONTROL}>
+      <LiveDot />
+      Watch live
+    </button>
+  );
   if (onLoad) {
     return (
-      <button type="button" onClick={onLoad} className={PRIMARY}>
-        <Play className="size-3.5" aria-hidden />
-        Watch from kickoff
-      </button>
+      <>
+        {live}
+        <button type="button" onClick={onLoad} className={PRIMARY}>
+          <Play className="size-3.5" aria-hidden />
+          Watch from kickoff
+        </button>
+      </>
     );
   }
   if (limited && seen !== null) {
@@ -222,6 +261,7 @@ function WatchActions({
           <RotateCcw className="size-3.5" aria-hidden />
           From kickoff
         </button>
+        {live}
         <button
           type="button"
           onClick={() => replay.resume(seen)}
@@ -234,40 +274,48 @@ function WatchActions({
     );
   }
   return (
-    <button
-      type="button"
-      onClick={() => replay.resume(null)}
-      className={limited ? PRIMARY : CONTROL}
-    >
-      <Play className="size-3.5" aria-hidden />
-      Watch from kickoff
-    </button>
+    <>
+      {live}
+      <button
+        type="button"
+        onClick={() => replay.resume(null)}
+        className={limited ? PRIMARY : CONTROL}
+      >
+        <Play className="size-3.5" aria-hidden />
+        Watch from kickoff
+      </button>
+    </>
   );
 }
 
 /**
  * Screen-reader announcement of the play on the field: possession and down
- * while lined up, the full play once played. Mounted throughout, so a screen
- * reader is already listening when the first play is announced.
+ * while lined up, the full play once played, and the next down once it is
+ * over. Mounted throughout, so a screen reader is already listening when the
+ * first play is announced.
  */
 function Announcement({
   play,
   offense,
   stage,
+  nextDown,
 }: {
   play: GamePlay | null;
   offense: Team | null;
   stage: ReplayControls["stage"];
+  nextDown: string | null;
 }) {
   return (
     <p aria-live="polite" className="sr-only">
       {play === null
         ? ""
-        : stage === "snap"
-          ? [offense && `${offense.abbreviation} ball`, play.downDistance]
-              .filter(Boolean)
-              .join(", ")
-          : play.text}
+        : stage === "after"
+          ? (nextDown ?? "")
+          : stage === "snap"
+            ? [offense && `${offense.abbreviation} ball`, play.downDistance]
+                .filter(Boolean)
+                .join(", ")
+            : play.text}
     </p>
   );
 }
@@ -277,8 +325,10 @@ function Announcement({
  * field, stepping moves it a frame at a time, and playing steps on its own.
  * Paused, the frame stays on the field to browse from.
  *
- * With nothing on the field, a live field follows the scoreboard; a finished
- * one waits for a pick.
+ * Past a live game's newest play, the field is the game as it now stands
+ * (`edge`): the ball where it was spotted, the down and line to gain, and the
+ * set through that play, until the next play is known. A finished game with
+ * nothing on the field waits for a pick.
  *
  * The feed reads newest first throughout; while playing it holds back each
  * play until its result is out, and with the result hidden it stands at the
@@ -293,18 +343,23 @@ export function GamePlays({
   away,
   replay,
   ongoing,
-  situation = null,
+  edge = null,
   seenThrough,
   delay,
   onLoadPlays,
+  onWatchLive,
 }: {
   drives: Drive[];
   home: Team;
   away: Team;
   replay: ReplayControls;
-  /** Live: the field follows the ball. */
+  /** Live: the newest play is followed by the game as it now stands. */
   ongoing: boolean;
-  situation?: SituationState | null;
+  /**
+   * The game past the newest play, or before the first: from the
+   * scoreboard, or the play's own word. Null where neither says.
+   */
+  edge?: SituationState | null;
   /**
    * Last play seen while the result is hidden; null before anything is
    * watched. Undefined leaves the whole game open.
@@ -317,6 +372,8 @@ export function GamePlays({
    * them and starts from kickoff when they come.
    */
   onLoadPlays?: () => void;
+  /** Joins a game under way at its newest play, and follows it. */
+  onWatchLive?: () => void;
 }) {
   const { play, running, stage, revealedId } = replay;
   const limited = seenThrough !== undefined;
@@ -328,7 +385,17 @@ export function GamePlays({
         null)
       : null;
   const onField = play ?? resting;
-  const liveField = situation?.field ?? null;
+  const newestId = drives.at(-1)?.plays.at(-1)?.id ?? null;
+  // Past the newest play, the field is the game as it stands; before the
+  // first, too.
+  const atEdge =
+    ongoing &&
+    (play
+      ? stage === "after"
+      : onField
+        ? onField.id === newestId
+        : newestId === null);
+  const nextField = edge?.downDistance ? edge.field : null;
   const driveOf = (playId: string | null) =>
     drives.find((drive) => drive.plays.some(({ id }) => id === playId)) ?? null;
   const offenseSide = driveOf(play?.id ?? null)?.offense;
@@ -336,15 +403,18 @@ export function GamePlays({
     offenseSide === "home" ? home : offenseSide === "away" ? away : null;
 
   const shown: PlayOnField = onField
-    ? fieldAtPlay(drives, onField.id, play ? stage : "result")
-    : liveField
+    ? atEdge
+      ? fieldAfterPlay(drives, onField.id, nextField)
+      : fieldAtPlay(drives, onField.id, play ? stage : "result")
+    : atEdge && edge?.field
       ? {
-          field: withDriveSpots(liveField, drives),
-          set: currentSet(liveField, drives),
+          field: withDriveSpots(edge.field, drives),
+          set: currentSet(edge.field, drives),
           kick: null,
           scoredBy: null,
+          waiting: false,
         }
-      : { field: null, set: [], kick: null, scoredBy: null };
+      : { field: null, set: [], kick: null, scoredBy: null, waiting: false };
   // A kick stands for the play on its own; the snaps before it fade back.
   const shownPlayId = shown.kick?.id ?? shown.set.at(-1)?.id ?? null;
 
@@ -375,28 +445,45 @@ export function GamePlays({
           set={shown.set}
           kick={shown.kick}
           scoredBy={shown.scoredBy}
-          focusId={onField && !(play && stage === "snap") ? shownPlayId : null}
+          focusId={
+            onField && !atEdge && !(play && stage === "snap")
+              ? shownPlayId
+              : null
+          }
           drawFocus={
             stage === "result" && play !== null && shownPlayId === play.id
           }
-          linedUp={
-            stage === "snap" && play?.kind === "snap" && play.start !== null
-          }
+          linedUp={shown.waiting}
         />
-        <Announcement play={play} offense={offense} stage={stage} />
+        <Announcement
+          play={play}
+          offense={offense}
+          stage={stage}
+          nextDown={edge?.downDistance ?? null}
+        />
         {/* A phone gets the caption over the controls, every play alike,
             so they never jump rows as the caption's length changes. */}
         <div className="flex min-h-7 flex-col gap-y-1 sm:flex-row sm:items-center sm:justify-between sm:gap-x-3">
-          <Caption play={onField} situation={ongoing ? situation : null} />
+          <Caption
+            play={atEdge && edge?.downDistance ? null : onField}
+            situation={atEdge ? edge : null}
+          />
           <div className="flex items-center gap-4 self-end sm:self-auto">
             {play !== null || running ? (
-              <Transport replay={replay} delay={delay} over={!ongoing} />
+              <Transport
+                replay={replay}
+                delay={delay}
+                over={!ongoing}
+                onWatchLive={onWatchLive}
+              />
             ) : (
               <WatchActions
                 replay={replay}
                 limited={limited}
                 seen={seen}
                 onLoad={onLoadPlays}
+                // At the newest play already, Resume is watching live.
+                onWatchLive={resting?.id === newestId ? undefined : onWatchLive}
               />
             )}
           </div>

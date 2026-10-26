@@ -303,6 +303,7 @@ function snap(id: string, start: number, downDistance: string, text: string) {
     distance: 10,
     start,
     end: null,
+    nextDown: null,
     scoring: false,
     turnover: false,
     penalty: false,
@@ -339,11 +340,16 @@ const playByPlay: PlayByPlay = {
   ],
 };
 
+/** The scoreboard's word after the newest play, as a poll noted it. */
+const situationAfter = (playId: string) =>
+  playId === "22" ? liveScoreWithSituation.situation : null;
+
 describe("GameDetail play-by-play", () => {
   const live = {
     game: liveGame,
     now: KICKOFF_MS + 60_000,
     score: liveScoreWithSituation,
+    situationAfter,
   };
 
   it("lists drives newest first, the one under way open", () => {
@@ -870,6 +876,7 @@ describe("GameDetail plays on the field", () => {
       now: KICKOFF_MS + 60_000,
       score: liveScoreWithSituation,
       playByPlay,
+      situationAfter,
       showSpoilers: true,
     });
     fireEvent.click(
@@ -888,6 +895,95 @@ describe("GameDetail plays on the field", () => {
     expect(
       screen.getByRole("img", { name: /ball on NO 18/ }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("GameDetail between plays", () => {
+  const live = {
+    game: liveGame,
+    now: KICKOFF_MS + 60_000,
+    score: liveScoreWithSituation,
+    playByPlay,
+  };
+  // The 6-yard catch was respotted at the NO 12, a first down.
+  const firstDown = {
+    ...liveScoreWithSituation.situation!,
+    downDistance: "1st & 10 at NO 12",
+    timeouts: { team: 1, opponent: 3 },
+    field: {
+      offense: "away" as const,
+      ballOn: 12,
+      lineToGain: 2,
+      driveSpots: [75, 12],
+    },
+  };
+
+  it("follows a game under way when its result is shown, with no choice", () => {
+    renderDetail({ ...live, situationAfter, showSpoilers: true });
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Watch from kickoff/ }),
+    ).not.toBeInTheDocument();
+    // The game as it stands, captioned and announced, its own clock between
+    // the scores.
+    expect(screen.getAllByText("3rd & 4 at NO 18")).toHaveLength(2);
+    expect(screen.getByText("Q4 - 08:21")).toBeInTheDocument();
+  });
+
+  it("goes back to following once a play is picked", () => {
+    renderDetail({ ...live, situationAfter, showSpoilers: true });
+    // Already following: nowhere further to go.
+    expect(
+      screen.queryByRole("button", { name: "Watch live" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /J\.McCarthy pass to J\.Addison/ }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Watch live" }));
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+
+    // The live label does the same.
+    fireEvent.click(
+      screen.getByRole("button", { name: /J\.McCarthy pass to J\.Addison/ }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /live: watch from the newest play/ }),
+    );
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+  });
+
+  it("rolls over to the next set, keeping the set that earned it", () => {
+    recordWatchProgress(liveGame.gameId, { playId: "22", finished: false });
+    renderDetail({
+      ...live,
+      situationAfter: (playId) => (playId === "22" ? firstDown : null),
+    });
+    expect(screen.getByText("1st & 10 at NO 12")).toBeInTheDocument();
+    const field = screen.getByRole("img", {
+      name: /^MIN ball on NO 12, line to gain NO 2, set of downs began at NO 24/,
+    });
+    // The catch that earned it stays until the next snap.
+    expect(field.querySelectorAll("[data-step]")).toHaveLength(1);
+    // Timeouts and the clock are the game's now, the clock told safely.
+    expect(screen.getByLabelText("1 timeout left")).toBeInTheDocument();
+    expect(screen.getByLabelText("3 timeouts left")).toBeInTheDocument();
+    expect(screen.getByText("Q4+")).toBeInTheDocument();
+    expect(screen.queryByText(/· Q4\+/)).not.toBeInTheDocument();
+  });
+
+  it("goes back to the play itself a step before", () => {
+    recordWatchProgress(liveGame.gameId, { playId: "22", finished: false });
+    renderDetail({
+      ...live,
+      situationAfter: (playId) => (playId === "22" ? firstDown : null),
+    });
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(
+      screen.getByRole("img", {
+        name: /^MIN ball on NO 24, line to gain NO 14/,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("1st & 10 at NO 12")).not.toBeInTheDocument();
   });
 });
 
@@ -1168,6 +1264,72 @@ describe("GameDetail following a live game with spoilers hidden", () => {
     expect(getWatchProgress()[liveGame.gameId]?.playId).toBe(last.id);
     // Not over yet: the game is still going.
     expect(getWatchProgress()[liveGame.gameId]?.finished).toBe(false);
+  });
+
+  it("offers to watch live beside watching from kickoff", () => {
+    renderDetail(live);
+    expect(button(/Watch from kickoff/)).toBeInTheDocument();
+    fireEvent.click(button("Watch live"));
+
+    expect(covered()).toHaveLength(0);
+    expect(getWatchProgress()[liveGame.gameId]?.playId).toBe(last.id);
+    // Following now, there is nowhere further to go.
+    expect(
+      screen.queryByRole("button", { name: "Watch live" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("asks for the plays to watch live, and starts at the newest", async () => {
+    const loaded = { gameId: liveGame.gameId, drives };
+    const onLoadPlays = vi.fn(async () => loaded);
+    const { rerender } = renderDetail({
+      ...live,
+      playByPlay: null,
+      onLoadPlays,
+    });
+    fireEvent.click(button("Watch live"));
+    expect(onLoadPlays).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onLoadPlays.mock.results[0]?.value).resolves);
+    rerender(
+      <GameDetail
+        {...live}
+        team={TEAMS.MIN}
+        scoreError={null}
+        recaps={makeRecaps()}
+        playByPlay={loaded}
+      />,
+    );
+    await waitFor(() =>
+      expect(getWatchProgress()[liveGame.gameId]?.playId).toBe(last.id),
+    );
+  });
+
+  it("offers to watch live from partway, but not from the newest play", () => {
+    recordWatchProgress(liveGame.gameId, {
+      playId: plays[0]!.id,
+      finished: false,
+    });
+    const { unmount } = renderDetail(live);
+    expect(button("Resume")).toBeInTheDocument();
+    fireEvent.click(button("Watch live"));
+    expect(getWatchProgress()[liveGame.gameId]?.playId).toBe(last.id);
+    unmount();
+
+    renderDetail(live);
+    expect(button("Resume")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Watch live" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers the way to live from the controls while behind", () => {
+    renderDetail(live);
+    fireEvent.click(button(/Watch from kickoff/));
+    fireEvent.click(button("Watch live"));
+    expect(getWatchProgress()[liveGame.gameId]?.playId).toBe(last.id);
+    expect(
+      screen.queryByRole("button", { name: /^Speed/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps the place when paused, to catch up from later", () => {

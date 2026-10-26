@@ -17,6 +17,7 @@ import { useRecaps } from "~/hooks/useRecaps";
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
 import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
+import { situationAfter } from "~/lib/game-situations";
 import { type LoadedPlayByPlay, playByPlayQuery } from "~/lib/queries";
 import { standingsPath, teamPath } from "~/lib/routes";
 import { defaultGameId, gamePhase } from "~/lib/schedule";
@@ -215,6 +216,14 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     selectedIsLive,
     scoreMark,
   );
+  // Read as the panel draws, so each poll's note is there by the next.
+  const situationAfterPlay = useCallback(
+    (playId: string) =>
+      selectedGameId === null
+        ? null
+        : situationAfter(selectedGameId, playId, team.abbreviation),
+    [selectedGameId, team.abbreviation],
+  );
 
   // The body comes in whole, marks and all, under the header already there.
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -299,6 +308,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
               records={records}
               recaps={recaps}
               playByPlay={playByPlay}
+              situationAfter={situationAfterPlay}
               onLoadPlays={playable && !playsWanted ? loadPlays : undefined}
               expanded={expanded}
               onToggleExpanded={toggleExpanded}

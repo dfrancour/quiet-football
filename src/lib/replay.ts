@@ -1,8 +1,12 @@
 import { type Drive, type Play } from "~/lib/plays.schema";
 import { replayTiming } from "~/lib/replay-timing";
 
-/** A snap has two stages, lined up then result; anything else, a result. */
-export type ReplayStage = "snap" | "result";
+/**
+ * A snap has two stages, lined up then result; anything else, a result. A
+ * live game's newest play has a third, `after`: the game as it now stands,
+ * until the next play is known.
+ */
+export type ReplayStage = "snap" | "result" | "after";
 
 export interface ReplayAt {
   playId: string;
@@ -10,7 +14,7 @@ export interface ReplayAt {
 }
 
 export interface ReplayFrame extends ReplayAt {
-  /** Zero for a lined-up snap. */
+  /** Zero for a lined-up snap, and after. */
   drawMs: number;
 }
 
@@ -61,7 +65,10 @@ export function isLive(
     running !== null &&
     frames
       .slice(index + 1)
-      .every((frame) => arrivedAt(frame.playId) > running.since)
+      .every(
+        (frame) =>
+          frame.stage === "after" || arrivedAt(frame.playId) > running.since,
+      )
   );
 }
 
@@ -71,9 +78,12 @@ export const IDLE_REPLAY: Replay = {
   speed: 1,
 };
 
-/** Every frame in order. */
-export function replayFrames(plays: Play[]): ReplayFrame[] {
-  return plays.flatMap((play): ReplayFrame[] =>
+/**
+ * Every frame in order; `ongoing`, ending after the newest play, where a
+ * replay that reaches it waits for the next.
+ */
+export function replayFrames(plays: Play[], ongoing = false): ReplayFrame[] {
+  const frames = plays.flatMap((play): ReplayFrame[] =>
     play.kind === "snap" && play.start !== null
       ? [
           { playId: play.id, stage: "snap", drawMs: 0 },
@@ -81,6 +91,10 @@ export function replayFrames(plays: Play[]): ReplayFrame[] {
         ]
       : [{ playId: play.id, stage: "result", drawMs: drawMsOf(play) }],
   );
+  const newest = plays.at(-1);
+  return ongoing && newest
+    ? [...frames, { playId: newest.id, stage: "after", drawMs: 0 }]
+    : frames;
 }
 
 /**
@@ -113,7 +127,9 @@ export function skipIndex(
 
 /**
  * A play that has lost its snap stage matches on the play alone; an unknown
- * play is -1.
+ * play is -1. Once the next play is known, the moment after a play is that
+ * play lined up, which shows the same; a kick, never lined up, leaves the
+ * moment on the play before it.
  */
 export function frameIndex(
   frames: ReplayFrame[],
@@ -124,16 +140,24 @@ export function frameIndex(
     (candidate) =>
       candidate.playId === frame.playId && candidate.stage === frame.stage,
   );
-  return exact !== -1
-    ? exact
-    : frames.findIndex((candidate) => candidate.playId === frame.playId);
+  if (exact !== -1) return exact;
+  if (frame.stage === "after") {
+    const result = frames.findIndex(
+      (candidate) =>
+        candidate.playId === frame.playId && candidate.stage === "result",
+    );
+    if (result === -1) return -1;
+    return frames[result + 1]?.stage === "snap" ? result + 1 : result;
+  }
+  return frames.findIndex((candidate) => candidate.playId === frame.playId);
 }
 
 /**
  * The frame at `now`. A running replay holds at the last frame, so a live
  * game's next play is picked up when it arrives: a frame starts no earlier
  * than `arrivedAt` its play, and plays out in full from there, at 1×, as
- * live is watched.
+ * live is watched. A snap that arrives while the replay waits after the play
+ * before goes straight to its result: the wait showed it lined up.
  */
 export function replayFrame(
   replay: Replay,
@@ -145,16 +169,16 @@ export function replayFrame(
   if (!running) return replay.frame;
   let index = Math.max(0, frameIndex(frames, running.from));
   let startedAt = running.since;
+  let waited = false;
   for (;;) {
     const frame = frames[index];
     const next = frames[index + 1];
     if (!frame || !next || now === null) return frame ?? null;
     const speed = arrivedAt(frame.playId) > running.since ? 1 : replay.speed;
-    const nextAt = Math.max(
-      startedAt + frameMs(frame, speed),
-      arrivedAt(next.playId),
-    );
+    const due: number = waited ? startedAt : startedAt + frameMs(frame, speed);
+    const nextAt = Math.max(due, arrivedAt(next.playId));
     if (now < nextAt) return frame;
+    waited = next.stage === "snap" && arrivedAt(next.playId) > due;
     startedAt = nextAt;
     index += 1;
   }

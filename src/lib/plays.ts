@@ -18,7 +18,7 @@ import {
 } from "~/lib/plays.schema";
 import { type ReplayStage } from "~/lib/replay";
 import { cleanPlayText, periodName } from "~/lib/score";
-import { type FieldState } from "~/lib/score.schema";
+import { type FieldState, type SituationState } from "~/lib/score.schema";
 
 export const SUMMARY_URL =
   "https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary";
@@ -211,6 +211,20 @@ function stoppageHeadline(
   }
 }
 
+/** ESPN's next down from a play's end; it reads -1 after a score. */
+function readNextDown(end: RawPlay["end"]): Play["nextDown"] {
+  const downDistance = end?.downDistanceText?.trim();
+  if (
+    !downDistance ||
+    typeof end?.down !== "number" ||
+    end.down < 1 ||
+    typeof end.distance !== "number"
+  ) {
+    return null;
+  }
+  return { downDistance, distance: end.distance };
+}
+
 function readPlay(play: RawPlay, sideOfCode: SideOfCode): Play | null {
   const text = cleanPlayText(play.text);
   if (!text) return null;
@@ -244,6 +258,7 @@ function readPlay(play: RawPlay, sideOfCode: SideOfCode): Play | null {
     start:
       placed && isOnField(play.start?.yardLine) ? play.start.yardLine : null,
     end: placed && isOnField(play.end?.yardLine) ? play.end.yardLine : null,
+    nextDown: kind === "snap" ? readNextDown(play.end) : null,
     scoring: play.scoringPlay === true,
     turnover: play.isTurnover === true,
     penalty: play.isPenalty === true,
@@ -515,6 +530,11 @@ export interface PlayOnField {
   kick: KickFlight | null;
   /** The side the play put points up for. */
   scoredBy: FieldSide | null;
+  /**
+   * A snap is to come in this set: its row is held, so the set does not
+   * shift when its bar is drawn. Not when it starts a set of its own.
+   */
+  waiting: boolean;
 }
 
 /** The posts: on the end line, ten yards past the goal being attacked. */
@@ -544,6 +564,14 @@ function scoringSide(
   return play.turnover ? defense : offense;
 }
 
+const NOWHERE: PlayOnField = {
+  field: null,
+  set: [],
+  kick: null,
+  scoredBy: null,
+  waiting: false,
+};
+
 /**
  * The field for one play: the line of scrimmage and line to gain it was
  * snapped against, and the set of downs through that snap, the snap last.
@@ -552,7 +580,8 @@ function scoringSide(
  * the next drive begins.
  *
  * At the `snap` stage the snap is only lined up: the set stops short of it and
- * nothing is kicked.
+ * nothing is kicked. Lined up for a new set's first snap, the set that earned
+ * it stays on the field until that snap is played.
  *
  * A non-snap (timeout, end of quarter) shows the snap before it in its drive,
  * or the drive's first snap when it opens the drive.
@@ -562,17 +591,11 @@ export function fieldAtPlay(
   playId: string,
   stage: ReplayStage = "result",
 ): PlayOnField {
-  const nowhere: PlayOnField = {
-    field: null,
-    set: [],
-    kick: null,
-    scoredBy: null,
-  };
   const drive = drives.find((candidate) =>
     candidate.plays.some((play) => play.id === playId),
   );
   const target = drive?.plays.find((play) => play.id === playId);
-  if (!drive?.offense || !target) return nowhere;
+  if (!drive?.offense || !target) return NOWHERE;
   const offense = drive.offense;
   const played = !(stage === "snap" && target.kind === "snap");
   const scoredBy =
@@ -607,7 +630,7 @@ export function fieldAtPlay(
             offense === "home" ? "away" : "home",
           )
         : null;
-    if (!opening && !kicked) return nowhere;
+    if (!opening && !kicked) return NOWHERE;
     return {
       field: opening
         ? fieldAt(opening.start, opening)
@@ -615,6 +638,7 @@ export function fieldAtPlay(
       set: [],
       kick: kicked,
       scoredBy,
+      waiting: false,
     };
   }
 
@@ -624,15 +648,24 @@ export function fieldAtPlay(
     if (snap.start !== driveSpots.at(-1)) driveSpots.push(snap.start);
   }
 
-  const series = driveSeries(drive).find((candidate) =>
+  const allSeries = driveSeries(drive);
+  const seriesIndex = allSeries.findIndex((candidate) =>
     candidate.plays.includes(anchor),
   );
   const linedUp = !played && anchor.id === playId;
-  const setSnaps = (series?.plays ?? [anchor]).filter(isSetSnap);
-  const through = setSnaps.filter(
+  const setSnaps = (allSeries[seriesIndex]?.plays ?? [anchor]).filter(
+    isSetSnap,
+  );
+  const inSet = setSnaps.filter(
     (snap) =>
       snaps.indexOf(snap) < anchorIndex || (snap === anchor && !linedUp),
   );
+  // Lined up to start a set: the set before it, which earned it, stays.
+  const carried =
+    linedUp && inSet.length === 0
+      ? (allSeries[seriesIndex - 1]?.plays.filter(isSetSnap) ?? [])
+      : [];
+  const through = carried.length > 0 ? carried : inSet;
   const set = through.map((snap) => {
     const next = snaps[snaps.indexOf(snap) + 1];
     return downStep(snap, next?.start ?? snap.end ?? snap.start, offense);
@@ -663,6 +696,120 @@ export function fieldAtPlay(
     set,
     kick,
     scoredBy,
+    waiting: linedUp && carried.length === 0,
+  };
+}
+
+/**
+ * The field once a play is over and before the next is known: where the
+ * ball now is (`after`, from the scoreboard or the play's own end), its line
+ * to gain, and the set through the play, the last bar run on to the ball. A
+ * set the play earned stays until the next set's first snap is played.
+ *
+ * Only while the same side keeps the ball: after a kick, a score or a change
+ * of possession, the play stays on the field as it ended.
+ */
+export function fieldAfterPlay(
+  drives: Drive[],
+  playId: string,
+  after: FieldState | null,
+): PlayOnField {
+  const shown = fieldAtPlay(drives, playId);
+  const offense = drives.find((drive) =>
+    drive.plays.some((play) => play.id === playId),
+  )?.offense;
+  if (
+    !after ||
+    !shown.field ||
+    shown.kick ||
+    shown.scoredBy ||
+    after.offense !== offense
+  ) {
+    return shown;
+  }
+  const last = shown.set.at(-1);
+  const set = last
+    ? [
+        ...shown.set.slice(0, -1),
+        {
+          ...last,
+          to: after.ballOn,
+          yards: forward(offense) * (after.ballOn - last.from),
+        },
+      ]
+    : shown.set;
+  const { driveSpots } = shown.field;
+  return {
+    field: {
+      offense,
+      ballOn: after.ballOn,
+      lineToGain: after.lineToGain,
+      driveSpots:
+        driveSpots.at(-1) === after.ballOn
+          ? driveSpots
+          : [...driveSpots, after.ballOn],
+    },
+    set,
+    kick: null,
+    scoredBy: null,
+    waiting: after.lineToGain === shown.field.lineToGain,
+  };
+}
+
+/**
+ * The game after a play by ESPN's word on the play itself (`nextDown`), from
+ * `followed`'s side: for the moment between plays when no scoreboard noted
+ * it. Null unless the same side keeps the ball: after a kick, a score or a
+ * turnover, ESPN's word on the play is not to be trusted. A non-snap reads
+ * the snap before it. It knows nothing of timeouts.
+ */
+export function situationAfterPlay(
+  drives: Drive[],
+  playId: string,
+  followed: FieldSide,
+): SituationState | null {
+  const drive = drives.find((candidate) =>
+    candidate.plays.some((play) => play.id === playId),
+  );
+  if (!drive?.offense || !drive.inProgress) return null;
+  let anchor: PlacedSnap | null = null;
+  for (const play of drive.plays) {
+    if (isPlacedSnap(play)) anchor = play;
+    if (play.id === playId) break;
+  }
+  if (
+    !anchor?.nextDown ||
+    anchor.end === null ||
+    anchor.outcome !== null ||
+    anchor.scoring ||
+    anchor.turnover
+  ) {
+    return null;
+  }
+  const offense = drive.offense;
+  // Short on fourth down, the ball goes over.
+  const line = lineToGainOf(anchor, drive);
+  if (
+    anchor.down === 4 &&
+    line !== null &&
+    forward(offense) * (anchor.end - line) < 0
+  ) {
+    return null;
+  }
+  const ballOn = anchor.end;
+  return {
+    downDistance: anchor.nextDown.downDistance,
+    possession: offense === followed ? "team" : "opponent",
+    isRedZone: forward(offense) * (ballOn - FIELD_YARDS / 2) >= 30,
+    timeouts: { team: null, opponent: null },
+    lastPlay: null,
+    drive: null,
+    field: {
+      offense,
+      ballOn,
+      lineToGain: lineToGain(ballOn, anchor.nextDown.distance, offense),
+      driveSpots: [ballOn],
+    },
   };
 }
 

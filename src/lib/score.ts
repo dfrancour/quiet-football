@@ -222,6 +222,29 @@ export function extractScoreboard(payload: unknown): BoardGame[] {
   });
 }
 
+/** A team's side of a game and the other side; null if it does not play in it. */
+function sidesFor(
+  competition: Competition,
+  teamAbbreviation: string,
+): { team: Competitor; opponent: Competitor; target: string } | null {
+  const target = teamAbbreviation.toUpperCase();
+  const competitors = competition.competitors ?? [];
+  const team = competitors.find(
+    (competitor) => competitor.team?.abbreviation?.toUpperCase() === target,
+  );
+  const opponent = competitors.find((competitor) => competitor !== team);
+  return team && opponent ? { team, opponent, target } : null;
+}
+
+/** A game's situation from one team's side; null if it has none. */
+export function teamSituation(
+  competition: Competition,
+  teamAbbreviation: string,
+): SituationState | null {
+  const sides = sidesFor(competition, teamAbbreviation);
+  return sides ? readSituation(competition, sides.team, sides.opponent) : null;
+}
+
 /** Null when the team has no game on the board. */
 export function extractTeamScore(
   payload: unknown,
@@ -230,20 +253,12 @@ export function extractTeamScore(
   const parsed = scoreboardSchema.safeParse(payload);
   if (!parsed.success) return null;
 
-  const target = teamAbbreviation.toUpperCase();
-
   for (const event of parsed.data.events ?? []) {
     const competition = event.competitions?.[0];
     if (!competition) continue;
-
-    const competitors = competition.competitors ?? [];
-    const team = competitors.find(
-      (competitor) => competitor.team?.abbreviation?.toUpperCase() === target,
-    );
-    if (!team) continue;
-
-    const opponent = competitors.find((competitor) => competitor !== team);
-    if (!opponent) continue;
+    const sides = sidesFor(competition, teamAbbreviation);
+    if (!sides) continue;
+    const { team, opponent, target } = sides;
 
     return {
       gameId: String(event.id),
