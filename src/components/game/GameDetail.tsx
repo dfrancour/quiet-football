@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, type ComponentProps, type ReactNode } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { FieldView } from "~/components/game/FieldView";
 import {
@@ -8,6 +8,7 @@ import {
   figuresAt,
   sideStanding,
   sides,
+  type SideFigures,
 } from "~/components/game/ScoreRow";
 import { GamePlays } from "~/components/game/GamePlays";
 import { RecapLink } from "~/components/recap/RecapLink";
@@ -26,7 +27,7 @@ import {
 } from "~/hooks/useWatchProgress";
 import { playsInOrder, situationAfterPlay } from "~/lib/plays";
 import { formatDateTime } from "~/lib/dates";
-import { type PlayByPlay } from "~/lib/plays.schema";
+import { type Drive, type PlayByPlay } from "~/lib/plays.schema";
 import { findRecap, type Recap, type RecapsFile } from "~/lib/recaps";
 import { type LiveScore, type SituationState } from "~/lib/score.schema";
 import {
@@ -331,6 +332,90 @@ function Panel({
 }
 
 /**
+ * A live or final game: its label over the score, its plays (or what stands
+ * in for them), and when and on what. Sideways the label and score head the
+ * field's column, filling the height given; from md up the feed scrolls, the
+ * panel only as a fallback.
+ */
+function PlayedGame({
+  game,
+  team,
+  expand,
+  sideways,
+  label,
+  recap = null,
+  score,
+  drives,
+  feed,
+  fallback = null,
+  note = null,
+}: {
+  game: TeamGame;
+  team: Team;
+  expand: ExpandControl;
+  sideways: boolean;
+  /** The top row's label, beside the recap and full-screen controls. */
+  label: ReactNode;
+  recap?: Recap | null;
+  score: Omit<ComponentProps<typeof ScoreRow>, "game" | "team" | "compact"> & {
+    /** Keeps a gap under the row, as a final game's has. */
+    spaced?: boolean;
+  };
+  /** Null when there are no plays to draw nor any to ask for. */
+  drives: Drive[] | null;
+  feed: Omit<
+    ComponentProps<typeof GamePlays>,
+    "drives" | "home" | "away" | "sideways" | "head"
+  >;
+  /** In place of the plays when there are none. */
+  fallback?: ReactNode;
+  /** A line under the plays. */
+  note?: ReactNode;
+}) {
+  const inColumn = sideways && drives !== null;
+  const { spaced = false, ...row } = score;
+  const head = (
+    <>
+      <Eyebrow {...expand} flush={inColumn} recap={recap}>
+        {label}
+      </Eyebrow>
+      <div className={spaced && !inColumn ? "mb-4" : undefined}>
+        <ScoreRow game={game} team={team} compact={sideways} {...row} />
+      </div>
+    </>
+  );
+
+  return (
+    <Panel
+      className={
+        sideways
+          ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
+          : "md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain"
+      }
+    >
+      {!inColumn && head}
+      {drives ? (
+        <GamePlays
+          drives={drives}
+          {...sides(game, team)}
+          {...feed}
+          sideways={sideways}
+          head={inColumn ? head : undefined}
+        />
+      ) : (
+        fallback
+      )}
+      {note}
+      {!expand.expanded && !sideways && (
+        <div className="border-edge mt-4 border-t pt-3">
+          <Meta game={game} />
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/**
  * Everything shown about the selected game, branched on its phase.
  *
  * Nothing reveals a result the viewer has not seen, including which side is
@@ -452,10 +537,6 @@ export function GameDetail({
 
   const phase = broadcastPhase(gamePhase(game, now), broadcastClock);
   const { gameId: selectedId } = game;
-  // A game with plays: sideways it fills the height it is given.
-  const playsPanel = sideways
-    ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
-    : "md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain";
   // Plays not yet asked for: the first move to watch asks, then starts.
   const loadThen = (atEnd: boolean) =>
     onLoadPlays
@@ -503,43 +584,58 @@ export function GameDetail({
     );
   }
 
-  if (phase === "live") {
-    // The game's own clock, as of the viewer's broadcast.
-    const gameClock = broadcastClock ?? activeScore;
-    const teamScore = activeScore?.team.score ?? null;
-    const opponentScore = activeScore?.opponent.score ?? null;
-    // The scoreboard calls a game over before the stored season catches up.
+  /** Each side's record and score as far as the result may be shown. */
+  const resultFigures = (
+    teamScore: number | null,
+    opponentScore: number | null,
+    over: boolean,
+  ) => {
     const standing = sideStanding(
       showSpoilers ? teamScore : null,
       showSpoilers ? opponentScore : null,
+      over,
+    );
+    return {
+      followed: {
+        record: records && formatRecord(records.team),
+        ...standing.followed,
+        display: maskedScore(teamScore, showSpoilers),
+      },
+      opposing: {
+        record: records && formatRecord(records.opponent),
+        ...standing.opposing,
+        display: maskedScore(opponentScore, showSpoilers),
+      },
+    };
+  };
+
+  if (phase === "live") {
+    // The game's own clock, as of the viewer's broadcast.
+    const gameClock = broadcastClock ?? activeScore;
+    // The scoreboard calls a game over before the stored season catches up.
+    const { followed, opposing } = resultFigures(
+      activeScore?.team.score ?? null,
+      activeScore?.opponent.score ?? null,
       gameClock?.completed === true,
     );
     const situation = showSpoilers ? (activeScore?.situation ?? null) : null;
-    const followed = {
-      record: records && formatRecord(records.team),
-      ...standing.followed,
-      display: maskedScore(teamScore, showSpoilers),
-      hasBall: situation?.possession === "team",
-      timeouts: situation?.timeouts.team ?? null,
-    };
-    const opposing = {
-      record: records && formatRecord(records.opponent),
-      ...standing.opposing,
-      display: maskedScore(opponentScore, showSpoilers),
-      hasBall: situation?.possession === "opponent",
-      timeouts: situation?.timeouts.opponent ?? null,
-    };
-    // Between plays, who has the ball and the timeouts are the game's now.
-    const edgeFigures = (
-      side: "team" | "opponent",
-      watchedTimeouts?: number | null,
-    ) =>
-      atEdge && edge
+    // Who has the ball and the timeouts: the scoreboard's, then the play on
+    // the field's, and between plays the game's now.
+    const side = (
+      shown: "team" | "opponent",
+      watchedSide?: Partial<SideFigures>,
+    ): SideFigures => ({
+      ...(shown === "team" ? followed : opposing),
+      hasBall: situation?.possession === shown,
+      timeouts: situation?.timeouts[shown] ?? null,
+      ...watchedSide,
+      ...(atEdge && edge
         ? {
-            hasBall: edge.possession === side,
-            timeouts: edge.timeouts[side] ?? watchedTimeouts ?? null,
+            hasBall: edge.possession === shown,
+            timeouts: edge.timeouts[shown] ?? watchedSide?.timeouts ?? null,
           }
-        : {};
+        : {}),
+    });
     const clockNow = gameClock
       ? spoilerSafeClock(gameClock, showSpoilers)
       : null;
@@ -549,195 +645,126 @@ export function GameDetail({
         ? replay.clear
         : undefined
       : onReveal;
-    const updatedMs =
-      activeScore && scoreUpdatedAt !== null ? scoreUpdatedAt : Number.NaN;
+    const updatedAt = activeScore ? scoreUpdatedAt : null;
 
-    // Sideways, the label and score head the field's column.
-    const inColumn = sideways && shownDrives !== null;
-    const head = (
-      <>
-        <Eyebrow {...expand} flush={inColumn}>
-          <LiveLabel
-            game={game}
-            // The row stands at a play; the game itself is here.
-            clock={watched && !atEdge ? clockNow : null}
-            onFollow={onFollow}
-          />
-          {!Number.isNaN(updatedMs) && (
-            <span className="text-ink-faint flex items-center gap-1 font-mono text-xs whitespace-nowrap">
-              <span className="hidden sm:inline">Updated</span>
-              {formatAge(now - updatedMs)}
-            </span>
-          )}
-        </Eyebrow>
-
-        <ScoreRow
-          game={game}
-          team={team}
-          followed={{
-            ...followed,
-            ...watched?.followed,
-            ...edgeFigures("team", watched?.followed.timeouts),
-          }}
-          opposing={{
-            ...opposing,
-            ...watched?.opposing,
-            ...edgeFigures("opponent", watched?.opposing.timeouts),
-          }}
-          status={
+    return (
+      <PlayedGame
+        game={game}
+        team={team}
+        expand={expand}
+        sideways={sideways}
+        label={
+          <>
+            <LiveLabel
+              game={game}
+              // The row stands at a play; the game itself is here.
+              clock={watched && !atEdge ? clockNow : null}
+              onFollow={onFollow}
+            />
+            {updatedAt !== null && (
+              <span className="text-ink-faint flex items-center gap-1 font-mono text-xs whitespace-nowrap">
+                <span className="hidden sm:inline">Updated</span>
+                {formatAge(now - updatedAt)}
+              </span>
+            )}
+          </>
+        }
+        score={{
+          followed: side("team", watched?.followed),
+          opposing: side("opponent", watched?.opposing),
+          status: (
             <span className="text-ink">
               {(atEdge ? clockNow : null) ??
                 watched?.status ??
                 clockNow ??
                 "In progress"}
             </span>
-          }
-          onReveal={onReveal}
-          compact={sideways}
-          periods={
+          ),
+          onReveal,
+          periods:
             watched?.periods ??
             (showSpoilers && activeScore
               ? {
                   followed: activeScore.team.periods,
                   opposing: activeScore.opponent.periods,
                 }
-              : null)
-          }
-        />
-      </>
-    );
-
-    // From md up the play feed scrolls; the panel scrolls only as a fallback.
-    return (
-      <Panel className={playsPanel}>
-        {!inColumn && head}
-
-        {shownDrives ? (
-          <GamePlays
-            drives={shownDrives}
-            {...sides(game, team)}
-            replay={replay}
-            ongoing
-            edge={edge}
-            delay={{
-              seconds: delayMs / 1000,
-              onCycle: () => cycleBroadcastDelay(selectedId),
-            }}
-            seenThrough={limit}
-            onLoadPlays={loadPlays}
-            onWatchLive={onFollow}
-            sideways={sideways}
-            head={inColumn ? head : undefined}
-          />
-        ) : (
+              : null),
+        }}
+        drives={shownDrives}
+        feed={{
+          replay,
+          ongoing: true,
+          edge,
+          delay: {
+            seconds: delayMs / 1000,
+            onCycle: () => cycleBroadcastDelay(selectedId),
+          },
+          seenThrough: limit,
+          onLoadPlays: loadPlays,
+          onWatchLive: onFollow,
+        }}
+        fallback={
           situation && (
             <Situation situation={situation} game={game} team={team} />
           )
-        )}
-
-        {scoreError && showSpoilers && (
-          <p className="text-ink-faint mt-2 text-xs">
-            Score may be stale: {scoreError}
-          </p>
-        )}
-
-        {!expanded && !sideways && (
-          <div className="border-edge mt-4 border-t pt-3">
-            <Meta game={game} />
-          </div>
-        )}
-      </Panel>
+        }
+        note={
+          scoreError &&
+          showSpoilers && (
+            <p className="text-ink-faint mt-2 text-xs">
+              Score may be stale: {scoreError}
+            </p>
+          )
+        }
+      />
     );
   }
 
   if (phase === "final") {
-    const result = game.result;
-    const standing = sideStanding(
-      showSpoilers ? (result?.teamScore ?? null) : null,
-      showSpoilers ? (result?.opponentScore ?? null) : null,
+    const { followed, opposing } = resultFigures(
+      game.result?.teamScore ?? null,
+      game.result?.opponentScore ?? null,
       true,
     );
-
-    // As the live panel: the label and score head the field's column
-    // sideways, and from md up the play feed scrolls.
-    const inColumn = sideways && shownDrives !== null;
-    const head = (
-      <>
-        <Eyebrow
-          {...expand}
-          flush={inColumn}
-          recap={findRecap(recaps, game.gameId)}
-        >
-          {/* Covered or stood at a play, the game itself is over. */}
-          {watched || onReveal ? (
+    return (
+      <PlayedGame
+        game={game}
+        team={team}
+        expand={expand}
+        sideways={sideways}
+        label={
+          // Covered or stood at a play, the game itself is over.
+          watched || onReveal ? (
             <FinalLabel game={game} onFinish={onReveal} />
           ) : (
             <span className="label-eyebrow">{weekLabel(game)}</span>
-          )}
-        </Eyebrow>
-
-        <div className={inColumn ? undefined : "mb-4"}>
-          <ScoreRow
-            game={game}
-            team={team}
-            followed={{
-              record: records && formatRecord(records.team),
-              ...standing.followed,
-              display: maskedScore(result?.teamScore ?? null, showSpoilers),
-              ...watched?.followed,
-            }}
-            opposing={{
-              record: records && formatRecord(records.opponent),
-              ...standing.opposing,
-              display: maskedScore(result?.opponentScore ?? null, showSpoilers),
-              ...watched?.opposing,
-            }}
-            status={
-              watched ? (
-                <span className="text-ink">{watched.status}</span>
-              ) : (
-                <span className="text-ink-muted">Final</span>
-              )
-            }
-            onReveal={onReveal}
-            compact={sideways}
-            periods={
-              watched?.periods ??
-              (showSpoilers && game.periods
-                ? {
-                    followed: game.periods.team,
-                    opposing: game.periods.opponent,
-                  }
-                : null)
-            }
-          />
-        </div>
-      </>
-    );
-
-    return (
-      <Panel className={playsPanel}>
-        {!inColumn && head}
-
-        {shownDrives && (
-          <GamePlays
-            drives={shownDrives}
-            {...sides(game, team)}
-            replay={replay}
-            ongoing={false}
-            seenThrough={limit}
-            onLoadPlays={loadPlays}
-            sideways={sideways}
-            head={inColumn ? head : undefined}
-          />
-        )}
-
-        {!expanded && !sideways && (
-          <div className="border-edge mt-4 border-t pt-3">
-            <Meta game={game} />
-          </div>
-        )}
-      </Panel>
+          )
+        }
+        recap={findRecap(recaps, game.gameId)}
+        score={{
+          followed: { ...followed, ...watched?.followed },
+          opposing: { ...opposing, ...watched?.opposing },
+          status: watched ? (
+            <span className="text-ink">{watched.status}</span>
+          ) : (
+            <span className="text-ink-muted">Final</span>
+          ),
+          onReveal,
+          periods:
+            watched?.periods ??
+            (showSpoilers && game.periods
+              ? { followed: game.periods.team, opposing: game.periods.opponent }
+              : null),
+          spaced: true,
+        }}
+        drives={shownDrives}
+        feed={{
+          replay,
+          ongoing: false,
+          seenThrough: limit,
+          onLoadPlays: loadPlays,
+        }}
+      />
     );
   }
 
