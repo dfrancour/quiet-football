@@ -19,7 +19,14 @@ export function SiteMark({ href, back = false }: SiteMarkProps) {
       {back && (
         <ChevronLeft className="-mr-1 size-4 shrink-0 sm:hidden" aria-hidden />
       )}
-      <svg viewBox="0 0 52 32" className="h-3.5 w-6 fill-current" aria-hidden>
+      <svg
+        viewBox="0 0 52 32"
+        width={24}
+        height={14}
+        fill="currentColor"
+        className="h-3.5 w-6 fill-current"
+        aria-hidden
+      >
         <FootballMark cx={26} cy={16} radius={24} className="fill-current" />
       </svg>
       <span className="text-sm font-semibold tracking-tight">

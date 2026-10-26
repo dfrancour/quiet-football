@@ -21,9 +21,11 @@ describe("About", () => {
 
   it("closes back to the league, in place of itself, by its control or Escape", () => {
     render(<About />);
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(router.replace).toHaveBeenCalledWith("/");
-    router.replace.mockClear();
+    // A link, so it closes without a script too.
+    expect(screen.getByRole("link", { name: "Close" })).toHaveAttribute(
+      "href",
+      "/",
+    );
     fireEvent.keyDown(window, { key: "Escape" });
     expect(router.replace).toHaveBeenCalledWith("/");
   });

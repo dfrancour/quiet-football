@@ -235,13 +235,31 @@ decoded (giving up after 400 ms, so a slow logo never holds the season) and
 fades it in. A mark that lands later fades into its box on its own
 (`TeamLogo`), rather than popping. Nothing else is animated in.
 
-The mark says "Still waiting on ESPN" after a few seconds, and either view
+The mark says "Still loading the games and standings" after a few seconds
+(a slow load is not pinned on ESPN; a failure may name it), and either view
 says so when the browser is offline (`useOnline`, Query's `onlineManager`,
 told the browser's state on start so a page opened offline waits and loads
 on its own). A failed week is named (`WeekLoadError`), and the cause is put
 in the viewer's terms by `describeFailure()`: the browser's bare "Failed to
 fetch" (a refused connection, or a 403 with no CORS headers) and "signal
 timed out" are never shown as they are.
+
+The loading frame is the prerendered page, so it is what a browser draws
+before the script runs, and it says why the season will not come where it
+cannot: with scripts off, a `noscript` line ("This page requires
+JavaScript to be enabled.") and a still mark. A browser too old to draw
+the site, one without `oklch` (so every one without cascade layers, an
+older TV's, which drops every rule Tailwind writes), gets `FALLBACK_STYLE` instead
+(`src/lib/fallback-style.ts`), inlined in the head inside `@supports not`
+so any other browser skips it: the frame's colours and layout in plain
+CSS, showing a line the frame keeps hidden ("This browser is too old to
+show the season."). If such a browser runs the script, `Supported` (around
+the league and team pages) keeps that frame rather than draw a season it
+has no styles for. Every inline SVG in a prerendered page carries `width`,
+`height` and, if it is filled, `fill` attributes matching its classes: any
+CSS outranks them, but without CSS an SVG with only a `viewBox` fills the
+page's width, in black. The About page needs no script: its close is a
+link.
 
 ### Header
 
@@ -762,6 +780,28 @@ taps never zoom, nothing depends on hover or a `title` tooltip for meaning,
 and the root `main` pads by the safe-area insets so an installed page is not
 under the notch or home indicator.
 
+### The stylesheet's layers
+
+Tailwind writes every rule into a cascade layer (`theme`, `base`,
+`components`, `utilities`). The rules at the end of `globals.css`, outside
+any `@layer` block (the `.animate-*` ones), are not in one. That decides
+more than it seems:
+
+- An unlayered rule beats every layered one, whatever its specificity, and
+  still applies in a browser that drops the layers.
+- An `!important` inside a layer beats any outside one, `!important` or not.
+  Tailwind's preflight hides `[hidden]` that way, so no CSS outside the
+  layers can show an element carrying the `hidden` attribute. To have such
+  CSS reveal something, hide it with an inline style and show it with
+  `!important` (`[data-too-old]`).
+- The minifier builds for the browsers Next targets (Chrome 111 and up) and
+  drops what it takes to be overridden, such as declarations before an
+  `all` in the same rule. CSS for an older browser is inlined from
+  TypeScript (`FALLBACK_STYLE`), not written in `globals.css`.
+- Every theme colour is `oklch`, which a browser older than that cannot
+  read: it draws the page white with black text. So `oklch` is the test for
+  a browser too old to draw the site.
+
 ### Dark-only; logos from ESPN's CDN
 
 No theme toggle. Only the dark logo variant is used (`pickLogoHref`).
@@ -880,3 +920,27 @@ Driving headless Chrome by hand: `chrome-headless-shell` from
 `~/.cache/ms-playwright` with `--remote-debugging-port`, then
 `Emulation.setDeviceMetricsOverride` for a phone width. Remember the data will
 not arrive, so do not spend time waiting for it.
+
+- For a quick look, `--screenshot=/absolute/path.png` with
+  `--window-size=390,844` and the URL writes one and exits. Turning
+  scripts off or injecting one needs the protocol (`Page.captureScreenshot`).
+- Serve `out/` itself at a server's root, since its assets are linked
+  from `/_next/`:
+
+  ```bash
+  python3 -I -m http.server 8765 --directory out
+  ```
+
+  Pages are files, not directories: ask for `/about.html` and
+  `/team/MIN.html`.
+
+- To see a page with scripts off, call `Emulation.setScriptExecutionDisabled`
+  before navigating; `noscript` content then renders. A script given to
+  `Page.addScriptToEvaluateOnNewDocument` runs only after `Page.enable`.
+- To see what an old browser draws, edit a copy of `out/`: delete every
+  `@layer` block from `_next/static/css/*.css` for one without cascade
+  layers, or rename `oklch(` there for one without `oklch`. Then make the
+  `FALLBACK_STYLE` condition hold, since this Chrome has `oklch`: replace
+  `color:oklch(0% 0 0)` in the pages with an invalid colour. To test
+  `Supported` as well, wrap `CSS.supports` in an injected script so that it
+  rejects `oklch`.

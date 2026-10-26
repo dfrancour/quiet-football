@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import { Suspense } from "react";
 import { TeamApp } from "~/components/TeamApp";
+import { Supported } from "~/components/common/LoadState";
 import { teamPath } from "~/lib/routes";
 import { TEAM_ABBREVIATIONS } from "~/lib/teams";
 
@@ -33,7 +34,9 @@ export default async function TeamPage({ params }: TeamPageProps) {
   return (
     // The week comes from the query string, read on the client.
     <Suspense>
-      <TeamApp abbreviation={abbr} />
+      <Supported about={false}>
+        <TeamApp abbreviation={abbr} />
+      </Supported>
     </Suspense>
   );
 }

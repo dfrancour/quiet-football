@@ -1,13 +1,14 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { AboutLink } from "~/components/layout/SiteHeader";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
 import { WeekLoadError } from "~/hooks/useLeague";
 import { useNow } from "~/hooks/useNow";
 import { useOnline } from "~/hooks/useOnline";
+import { SUPPORTED_COLOR } from "~/lib/fallback-style";
 import { standingsPath } from "~/lib/routes";
 import { describeFailure } from "~/lib/upstream";
 import { cn } from "~/lib/utils";
@@ -16,6 +17,10 @@ import { cn } from "~/lib/utils";
 const SLOW_MS = 3_000;
 
 const OFFLINE_NOTE = "You're offline. The season will load when you're back.";
+
+const NO_SCRIPT = "This page requires JavaScript to be enabled.";
+
+const TOO_OLD = "This browser is too old to show the season.";
 
 interface FrameProps {
   busy?: boolean;
@@ -51,6 +56,9 @@ function Mark({ breathing }: { breathing: boolean }) {
   return (
     <svg
       viewBox="0 0 52 32"
+      width={40}
+      height={24}
+      fill="currentColor"
       className={cn(
         "text-ink-faint mb-1 h-6 w-10 fill-current",
         breathing && "animate-breathe",
@@ -70,14 +78,65 @@ export function Loading({ about }: { about?: boolean } = {}) {
   const note = !online
     ? OFFLINE_NOTE
     : now !== null && now - started >= SLOW_MS
-      ? "Still waiting on ESPN…"
+      ? "Still loading the games and standings…"
       : null;
   return (
     <Frame busy about={about}>
       <Mark breathing />
+      {/* Without a script the season never comes, so the mark holds still. */}
+      <noscript>
+        <style>{"[aria-busy] svg{animation:none}"}</style>
+        <p className="text-ink-muted text-sm">{NO_SCRIPT}</p>
+      </noscript>
+      {/* Shown only by `FALLBACK_STYLE`, in a browser too old to draw the site. */}
+      <p
+        data-too-old
+        style={{ display: "none" }}
+        className="text-ink-muted text-sm"
+      >
+        {TOO_OLD}
+      </p>
       <p aria-live="polite" className="text-ink-faint min-h-4 text-xs">
         {note}
       </p>
+    </Frame>
+  );
+}
+
+function subscribeToNothing(): () => void {
+  return () => {};
+}
+
+function drawsSite(): boolean {
+  return typeof CSS !== "undefined" && CSS.supports("color", SUPPORTED_COLOR);
+}
+
+function getServerDrawsSite(): boolean {
+  return true;
+}
+
+/**
+ * A page's season, or in a browser too old to draw it (`FALLBACK_STYLE`),
+ * the frame saying so: what its loading frame already says there, before
+ * any script.
+ */
+export function Supported({
+  about,
+  children,
+}: {
+  about?: boolean;
+  children: ReactNode;
+}) {
+  const supported = useSyncExternalStore(
+    subscribeToNothing,
+    drawsSite,
+    getServerDrawsSite,
+  );
+  if (supported) return children;
+  return (
+    <Frame about={about}>
+      <Mark breathing={false} />
+      <p className="text-ink-muted text-sm">{TOO_OLD}</p>
     </Frame>
   );
 }

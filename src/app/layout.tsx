@@ -3,6 +3,7 @@ import "~/styles/globals.css";
 import { type Metadata, type Viewport } from "next";
 import { Providers } from "~/app/providers";
 import { VercelAnalytics } from "~/components/layout/VercelAnalytics";
+import { FALLBACK_STYLE } from "~/lib/fallback-style";
 import { PREFETCH_SCRIPT } from "~/lib/prefetch";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "~/lib/site";
 
@@ -51,6 +52,8 @@ export default function RootLayout({
       <head>
         {/* A first visit's reads of ESPN start here, while the script loads. */}
         <script dangerouslySetInnerHTML={{ __html: PREFETCH_SCRIPT }} />
+        {/* The frame a browser too old to draw the site draws instead. */}
+        <style dangerouslySetInnerHTML={{ __html: FALLBACK_STYLE }} />
       </head>
       <body>
         {/* Every page reads ESPN as soon as it hydrates; open the connections while the script loads. */}

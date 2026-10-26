@@ -34,7 +34,7 @@ export function FootballMark({
         x2={cx + seam.width / 2}
         y1={cy}
         y2={cy}
-        className="stroke-black"
+        stroke="black"
         strokeWidth={seam.height}
         strokeLinecap="round"
         opacity={0.4}

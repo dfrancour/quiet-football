@@ -1,6 +1,11 @@
 import { HomeApp } from "~/components/HomeApp";
+import { Supported } from "~/components/common/LoadState";
 
 /** The league: the week's games and the standings. */
 export default function HomePage() {
-  return <HomeApp />;
+  return (
+    <Supported>
+      <HomeApp />
+    </Supported>
+  );
 }

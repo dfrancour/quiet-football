@@ -46,6 +46,19 @@ describe("PREFETCH_SCRIPT", () => {
     expect(urls.some((url) => url.startsWith(STANDINGS_URL))).toBe(false);
   });
 
+  it("leaves a failed read to the query layer without reporting it", async () => {
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    // Not a mock: one would handle the rejection itself, to note how it settled.
+    vi.stubGlobal("fetch", () =>
+      Promise.reject(new TypeError("Failed to fetch")),
+    );
+    run();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    process.off("unhandledRejection", unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+
   it("asks for nothing when storage cannot be read", () => {
     const fetchMock = stubFetch(() => ({}));
     const getItem = vi

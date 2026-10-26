@@ -9,7 +9,9 @@ import { TEAMS_PREFIX, WEEK_PREFIX } from "~/lib/week-store";
  * no earlier visit saved (`week-store.ts`), keeping the responses under
  * `window.__prefetched` for `fetchUpstream` to take. A saved week, good or
  * not, is left to the query layer, so a return visit starts nothing here;
- * playoff rounds wait on the regular season (`queries.ts`).
+ * playoff rounds wait on the regular season (`queries.ts`). A read that
+ * fails is asked again by the query layer, so its failure is caught here
+ * rather than reported as unhandled.
  *
  * It names the season as `currentSeason()` does and the weeks as
  * `weekScoreboardUrl()` does; a test holds it to both.
@@ -26,7 +28,7 @@ const REGULAR_SEASON_WEEKS = 18;
 export const PREFETCH_SCRIPT = `(function(){try{
 var d=new Date(),s=d.getUTCMonth()<2?d.getUTCFullYear()-1:d.getUTCFullYear();
 var m=new Map();
-function go(u){m.set(u,fetch(u));}
+function go(u){var p=fetch(u);p.catch(function(){});m.set(u,p);}
 for(var w=1;w<=${REGULAR_SEASON_WEEKS};w++){
 if(localStorage.getItem(${JSON.stringify(WEEK_PREFIX)}+s+":"+w)===null)
 go(${JSON.stringify(SCOREBOARD_BASE)}+"?dates="+s+"&seasontype=2&week="+w);}
