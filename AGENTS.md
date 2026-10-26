@@ -926,7 +926,9 @@ that needs the URL's query string reads it with `useSearchParams` under a
   ESPN team ids. Fixtures are written by hand: never commit a captured ESPN or
   YouTube payload
 - A hook that reads a query is tested under `queryWrapper()` with `stubFetch()`
-  (`src/lib/test-utils/query.tsx`); no test reaches the network
+  (`src/lib/test-utils/query.tsx`); no test reaches the network. A whole page
+  is tested against `stubLeague()` (`src/lib/test-utils/league.ts`), a few
+  games served as ESPN would serve them
 
 ### React
 

@@ -19,9 +19,13 @@ export const router = {
   prefetch: vi.fn(),
 };
 
+/** The page's query string, as `useSearchParams` gives it; set per test. */
+export const location = { search: new URLSearchParams() };
+
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<typeof Navigation>()),
   useRouter: () => router,
+  useSearchParams: () => location.search,
 }));
 
 // Plays' arrivals and games' clocks and situations are kept in memory, and what the viewer
@@ -30,6 +34,7 @@ afterEach(() => {
   resetPlayArrivals();
   resetGameClocks();
   resetGameSituations();
+  location.search = new URLSearchParams();
   if (typeof window === "undefined") return;
   window.localStorage.clear();
   resetWatchProgressCache();
