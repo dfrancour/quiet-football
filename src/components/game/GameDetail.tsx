@@ -357,10 +357,7 @@ function PlayedGame({
   /** The top row's label, beside the recap and full-screen controls. */
   label: ReactNode;
   recap?: Recap | null;
-  score: Omit<ComponentProps<typeof ScoreRow>, "game" | "team" | "compact"> & {
-    /** Keeps a gap under the row, as a final game's has. */
-    spaced?: boolean;
-  };
+  score: Omit<ComponentProps<typeof ScoreRow>, "game" | "team" | "compact">;
   /** Null when there are no plays to draw nor any to ask for. */
   drives: Drive[] | null;
   feed: Omit<
@@ -373,15 +370,12 @@ function PlayedGame({
   note?: ReactNode;
 }) {
   const inColumn = sideways && drives !== null;
-  const { spaced = false, ...row } = score;
   const head = (
     <>
       <Eyebrow {...expand} flush={inColumn} recap={recap}>
         {label}
       </Eyebrow>
-      <div className={spaced && !inColumn ? "mb-4" : undefined}>
-        <ScoreRow game={game} team={team} compact={sideways} {...row} />
-      </div>
+      <ScoreRow game={game} team={team} compact={sideways} {...score} />
     </>
   );
 
@@ -755,7 +749,6 @@ export function GameDetail({
             (showSpoilers && game.periods
               ? { followed: game.periods.team, opposing: game.periods.opponent }
               : null),
-          spaced: true,
         }}
         drives={shownDrives}
         feed={{
