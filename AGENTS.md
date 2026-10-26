@@ -582,7 +582,7 @@ which the app does not hold, are skipped. A season the dataset does not have
 yet simply has no recaps.
 
 The dataset's reader is loose (only the fields used), so a field the dataset
-adds never breaks it. It records titles verbatim, spoilers included; the app
+adds never breaks it, and a game it cannot read is skipped, not the file. It records titles verbatim, spoilers included; the app
 never shows one.
 
 A final game's panel carries `RecapLink` in its top row, beside the

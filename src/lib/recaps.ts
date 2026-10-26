@@ -4,8 +4,6 @@
  */
 export interface Recap {
   youtubeId: string;
-  /** YouTube's publish time. */
-  publishedAt: string;
 }
 
 /** A season's recaps, derived from the dataset (`recapsFromDataset`). */

@@ -49,7 +49,6 @@ describe("useRecaps", () => {
     await waitFor(() =>
       expect(result.current.recaps[GAME_ID]).toEqual({
         youtubeId: "GP9zR_SKRr0",
-        publishedAt: "2026-10-11T20:41:07Z",
       }),
     );
     expect(String(fetchMock.mock.calls[0]?.[0])).toMatch(/\/2026\.json$/);

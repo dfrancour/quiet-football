@@ -22,10 +22,7 @@ describe("youtubeIdSchema", () => {
 
 describe("findRecap", () => {
   const file = makeRecaps({
-    "401872974": {
-      youtubeId: VIDEO_ID,
-      publishedAt: "2026-10-11T00:00:00.000Z",
-    },
+    "401872974": { youtubeId: VIDEO_ID },
   });
 
   it("finds a recap by game id", () => {

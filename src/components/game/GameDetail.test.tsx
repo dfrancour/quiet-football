@@ -105,10 +105,7 @@ describe("GameDetail selection states", () => {
   it("links out to a recap, as an icon in the top row, once one is found", () => {
     renderDetail({
       recaps: makeRecaps({
-        [finalGame.gameId]: {
-          youtubeId: "YHo13wCIHT4",
-          publishedAt: "2026-10-11T21:00:00Z",
-        },
+        [finalGame.gameId]: { youtubeId: "YHo13wCIHT4" },
       }),
     });
     expect(screen.getByRole("link", { name: /Watch recap/ })).toHaveAttribute(

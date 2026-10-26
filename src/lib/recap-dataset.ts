@@ -11,34 +11,51 @@ const RECAP_DATASET_URL =
 
 export const youtubeIdSchema = z.string().regex(/^[A-Za-z0-9_-]{11}$/);
 
-/**
- * A season file from football-recaps-data, read loosely: only the fields the
- * app uses, so a field the dataset adds never breaks the read.
- */
-export const recapDatasetSchema = z.object({
-  season: z.number(),
-  games: z.array(
-    z.object({
-      season_type: z.string(),
-      week: z.number(),
-      away: z.string(),
-      home: z.string(),
-      status: z.string(),
-      video: z
-        .object({ youtube_id: youtubeIdSchema, published_at: z.string() })
-        .optional(),
-    }),
-  ),
+/** One game of a season file, as far as the app reads it. */
+const entrySchema = z.object({
+  season_type: z.string(),
+  week: z.number(),
+  away: z.string(),
+  home: z.string(),
+  status: z.string(),
+  video: z.object({ youtube_id: youtubeIdSchema }).optional(),
 });
 
-export type RecapDataset = z.infer<typeof recapDatasetSchema>;
+const seasonFileSchema = z.object({
+  season: z.number(),
+  games: z.array(z.unknown()),
+});
 
-/** A season's file from the dataset; throws on one that is not a season file. */
+export type RecapEntry = z.infer<typeof entrySchema>;
+
+export interface RecapDataset {
+  season: number;
+  games: RecapEntry[];
+}
+
+/**
+ * A season file from football-recaps-data, read loosely: only the fields the
+ * app uses, so a field the dataset adds never breaks the read, and a game it
+ * cannot read is skipped rather than costing every other its recap. Throws
+ * on a file that is not a season file.
+ */
+export function readRecapDataset(raw: unknown): RecapDataset {
+  const file = seasonFileSchema.parse(raw);
+  return {
+    season: file.season,
+    games: file.games.flatMap((game) => {
+      const entry = entrySchema.safeParse(game);
+      return entry.success ? [entry.data] : [];
+    }),
+  };
+}
+
+/** A season's file from the dataset. */
 export async function fetchRecapDataset(
   season: number,
   signal?: AbortSignal,
 ): Promise<RecapDataset> {
-  return recapDatasetSchema.parse(
+  return readRecapDataset(
     await fetchUpstream(`${RECAP_DATASET_URL}/${season}.json`, signal),
   );
 }
@@ -58,6 +75,15 @@ export function recapsFromDataset(
   const recaps: Record<string, Recap> = {};
   if (dataset.season !== season.season) return recaps;
 
+  const meeting = (week: number, teamIds: string[]) =>
+    `${week}:${teamIds.sort().join()}`;
+  const games = new Map(
+    season.games.map((game) => [
+      meeting(game.week, [game.away.teamId, game.home.teamId]),
+      game.gameId,
+    ]),
+  );
+
   for (const entry of dataset.games) {
     if (entry.season_type === "preseason") continue;
     if (entry.status !== "found" || !entry.video) continue;
@@ -65,18 +91,8 @@ export function recapsFromDataset(
     const away = teamByAbbreviation(registry, entry.away)?.teamId;
     const home = teamByAbbreviation(registry, entry.home)?.teamId;
     if (!away || !home) continue;
-    const pair = [away, home].sort().join();
-    const game = season.games.find(
-      (stored) =>
-        stored.week === entry.week &&
-        [stored.away.teamId, stored.home.teamId].sort().join() === pair,
-    );
-    if (!game) continue;
-
-    recaps[game.gameId] = {
-      youtubeId: entry.video.youtube_id,
-      publishedAt: entry.video.published_at,
-    };
+    const gameId = games.get(meeting(entry.week, [away, home]));
+    if (gameId) recaps[gameId] = { youtubeId: entry.video.youtube_id };
   }
   return recaps;
 }

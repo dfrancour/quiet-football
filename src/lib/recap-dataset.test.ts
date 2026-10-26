@@ -1,9 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
-  recapDatasetSchema,
+  readRecapDataset,
   recapsFromDataset,
-  type RecapDataset,
+  type RecapEntry,
 } from "~/lib/recap-dataset";
 import {
   REGISTRY,
@@ -12,17 +12,15 @@ import {
   makeSeasonGame,
 } from "~/lib/test-utils/fixtures";
 
-type Entry = RecapDataset["games"][number];
-
 /** A dataset game as the season file writes it, trimmed to what is read. */
-function entry(overrides: Partial<Entry> = {}): Entry {
+function entry(overrides: Partial<RecapEntry> = {}): RecapEntry {
   return {
     season_type: "regular",
     week: 5,
     away: "MIN",
     home: "NO",
     status: "found",
-    video: { youtube_id: "GP9zR_SKRr0", published_at: "2026-10-11T20:41:07Z" },
+    video: { youtube_id: "GP9zR_SKRr0" },
     ...overrides,
   };
 }
@@ -37,12 +35,12 @@ const wildCard = makeSeasonGame({
 });
 const season = makeSeason([minAtNo, wildCard]);
 
-const join = (...games: Entry[]) =>
+const join = (...games: RecapEntry[]) =>
   recapsFromDataset({ season: 2026, games }, season, REGISTRY);
 
-describe("recapDatasetSchema", () => {
+describe("readRecapDataset", () => {
   it("reads a season file, ignoring fields it does not use", () => {
-    const parsed = recapDatasetSchema.parse({
+    const parsed = readRecapDataset({
       $schema: "./schema.json",
       schema_version: 1,
       season: 2026,
@@ -65,18 +63,27 @@ describe("recapDatasetSchema", () => {
     expect(parsed.games).toHaveLength(2);
   });
 
+  it("skips a game it cannot read, and keeps the rest", () => {
+    const parsed = readRecapDataset({
+      season: 2026,
+      games: [
+        { ...entry(), video: { youtube_id: "not an id" } },
+        { ...entry(), week: "five" },
+        entry(),
+      ],
+    });
+    expect(parsed.games).toEqual([entry()]);
+  });
+
   it("rejects a file that is not a season file", () => {
-    expect(recapDatasetSchema.safeParse({ games: "nope" }).success).toBe(false);
+    expect(() => readRecapDataset({ games: "nope" })).toThrow();
   });
 });
 
 describe("recapsFromDataset", () => {
   it("keys each found recap by the stored game it belongs to", () => {
     expect(join(entry())).toEqual({
-      "min-no": {
-        youtubeId: "GP9zR_SKRr0",
-        publishedAt: "2026-10-11T20:41:07Z",
-      },
+      "min-no": { youtubeId: "GP9zR_SKRr0" },
     });
   });
 
