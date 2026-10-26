@@ -128,14 +128,18 @@ export function useReplay(
   const replay: Replay =
     state.gameId === gameId ? state : { ...IDLE_REPLAY, ...idle };
   // While running, the frame is read off the clock, but only a change of
-  // frame re-renders: the snapshot is the frame's index, not the time.
+  // frame re-renders: the snapshot is the frame's index, not the time. A
+  // finished game's replay stops at its last frame, and lets the clock go.
+  const clockIndex = () =>
+    frameIndex(
+      frames,
+      replayFrame(replay, frames, getClockSnapshot(), arrivedAt),
+    );
+  const ticking =
+    replay.running !== null && (ongoing || clockIndex() < frames.length - 1);
   const runningIndex = useSyncExternalStore(
-    replay.running ? subscribeToReplayClock : subscribeToNothing,
-    () =>
-      frameIndex(
-        frames,
-        replayFrame(replay, frames, getClockSnapshot(), arrivedAt),
-      ),
+    ticking ? subscribeToReplayClock : subscribeToNothing,
+    clockIndex,
     () => -1,
   );
   const frame: ReplayAt | null = replay.running

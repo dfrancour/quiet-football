@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GameDetail } from "~/components/game/GameDetail";
 import { extractPlayByPlay, playsInOrder } from "~/lib/plays";
@@ -860,6 +866,23 @@ describe("GameDetail plays on the field", () => {
     // A stoppage reads in the feed's words, not ESPN's.
     expect(screen.getAllByText("End of 1st Quarter").length).toBeGreaterThan(0);
     expect(screen.queryByText("END QUARTER 1")).not.toBeInTheDocument();
+  });
+
+  it("lets the clock go once a replay of a finished game ends", () => {
+    // Started hours back, so the shared clock is left behind real time, not
+    // ahead of it for the next test.
+    vi.useFakeTimers({ now: Date.now() - 5 * 60 * 60_000 });
+    try {
+      renderDetail(final);
+      fireEvent.click(screen.getByText("Watch from kickoff"));
+      act(() => vi.advanceTimersByTime(4 * 60 * 60_000));
+      expect(screen.getByLabelText("Watch again")).toBeInTheDocument();
+      // Nothing left ticking once what the end set off has run.
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("watches a game a play at a time, scored as it stood", () => {
