@@ -828,7 +828,7 @@ export function playsInOrder(drives: Drive[]): Play[] {
 /**
  * The drives through a play. Its own drive is cut after it and marked in
  * progress, since its result and summary would spoil what follows. An unknown
- * play returns the drives unchanged.
+ * play returns none: this limits what is shown, so it fails closed.
  */
 export function drivesThrough(drives: Drive[], playId: string): Drive[] {
   const through: Drive[] = [];
@@ -852,7 +852,7 @@ export function drivesThrough(drives: Drive[], playId: string): Drive[] {
     );
     return through;
   }
-  return drives;
+  return [];
 }
 
 /** The score once a play was over, from the latest play to carry one. */

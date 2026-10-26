@@ -646,6 +646,10 @@ describe("drivesThrough", () => {
     const through = drivesThrough(drives, idOf("4th & Goal at ATL 3"));
     expect(through).toEqual([drives[0]]);
   });
+
+  it("shows nothing through a play it does not have", () => {
+    expect(drivesThrough(drives, "not-a-play")).toEqual([]);
+  });
 });
 
 describe("scoreAfter", () => {
