@@ -10,7 +10,7 @@ import { tintStyle } from "~/lib/team-tint";
 import { type Conference, type Division } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
 
-/** What a table row shows; the tiebreak inputs stay on the server. */
+/** What a table row shows: none of the tiebreak inputs behind its order. */
 export type StandingsLine = Pick<StandingsRow, "team" | "record"> & {
   /** ESPN's seed and clinch code; null until fetched. */
   mark: PlayoffMark | null;

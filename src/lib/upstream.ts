@@ -21,14 +21,14 @@ export class UpstreamError extends Error {
   }
 }
 
-/** The wait a source asked for, or null; honored for up to an hour. */
+/** The wait a source asked for, or null. */
 export function retryAfterOf(error: unknown): number | null {
   return error instanceof UpstreamError ? error.retryAfterMs : null;
 }
 
 const RETRY_AFTER_MAX_MS = 60 * 60_000;
 
-/** `Retry-After` as a delay in ms: seconds, or an HTTP date. */
+/** `Retry-After` as a delay in ms: seconds, or an HTTP date; an hour at most. */
 function readRetryAfter(header: string | null): number | null {
   if (header === null) return null;
   const seconds = Number(header);

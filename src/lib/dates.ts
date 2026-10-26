@@ -74,7 +74,7 @@ export function formatDayRange(
     : `${first} – ${last}`;
 }
 
-/** The calendar day in that zone, "2026-10-11", for grouping. */
+/** The calendar day in that zone, "10/11/2026", for grouping. */
 export function dayKey(iso: string, timeZone: string): string | null {
   return format(iso, timeZone, {
     year: "numeric",
