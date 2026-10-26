@@ -6,8 +6,8 @@ export type { TeamRecord };
 
 export const PREGAME_WINDOW_MS = 3 * 60 * 60 * 1000;
 
-/** How long a finished game stays the headline. */
-export const RECAP_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
+/** How long a finished game stays the one a team page opens on. */
+export const JUST_PLAYED_MS = 4 * 24 * 60 * 60 * 1000;
 
 export type GamePhase =
   | "upcoming"
@@ -16,13 +16,6 @@ export type GamePhase =
   | "final"
   | "postponed"
   | "canceled";
-
-export type ScheduleState =
-  | { kind: "live"; game: TeamGame }
-  | { kind: "pregame"; game: TeamGame; msUntilKickoff: number }
-  | { kind: "recap"; game: TeamGame }
-  | { kind: "upcoming"; game: TeamGame; msUntilKickoff: number }
-  | { kind: "offseason" };
 
 /** "just now", "12s ago", "3m ago". */
 export function formatAge(ms: number): string {
@@ -61,61 +54,30 @@ function byKickoff(a: TeamGame, b: TeamGame): number {
   return kickoffMs(a) - kickoffMs(b);
 }
 
-/** The game to lead with: live, else pregame, else recent final, else next. */
-export function deriveScheduleState(
-  schedule: TeamSchedule,
-  now: number,
-): ScheduleState {
-  const games = [...schedule.games].sort(byKickoff);
-
-  const live = games.find((game) => gamePhase(game, now) === "live");
-  if (live) return { kind: "live", game: live };
-
-  const pregame = games.find((game) => gamePhase(game, now) === "pregame");
-  if (pregame) {
-    return {
-      kind: "pregame",
-      game: pregame,
-      msUntilKickoff: kickoffMs(pregame) - now,
-    };
-  }
-
-  const recap = [...games]
-    .reverse()
-    .find(
-      (game) =>
-        gamePhase(game, now) === "final" &&
-        now >= kickoffMs(game) &&
-        now - kickoffMs(game) <= RECAP_WINDOW_MS,
-    );
-  if (recap) return { kind: "recap", game: recap };
-
-  const upcoming = games.find((game) => gamePhase(game, now) === "upcoming");
-  if (upcoming) {
-    return {
-      kind: "upcoming",
-      game: upcoming,
-      msUntilKickoff: kickoffMs(upcoming) - now,
-    };
-  }
-
-  return { kind: "offseason" };
-}
-
 /**
- * The game a team page opens on: live, then imminent, then just played, then
- * next; out of season, the latest. Without a clock, the latest.
+ * The game a team page opens on: live, then imminent (`pregame`), then just
+ * played (within `JUST_PLAYED_MS`), then next; out of season, the latest.
+ * Without a clock, the latest.
  */
 export function defaultGameId(
   schedule: TeamSchedule,
   now: number | null,
 ): string | null {
-  const state = now === null ? null : deriveScheduleState(schedule, now);
-  if (state && state.kind !== "offseason") return state.game.gameId;
-  const last = [...schedule.games].sort(
-    (a, b) => Date.parse(b.kickoff) - Date.parse(a.kickoff),
-  )[0];
-  return last?.gameId ?? null;
+  const games = [...schedule.games].sort(byKickoff);
+  const latest = games.at(-1)?.gameId ?? null;
+  if (now === null) return latest;
+  const phased = (phase: GamePhase) =>
+    games.find((game) => gamePhase(game, now) === phase);
+  const justPlayed = games.findLast(
+    (game) =>
+      gamePhase(game, now) === "final" &&
+      now >= kickoffMs(game) &&
+      now - kickoffMs(game) <= JUST_PLAYED_MS,
+  );
+  return (
+    (phased("live") ?? phased("pregame") ?? justPlayed ?? phased("upcoming"))
+      ?.gameId ?? latest
+  );
 }
 
 /** The regular-season record; playoff games do not count. */

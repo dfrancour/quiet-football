@@ -388,15 +388,15 @@ is nothing left to hide.
 
 `GameDetail` branches on `gamePhase()` of the **selected** game:
 
-| Phase  | Shows                                    |
-| ------ | ---------------------------------------- |
-| `live` | Score row, clock, data age, field, plays |
+| Phase                  | Shows                                              |
+| ---------------------- | -------------------------------------------------- |
+| `live`                 | Score row, clock, data age, field, plays           |
+| `final`                | Score row, field, plays; recap icon in the top row |
+| `pregame`              | Countdown, kickoff details                         |
+| `upcoming`             | When and on what, and the opponent's record        |
+| `postponed`/`canceled` | The status and the original details                |
 
 The data age is a readout, not a control.
-| `final` | Score row, field, plays; recap icon in the top row |
-| `pregame` | Countdown, kickoff details |
-| `upcoming` | When and on what, and the opponent's record |
-| `postponed`/`canceled` | The status and the original details |
 
 Live and final panels lead with `ScoreRow`: away left, home right, matching
 the field's end zones. It names the teams, so there is no separate matchup
@@ -432,7 +432,8 @@ default". A pick writes its week to the URL in place
 button does not step through every game looked at. The selection is
 `pickedGameId ?? defaultGameId`, so an explicit pick sticks as the default
 moves and no effect writes selection state. The default is live, then
-imminent, then most recently played.
+about to kick off, then one played in the last four days (`JUST_PLAYED_MS`),
+then the next; out of season, the latest.
 
 `TeamApp` keys `TeamView` by season and team so changing either resets the
 selection.

@@ -33,14 +33,6 @@ const subscribeToNothing = () => () => {};
 
 const isResult = (frame: ReplayAt) => frame.stage === "result";
 
-function lastIndexOf<T>(items: readonly T[], test: (item: T) => boolean) {
-  for (let index = items.length - 1; index >= 0; index -= 1) {
-    const item = items[index];
-    if (item !== undefined && test(item)) return index;
-  }
-  return -1;
-}
-
 export interface ReplayControls {
   /** The play on the field; null follows the game, or rests at the place. */
   play: Play | null;
@@ -151,8 +143,7 @@ export function useReplay(
   const origin =
     index !== -1
       ? index
-      : lastIndexOf(
-          frames,
+      : frames.findLastIndex(
           (candidate) =>
             candidate.playId === placeId && candidate.stage !== "snap",
         );
@@ -170,7 +161,7 @@ export function useReplay(
     start === undefined
       ? { frame: null, running: null }
       : { frame: start, running: { from: start, since: Date.now() } };
-  const newest = frames[lastIndexOf(frames, isResult)];
+  const newest = frames.findLast(isResult);
   const after = (playId: string | null) => {
     const at =
       playId === null
@@ -224,9 +215,7 @@ export function useReplay(
     follow: () => update(from(newest)),
     start: (loaded, atEnd) => {
       const loadedFrames = replayFrames(playsInOrder(loaded), ongoing);
-      update(
-        from(loadedFrames[atEnd ? lastIndexOf(loadedFrames, isResult) : 0]),
-      );
+      update(from(atEnd ? loadedFrames.findLast(isResult) : loadedFrames[0]));
     },
     pause: () => update({ frame, running: null }),
     step,

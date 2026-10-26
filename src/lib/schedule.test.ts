@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  JUST_PLAYED_MS,
   PREGAME_WINDOW_MS,
-  RECAP_WINDOW_MS,
   defaultGameId,
-  deriveScheduleState,
   formatAge,
   formatCountdown,
   formatRecord,
@@ -16,6 +15,7 @@ import {
   makeTeamGame,
   makeTeamSchedule,
 } from "~/lib/test-utils/fixtures";
+import { type TeamGame } from "~/lib/team-view";
 
 const KICKOFF_MS = Date.parse("2026-10-11T17:00:00.000Z");
 const HOUR_MS = 60 * 60 * 1000;
@@ -70,27 +70,6 @@ describe("gamePhase", () => {
 });
 
 describe("defaultGameId", () => {
-  const early = makeTeamGame({
-    gameId: "early",
-    week: 4,
-    kickoff: "2026-10-04T17:00:00.000Z",
-    status: "final",
-    result: { teamScore: 15, opponentScore: 10, outcome: "win" },
-  });
-  const late = makeTeamGame({ gameId: "late" });
-
-  it("opens on the game the schedule leads with", () => {
-    expect(
-      defaultGameId(makeTeamSchedule([early, late]), KICKOFF_MS + 60_000),
-    ).toBe("late");
-  });
-
-  it("opens on the latest game without a clock", () => {
-    expect(defaultGameId(makeTeamSchedule([late, early]), null)).toBe("late");
-  });
-});
-
-describe("deriveScheduleState", () => {
   const past = makeTeamGame({
     gameId: "past",
     week: 4,
@@ -110,61 +89,31 @@ describe("deriveScheduleState", () => {
     week: 7,
     kickoff: "2026-10-25T17:00:00.000Z",
   });
+  const opensOn = (games: TeamGame[], now: number | null) =>
+    defaultGameId(makeTeamSchedule(games), now);
 
-  it("leads with a live game", () => {
-    const state = deriveScheduleState(
-      makeTeamSchedule([past, current, future]),
-      KICKOFF_MS + 60_000,
+  it("opens on a live game", () => {
+    expect(opensOn([past, current, future], KICKOFF_MS + 60_000)).toBe(
+      "current",
     );
-    expect(state).toEqual({ kind: "live", game: current });
+    expect(opensOn([past, current], KICKOFF_MS + 60_000)).toBe("current");
   });
 
-  it("leads with a pregame game and reports time to kickoff", () => {
-    const state = deriveScheduleState(
-      makeTeamSchedule([past, current, future]),
-      KICKOFF_MS - 90_000,
+  it("opens on a game about to kick off", () => {
+    expect(opensOn([past, current, future], KICKOFF_MS - 90_000)).toBe(
+      "current",
     );
-    expect(state.kind).toBe("pregame");
-    if (state.kind === "pregame") {
-      expect(state.game.gameId).toBe("current");
-      expect(state.msUntilKickoff).toBe(90_000);
-    }
   });
 
-  it("leads with a recap right after a game ends", () => {
-    const state = deriveScheduleState(
-      makeTeamSchedule([past, currentFinal, future]),
-      KICKOFF_MS + 4 * HOUR_MS,
-    );
-    expect(state).toEqual({ kind: "recap", game: currentFinal });
+  it("opens on a game just played, up to the edge of the window", () => {
+    const schedule = [past, currentFinal, future];
+    expect(opensOn(schedule, KICKOFF_MS + 4 * HOUR_MS)).toBe("current");
+    expect(opensOn(schedule, KICKOFF_MS + JUST_PLAYED_MS)).toBe("current");
+    // Then the next game.
+    expect(opensOn(schedule, KICKOFF_MS + JUST_PLAYED_MS + 1)).toBe("future");
   });
 
-  it("keeps the recap up to the edge of the window", () => {
-    const state = deriveScheduleState(
-      makeTeamSchedule([past, currentFinal, future]),
-      KICKOFF_MS + RECAP_WINDOW_MS,
-    );
-    expect(state.kind).toBe("recap");
-  });
-
-  it("falls through to upcoming once the recap window closes", () => {
-    const state = deriveScheduleState(
-      makeTeamSchedule([past, currentFinal, future]),
-      KICKOFF_MS + RECAP_WINDOW_MS + 1,
-    );
-    expect(state.kind).toBe("upcoming");
-    if (state.kind === "upcoming") expect(state.game.gameId).toBe("future");
-  });
-
-  it("prefers a live game over a recap", () => {
-    const state = deriveScheduleState(
-      makeTeamSchedule([past, current]),
-      KICKOFF_MS + 60_000,
-    );
-    expect(state).toEqual({ kind: "live", game: current });
-  });
-
-  it("recaps the most recent of several finished games", () => {
+  it("opens on the most recent of several finished games", () => {
     const thursday = makeTeamGame({
       gameId: "thursday",
       week: 4,
@@ -177,46 +126,34 @@ describe("deriveScheduleState", () => {
       status: "final",
       result: { teamScore: 23, opponentScore: 16, outcome: "win" },
     });
-    const state = deriveScheduleState(
-      makeTeamSchedule([thursday, sunday]),
-      Date.parse("2026-10-12T00:00:00.000Z"),
-    );
-    expect(state).toEqual({ kind: "recap", game: sunday });
+    expect(
+      opensOn([thursday, sunday], Date.parse("2026-10-12T00:00:00.000Z")),
+    ).toBe("sunday");
   });
 
-  it("ignores a game flagged final with a future kickoff", () => {
+  it("opens on the earliest game to come, whatever the order", () => {
+    const later = makeTeamGame({
+      gameId: "later",
+      kickoff: "2026-12-06T21:25:00.000Z",
+    });
+    expect(
+      opensOn([later, future], Date.parse("2026-10-20T00:00:00.000Z")),
+    ).toBe("future");
+  });
+
+  it("opens on the latest game out of season, or without a clock", () => {
+    expect(opensOn([past], Date.parse("2027-02-01T00:00:00.000Z"))).toBe(
+      "past",
+    );
+    expect(opensOn([current, past], null)).toBe("current");
+    // A game flagged final before its kickoff is no game just played.
     const badData = makeTeamGame({
       gameId: "bad",
       kickoff: "2026-12-25T18:00:00.000Z",
       status: "final",
       result: { teamScore: 1, opponentScore: 0, outcome: "win" },
     });
-    const state = deriveScheduleState(
-      makeTeamSchedule([badData]),
-      Date.parse("2026-10-12T00:00:00.000Z"),
-    );
-    expect(state).toEqual({ kind: "offseason" });
-  });
-
-  it("picks the earliest upcoming game regardless of array order", () => {
-    const later = makeTeamGame({
-      gameId: "later",
-      kickoff: "2026-12-06T21:25:00.000Z",
-    });
-    const state = deriveScheduleState(
-      makeTeamSchedule([later, future]),
-      Date.parse("2026-10-20T00:00:00.000Z"),
-    );
-    expect(state.kind).toBe("upcoming");
-    if (state.kind === "upcoming") expect(state.game.gameId).toBe("future");
-  });
-
-  it("reports offseason when every game is long past", () => {
-    const state = deriveScheduleState(
-      makeTeamSchedule([past]),
-      Date.parse("2027-02-01T00:00:00.000Z"),
-    );
-    expect(state).toEqual({ kind: "offseason" });
+    expect(opensOn([past, badData], KICKOFF_MS)).toBe("bad");
   });
 });
 
