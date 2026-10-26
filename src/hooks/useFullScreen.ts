@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useBrowserValue } from "~/hooks/useBrowserValue";
 
 function subscribe(listener: () => void): () => void {
   document.addEventListener("fullscreenchange", listener);
@@ -67,14 +68,9 @@ export function useFullScreen(): [expanded: boolean, toggle: () => void] {
   return [expanded, toggle];
 }
 
-function noSubscription(): () => void {
-  return () => undefined;
-}
-
 /** Whether the browser can put the page itself full screen (an iPhone cannot). */
 export function useFullScreenEnabled(): boolean {
-  return useSyncExternalStore(
-    noSubscription,
+  return useBrowserValue(
     () => document.fullscreenEnabled,
     () => false,
   );

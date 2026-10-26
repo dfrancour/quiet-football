@@ -7,6 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { subscribeToNothing } from "~/hooks/useBrowserValue";
 import { getClockSnapshot, subscribeToClock } from "~/lib/clock";
 import { playArrivedAt } from "~/lib/play-arrivals";
 import { playsInOrder } from "~/lib/plays";
@@ -29,7 +30,6 @@ const REPLAY_TICK_MS = 100;
 
 const subscribeToReplayClock = (listener: () => void) =>
   subscribeToClock(listener, REPLAY_TICK_MS);
-const subscribeToNothing = () => () => {};
 
 const isResult = (frame: ReplayAt) => frame.stage === "result";
 

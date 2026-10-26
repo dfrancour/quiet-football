@@ -1,4 +1,5 @@
 import { isRegularSeason, type TeamRecord } from "~/lib/season";
+import { CONFERENCE_ORDER } from "~/lib/teams";
 import { type GameOutcome, type SeasonFile } from "~/lib/season.schema";
 import {
   type Conference,
@@ -28,13 +29,7 @@ export interface ConferenceStandings {
   divisions: DivisionStandings[];
 }
 
-export const CONFERENCE_ORDER: readonly Conference[] = ["NFC", "AFC"];
-export const DIVISION_ORDER: readonly Division[] = [
-  "North",
-  "East",
-  "South",
-  "West",
-];
+const DIVISION_ORDER: readonly Division[] = ["North", "East", "South", "West"];
 
 const EMPTY: TeamRecord = { wins: 0, losses: 0, ties: 0 };
 

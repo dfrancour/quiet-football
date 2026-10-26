@@ -6,13 +6,12 @@ import {
   getServerBroadcastDelays,
   subscribeToBroadcastDelays,
 } from "~/lib/broadcast-delay";
+import { subscribeToNothing } from "~/hooks/useBrowserValue";
 import { getClockSnapshot, subscribeToClock } from "~/lib/clock";
 import { gameClockAsOf, type GameClock } from "~/lib/game-clocks";
 import { lastArrivedBy } from "~/lib/play-arrivals";
 import { drivesThrough, playsInOrder } from "~/lib/plays";
 import { type Drive } from "~/lib/plays.schema";
-
-const subscribeToNothing = () => () => {};
 
 /** How far, in milliseconds, the viewer holds this game back. */
 export function useBroadcastDelay(gameId: string | null): number {

@@ -17,9 +17,11 @@ import { type ReplayControls } from "~/hooks/useReplay";
 import { nextBroadcastDelay } from "~/lib/broadcast-delay";
 import {
   currentSet,
+  driveOf,
   drivesThrough,
   fieldAfterPlay,
   fieldAtPlay,
+  playsInOrder,
   withDriveSpots,
   type PlayOnField,
 } from "~/lib/plays";
@@ -395,8 +397,7 @@ export function GamePlays({
   // With nothing on the field, it rests where the viewer left off.
   const resting =
     play === null && limited && seen !== null
-      ? (drives.flatMap((drive) => drive.plays).find(({ id }) => id === seen) ??
-        null)
+      ? (playsInOrder(drives).find(({ id }) => id === seen) ?? null)
       : null;
   const onField = play ?? resting;
   const newestId = drives.at(-1)?.plays.at(-1)?.id ?? null;
@@ -410,9 +411,7 @@ export function GamePlays({
         ? onField.id === newestId
         : newestId === null);
   const nextField = edge?.downDistance ? edge.field : null;
-  const driveOf = (playId: string | null) =>
-    drives.find((drive) => drive.plays.some(({ id }) => id === playId)) ?? null;
-  const offenseSide = driveOf(play?.id ?? null)?.offense;
+  const offenseSide = driveOf(drives, play?.id ?? null)?.offense;
   const offense =
     offenseSide === "home" ? home : offenseSide === "away" ? away : null;
 

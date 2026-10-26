@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useBrowserValue } from "~/hooks/useBrowserValue";
 import { CONTACT_HOST, CONTACT_USER } from "~/lib/site";
 
 /**
@@ -8,18 +8,6 @@ import { CONTACT_HOST, CONTACT_USER } from "~/lib/site";
  * which the minifier evaluates) the halves fold into one string in the bundle.
  */
 const AT = decodeURIComponent("%40");
-
-function subscribe(): () => void {
-  return () => {};
-}
-
-function getHydrated(): boolean {
-  return true;
-}
-
-function getServerHydrated(): boolean {
-  return false;
-}
 
 /** An envelope, drawn inline to sit beside the GitHub mark. */
 function MailMark({ className }: { className?: string }) {
@@ -49,10 +37,9 @@ function MailMark({ className }: { className?: string }) {
  * sees it at once, a crawler reading the HTML sees nothing to collect.
  */
 export function ContactLink({ className }: { className?: string }) {
-  const hydrated = useSyncExternalStore(
-    subscribe,
-    getHydrated,
-    getServerHydrated,
+  const hydrated = useBrowserValue(
+    () => true,
+    () => false,
   );
   const address = hydrated ? [CONTACT_USER, CONTACT_HOST].join(AT) : null;
 

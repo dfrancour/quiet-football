@@ -598,9 +598,7 @@ export function fieldAtPlay(
   playId: string,
   stage: ReplayStage = "result",
 ): PlayOnField {
-  const drive = drives.find((candidate) =>
-    candidate.plays.some((play) => play.id === playId),
-  );
+  const drive = driveOf(drives, playId);
   const target = drive?.plays.find((play) => play.id === playId);
   if (!drive?.offense || !target) return NOWHERE;
   const offense = drive.offense;
@@ -722,9 +720,7 @@ export function fieldAfterPlay(
   after: FieldState | null,
 ): PlayOnField {
   const shown = fieldAtPlay(drives, playId);
-  const offense = drives.find((drive) =>
-    drive.plays.some((play) => play.id === playId),
-  )?.offense;
+  const offense = driveOf(drives, playId)?.offense;
   if (
     !after ||
     !shown.field ||
@@ -775,9 +771,7 @@ export function situationAfterPlay(
   playId: string,
   followed: FieldSide,
 ): SituationState | null {
-  const drive = drives.find((candidate) =>
-    candidate.plays.some((play) => play.id === playId),
-  );
+  const drive = driveOf(drives, playId);
   if (!drive?.offense || !drive.inProgress) return null;
   let anchor: PlacedSnap | null = null;
   for (const play of drive.plays) {
@@ -818,6 +812,14 @@ export function situationAfterPlay(
       driveSpots: [ballOn],
     },
   };
+}
+
+/** The drive a play is part of, or null if none is. */
+export function driveOf(drives: Drive[], playId: string | null): Drive | null {
+  return (
+    drives.find((drive) => drive.plays.some((play) => play.id === playId)) ??
+    null
+  );
 }
 
 /** Every play of the game, oldest first. */

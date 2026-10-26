@@ -7,7 +7,7 @@ import {
   type PlayoffRound,
 } from "~/lib/season-calendar";
 import { type SeasonFile, type SeasonGame } from "~/lib/season.schema";
-import { teamById } from "~/lib/teams";
+import { CONFERENCE_ORDER, teamById } from "~/lib/teams";
 import {
   type Conference,
   type Team,
@@ -23,8 +23,6 @@ import {
  * that, and both Conference Championships for the Super Bowl, each with the
  * gates of those games, since a matchup also gives away the rounds before.
  */
-
-const CONFERENCE_ORDER: readonly Conference[] = ["NFC", "AFC"];
 
 function conferenceOf(
   registry: TeamRegistry,

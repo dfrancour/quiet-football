@@ -1,7 +1,8 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { useBrowserValue } from "~/hooks/useBrowserValue";
 import { AboutLink } from "~/components/layout/SiteHeader";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
@@ -103,10 +104,6 @@ export function Loading({ about }: { about?: boolean } = {}) {
   );
 }
 
-function subscribeToNothing(): () => void {
-  return () => {};
-}
-
 function drawsSite(): boolean {
   return typeof CSS !== "undefined" && CSS.supports("color", SUPPORTED_COLOR);
 }
@@ -127,11 +124,7 @@ export function Supported({
   about?: boolean;
   children: ReactNode;
 }) {
-  const supported = useSyncExternalStore(
-    subscribeToNothing,
-    drawsSite,
-    getServerDrawsSite,
-  );
+  const supported = useBrowserValue(drawsSite, getServerDrawsSite);
   if (supported) return children;
   return (
     <Frame about={about}>

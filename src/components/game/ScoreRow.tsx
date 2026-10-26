@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { playTime } from "~/components/game/PlayFeed";
 import { Linescore } from "~/components/score/Linescore";
 import { ScoreLine } from "~/components/score/ScoreLine";
-import { pointsByPeriod, scoreAfter, timeoutsLeft } from "~/lib/plays";
+import { driveOf, pointsByPeriod, scoreAfter, timeoutsLeft } from "~/lib/plays";
 import { type Drive, type Play } from "~/lib/plays.schema";
 import { weekLabel } from "~/lib/schedule";
 import { type TeamGame } from "~/lib/team-view";
@@ -203,9 +203,7 @@ export function figuresAt(
   const points = pointsByPeriod(drives, revealedId, period);
   const ours = game.homeAway;
   const theirs = ours === "home" ? "away" : "home";
-  const offense = drives.find((drive) =>
-    drive.plays.some((candidate) => candidate.id === play.id),
-  )?.offense;
+  const offense = driveOf(drives, play.id)?.offense;
   const standing = sideStanding(score[ours], score[theirs], over);
   return {
     followed: {

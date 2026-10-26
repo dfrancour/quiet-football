@@ -1,4 +1,11 @@
-import { type Team, type TeamRegistry } from "~/lib/teams.schema";
+import {
+  type Conference,
+  type Team,
+  type TeamRegistry,
+} from "~/lib/teams.schema";
+
+/** NFC first, as the league page lays them out, the standings and bracket alike. */
+export const CONFERENCE_ORDER: readonly Conference[] = ["NFC", "AFC"];
 
 export function teamById(registry: TeamRegistry, teamId: string): Team | null {
   return registry.teams.find((team) => team.teamId === teamId) ?? null;
