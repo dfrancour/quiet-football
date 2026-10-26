@@ -1,4 +1,8 @@
-import { queryOptions, type QueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  type QueryClient,
+  type QueryState,
+} from "@tanstack/react-query";
 import { scoreConfig } from "~/lib/config";
 import { noteGameClock } from "~/lib/game-clocks";
 import { noteSituations } from "~/lib/game-situations";
@@ -25,6 +29,7 @@ import {
   teamColors,
   teamRegistryFromEspn,
 } from "~/lib/team-fetch";
+import { kickoffMs } from "~/lib/schedule";
 import { fetchUpstream, retryAfterOf } from "~/lib/upstream";
 import { savedTeams, savedWeek, saveTeams, saveWeek } from "~/lib/week-store";
 
@@ -102,6 +107,11 @@ export function teamsQuery(season: number) {
 export interface LoadedBoard extends WeekBoard {
   /** When this scoreboard arrived from ESPN, this visit or an earlier one. */
   fetchedAt: number;
+  /**
+   * A playoff round whose week before is not yet settled: empty, and not
+   * asked of ESPN until that week is.
+   */
+  waiting: boolean;
 }
 
 /** Whether a saved week still stands in for ESPN. */
@@ -145,14 +155,21 @@ async function fetchWeek(
 ): Promise<LoadedBoard> {
   const at = Date.now();
   if (!(await roundIsSet(client, season, week))) {
-    return { ...readWeek(season, week, { events: [] }), fetchedAt: at };
+    // Still waiting, the board is kept as it was, so nothing re-renders.
+    const before = client.getQueryData<LoadedBoard>(weekKey(season, week));
+    if (before?.waiting) return before;
+    return {
+      ...readWeek(season, week, { events: [] }),
+      fetchedAt: at,
+      waiting: true,
+    };
   }
   const saved = savedWeek(season, week);
   if (saved) {
     const board = readWeek(season, week, saved.payload);
     if (savedStillGood(board, saved.savedAt, at)) {
       for (const game of board.board) noteGameClock(game.gameId, game, at);
-      return { ...board, fetchedAt: saved.savedAt };
+      return { ...board, fetchedAt: saved.savedAt, waiting: false };
     }
   }
   const board = readWeek(
@@ -167,41 +184,77 @@ async function fetchWeek(
   if (weekActivity(board.games, at) !== "live") {
     saveWeek(season, week, board.payload, at);
   }
-  return { ...board, fetchedAt: at };
+  return { ...board, fetchedAt: at, waiting: false };
+}
+
+function weekKey(season: number, week: number) {
+  return ["week", season, week] as const;
 }
 
 /**
  * One week's scoreboard, playoff rounds included. Settled, it is never
  * fetched again; with a game under way it is polled; ahead, it is trusted
- * for hours from when it arrived, long enough to pick up a flexed game. A
- * playoff round is asked for only once the week before it is settled.
+ * for hours from when it arrived, long enough to pick up a flexed game, and
+ * asked for again as its next game kicks off, so an open page starts
+ * polling it. A playoff round is asked for only once the week before it is
+ * settled; until then it reads the week before from the cache as often as a
+ * live week is polled, which costs ESPN nothing.
+ *
+ * A page that was hidden when one of these fell due catches up on its
+ * return: only a week its policy calls stale is fetched then.
  */
 export function weekQuery(season: number, week: number) {
   return queryOptions({
-    queryKey: ["week", season, week],
+    queryKey: weekKey(season, week),
     queryFn: ({ client, signal }) => fetchWeek(client, season, week, signal),
-    staleTime: (query) => {
-      const { data } = query.state;
-      const now = Date.now();
-      switch (weekActivity(data?.games ?? [], now)) {
-        case "live":
-          return 0;
-        case "settled":
-          return Infinity;
-        case "ahead":
-          return Math.max(
-            0,
-            scoreConfig.aheadStaleMs - (now - (data?.fetchedAt ?? now)),
-          );
-      }
-    },
-    refetchInterval: (query) => {
-      const games = query.state.data?.games ?? [];
-      return weekActivity(games, Date.now()) === "live"
-        ? pollEvery(scoreConfig.livePollMs, query.state)
-        : false;
-    },
+    staleTime: (query) => weekStaleMs(query.state, Date.now()),
+    refetchInterval: (query) => weekPollMs(query.state, Date.now()),
+    refetchOnWindowFocus: true,
   });
+}
+
+/** What a week's policy reads of its query. */
+type WeekState = Pick<
+  QueryState<LoadedBoard>,
+  "data" | "dataUpdatedAt" | "fetchFailureCount" | "fetchFailureReason"
+>;
+
+/** How long a week is fresh, counted as Query counts: from `dataUpdatedAt`. */
+export function weekStaleMs({ data, dataUpdatedAt }: WeekState, now: number) {
+  if (!data || data.waiting) return 0;
+  switch (weekActivity(data.games, now)) {
+    case "live":
+      return 0;
+    case "settled":
+      return Infinity;
+    case "ahead":
+      // The trust counts from when it arrived from ESPN, perhaps on an
+      // earlier visit, not from when it landed in the cache.
+      return Math.max(
+        0,
+        scoreConfig.aheadStaleMs - (dataUpdatedAt - data.fetchedAt),
+      );
+  }
+}
+
+/** How long until a week is asked for again on its own, or never. */
+export function weekPollMs(state: WeekState, now: number): number | false {
+  const { data } = state;
+  if (!data) return false;
+  if (data.waiting) return scoreConfig.livePollMs;
+  switch (weekActivity(data.games, now)) {
+    case "live":
+      return pollEvery(scoreConfig.livePollMs, state);
+    case "settled":
+      return false;
+    case "ahead": {
+      const due = Math.min(
+        data.fetchedAt + scoreConfig.aheadStaleMs,
+        ...data.games.map(kickoffMs).filter((kickoff) => kickoff > now),
+      );
+      return pollEvery(Math.max(due - now, scoreConfig.livePollMs), state);
+    }
+  }
 }
 
 /** Every week of a season, regular season then playoff rounds. */

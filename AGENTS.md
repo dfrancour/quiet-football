@@ -89,8 +89,10 @@ ESPN numbers the postseason from 1 with the Pro Bowl before the Super Bowl
 ESPN has not set lists "TBD" teams with negative ids; those events are
 dropped, so the round is empty until its matchups arrive. A round's matchups
 come from the week before it, so a round is asked of ESPN only once that
-week is settled (`roundIsSet`); until then it is an empty week, and ESPN
-is not asked to say so through the regular season.
+week is settled (`roundIsSet`); until then it is an empty week
+(`waiting`), and ESPN is not asked to say so through the regular season.
+A waiting round reads the week before from the cache as often as a live
+week is polled, so it is asked of ESPN within a poll of that week settling.
 
 Records and standings count the regular season only (`isRegularSeason()`);
 a playoff game's `recordsBefore` is the record the team finished with.
@@ -141,14 +143,15 @@ week's newest fetch simply replaces its last.
 `weekActivity()` reads each week from its own games, and `weekQuery` sets
 its policy from that:
 
-| Activity  | When                                               | Policy                                                                           |
-| --------- | -------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `live`    | a game has kicked off and is not final or canceled | polled every `scoreConfig.livePollMs` while mounted; not saved                   |
-| `settled` | every game is final or canceled                    | never fetched again; saved for good                                              |
-| `ahead`   | anything else: games to come, a round not yet set  | trusted for `aheadStaleMs` (hours) from when it arrived, to catch flexing; saved |
+| Activity  | When                                               | Policy                                                                                                                       |
+| --------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `live`    | a game has kicked off and is not final or canceled | polled every `scoreConfig.livePollMs` while mounted; not saved                                                               |
+| `settled` | every game is final or canceled                    | never fetched again; saved for good                                                                                          |
+| `ahead`   | anything else: games to come, a round not yet set  | trusted for `aheadStaleMs` (hours) from when it arrived, to catch flexing, and asked again as its next game kicks off; saved |
 
 Polling runs only while a page is open and visible (Query's default), so a
-viewer looking at an old week costs ESPN nothing. There is no refresh
+viewer looking at an old week costs ESPN nothing. A page hidden when a week
+fell due asks for it on its return, and only then. There is no refresh
 control: nothing the viewer does asks ESPN for a week sooner than its
 policy says.
 
