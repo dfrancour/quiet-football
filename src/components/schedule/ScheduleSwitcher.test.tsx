@@ -59,6 +59,8 @@ describe("ScheduleSwitcher", () => {
     const sheet = screen.getByRole("dialog");
     expect(sheet).toHaveFocus();
     expect(document.body.style.overflow).toBe("hidden");
+    // Over the page, not laid out in the bar, which moves as the page scrolls.
+    expect(sheet.parentElement?.parentElement).toBe(document.body);
 
     await user.click(screen.getByRole("button", { name: /vs CHI/ }));
     expect(onSelect).toHaveBeenCalledWith("next");

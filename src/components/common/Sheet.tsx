@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useDismiss } from "~/hooks/useDismiss";
 
 interface SheetProps {
@@ -18,6 +19,10 @@ interface SheetProps {
  * by its control, Escape, or a tap outside. The page behind holds still and
  * the sheet takes focus, so Escape and a screen reader land in it. Render it
  * only while open; the caller puts focus back where it came from.
+ *
+ * It is drawn at the end of the body, so the page it covers is the viewport
+ * whatever opened it: inside a bar that is moved or transformed, a fixed
+ * element would be laid out in the bar instead.
  */
 export function Sheet({ label, title = label, onClose, children }: SheetProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -32,7 +37,7 @@ export function Sheet({ label, title = label, onClose, children }: SheetProps) {
     };
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-30 flex flex-col justify-end">
       <div className="bg-surface-sunken/70 absolute inset-0" aria-hidden />
       <div
@@ -56,6 +61,7 @@ export function Sheet({ label, title = label, onClose, children }: SheetProps) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
