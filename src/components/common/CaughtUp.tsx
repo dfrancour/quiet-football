@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { control } from "~/components/common/control";
 import { Sheet } from "~/components/common/Sheet";
 import { useDismiss } from "~/hooks/useDismiss";
 import { useIntroduced } from "~/hooks/useIntroduced";
@@ -196,18 +197,18 @@ export function CaughtUp({
         onPointerEnter={() => settled && setPreview(week)}
         onFocus={() => setPreview(week)}
         className={cn(
-          "relative min-w-0 overflow-hidden font-mono text-[0.6875rem] tabular-nums transition-colors first:rounded-l-sm last:rounded-r-sm",
-          wide ? "h-9" : "h-11 text-xs",
+          "relative min-w-0 overflow-hidden font-mono tabular-nums transition-colors first:rounded-l-sm last:rounded-r-sm",
+          wide ? "text-micro h-9" : "h-11 text-xs",
           !settled || half
             ? "bg-surface-sunken/50"
             : uncovered
               ? "bg-accent-dim"
               : "bg-surface-sunken",
           !settled
-            ? "text-ink-faint/60 cursor-default"
+            ? "text-ink-faint/60"
             : uncovered
-              ? "text-ink cursor-pointer"
-              : "text-ink-muted cursor-pointer",
+              ? "text-ink"
+              : "text-ink-muted",
           (half ? intoPartial : week === through) && "font-semibold",
         )}
       >
@@ -281,14 +282,6 @@ export function CaughtUp({
         ? settledThrough
         : null;
 
-  // With nothing caught up the control is the page's one way in, so it is
-  // the brighter of its two states, not the fainter.
-  const tone = showAll
-    ? "text-accent-strong hover:text-ink"
-    : through > 0
-      ? "text-ink-muted hover:text-ink"
-      : "text-ink-muted hover:text-ink font-semibold";
-
   const flip = () => {
     setPreview(null);
     setSweepFrom(through);
@@ -342,7 +335,7 @@ export function CaughtUp({
           onClick={() => choose(0)}
           onPointerEnter={() => (through > 0 || showAll) && setPreview(0)}
           onPointerLeave={() => setPreview(null)}
-          className="text-ink-faint hover:text-ink-muted disabled:text-ink-faint/50 -my-2 shrink-0 cursor-pointer py-2 whitespace-nowrap transition-colors disabled:cursor-default"
+          className={cn(control({ shape: "text" }), "shrink-0")}
         >
           Hide all
         </button>
@@ -353,7 +346,10 @@ export function CaughtUp({
               onClick={() => choose(ahead)}
               onPointerEnter={() => setPreview(ahead)}
               onPointerLeave={() => setPreview(null)}
-              className="text-ink-muted hover:text-ink -my-2 inline-flex min-w-0 cursor-pointer items-center gap-1 py-2 transition-colors"
+              className={cn(
+                control({ tone: "muted", shape: "text" }),
+                "min-w-0",
+              )}
             >
               {/* On a phone the row has room only for the verb. */}
               <span className="truncate">
@@ -370,7 +366,10 @@ export function CaughtUp({
             role="switch"
             aria-checked={showAll}
             onClick={flip}
-            className="group text-ink-muted hover:text-ink -my-2 inline-flex shrink-0 cursor-pointer items-center gap-2 py-2 whitespace-nowrap transition-colors"
+            className={cn(
+              control({ tone: "muted", shape: "text" }),
+              "group shrink-0",
+            )}
           >
             Show all
             <span
@@ -404,8 +403,16 @@ export function CaughtUp({
         aria-haspopup={wide ? undefined : "dialog"}
         onClick={() => (open ? close() : setOpened(true))}
         className={cn(
-          "hover:bg-surface-raised inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap transition-colors",
-          tone,
+          control({
+            tone: showAll ? "accent" : "muted",
+            shape: "box",
+            size: 8,
+            fit: true,
+          }),
+          "text-xs whitespace-nowrap",
+          // With nothing caught up the control is the page's one way in, so
+          // it is the brighter of its two states, not the fainter.
+          !showAll && through === 0 && "font-semibold",
         )}
       >
         <Icon className="size-3.5" aria-hidden />

@@ -127,7 +127,7 @@ function PlayRow({
           aria-pressed={selected}
           className={cn(
             rowClass,
-            "hover:bg-surface-sunken/60 cursor-pointer transition-colors",
+            "hover:bg-surface-sunken/60 transition-colors",
           )}
         >
           {body}
@@ -154,7 +154,7 @@ function FirstDown({
     >
       <span className="flex items-center gap-2">
         <span className="bg-edge-strong h-px w-3 shrink-0" />
-        <span className="text-ink-muted font-mono text-[0.6875rem] font-semibold tracking-wider uppercase">
+        <span className="text-ink-muted text-micro font-mono font-semibold tracking-wider uppercase">
           1st down
           {byPenalty && <span className="text-gold"> · penalty</span>}
         </span>
@@ -381,7 +381,7 @@ export function PlayFeed({
                         [drive.id]: !open,
                       }));
                     }}
-                    className="hover:bg-surface-sunken flex cursor-pointer list-none items-center gap-2.5 rounded-md px-1 py-1.5 [&::-webkit-details-marker]:hidden"
+                    className="hover:bg-surface-sunken flex list-none items-center gap-2.5 rounded-md px-1 py-1.5 [&::-webkit-details-marker]:hidden"
                   >
                     <DriveSummary
                       drive={drive}

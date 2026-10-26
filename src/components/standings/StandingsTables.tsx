@@ -154,7 +154,7 @@ export function StandingsTables({
     <div className="grid grid-cols-2 gap-x-6">
       {standings.map(({ conference, divisions }) => (
         <div key={conference} className="flex min-w-0 flex-col gap-4">
-          <h3 className="text-ink-muted text-xs font-semibold tracking-[0.14em]">
+          <h3 className="text-ink-muted tracking-eyebrow text-xs font-semibold">
             {conference}
           </h3>
           {divisions.map(({ division, rows }) => (

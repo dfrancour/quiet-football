@@ -840,6 +840,37 @@ and the root `main` pads by the safe-area insets so an installed page is not
 under the notch or home indicator, and covers the top inset with its
 background, since the status bar is translucent and the page scrolls under it.
 
+### The design system
+
+`src/styles/design-system.test.ts` holds what a test can of what follows.
+
+- **Colour** is a token in `globals.css`'s `@theme`: surfaces (sunken,
+  base, raised), edges, inks (ink, muted, faint), the accent, and the
+  status and field colours. A component colours only with them: never
+  Tailwind's palette, a hex or an `oklch`. Every ink reads at 4.5:1 or
+  better on the surface and the raised surface, faint included.
+- A colour wanted where the stylesheet does not reach (`FALLBACK_STYLE`,
+  the browser's and an installed app's bars) is `PALETTE`
+  (`src/lib/palette.ts`), the token as hex. The icons' ground is
+  `ICON_GROUND`, a shade above the page.
+- **Type** is Tailwind's scale, with `text-micro` (11px) below it and
+  `tracking-eyebrow` for small capitals; no arbitrary sizes.
+  `label-eyebrow` is an eyebrow label; `stat-figure` a score's figures, the
+  size the caller's.
+- **Controls** take their classes from `control()`
+  (`src/components/common/control.ts`): a tone at rest (faint, muted,
+  accent), a step brighter hovered and faded disabled, and a shape: a
+  `glyph` whose hit area reaches past it without taking room, a line of
+  `text`, or a `box` of its own (32, 36 or 44px). Add only what it leaves
+  open (text size, weight, layout); `cn` does not merge, so a colour,
+  padding or size added to it is settled by the stylesheet's order, not
+  the call. A row that is selected (a schedule row, a play, a week) draws
+  its own selection.
+- The pointer is the base layer's (`button:not(:disabled)`): no component
+  sets `cursor-*`, nor `touch-action`.
+- On a phone, `Sheet` is the menu and `StepperBar` the bar along the
+  bottom: the league's week stepper and a team's schedule bar.
+
 ### The stylesheet's layers
 
 Tailwind writes every rule into a cascade layer (`theme`, `base`,

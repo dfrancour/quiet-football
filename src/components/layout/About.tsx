@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
+import { control } from "~/components/common/control";
 import { ContactLink } from "~/components/layout/ContactLink";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
@@ -57,7 +58,7 @@ export function About() {
           replace
           aria-label="Close"
           title="Close (Esc)"
-          className="text-ink-faint hover:text-ink-muted hover:bg-surface-raised flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+          className={control({ shape: "box", size: 8 })}
         >
           <X className="size-4" aria-hidden />
         </Link>
@@ -80,10 +81,10 @@ export function About() {
               className="fill-current"
             />
           </svg>
-          <h1 className="text-ink mt-5 text-[1.75rem] font-semibold tracking-tight">
+          <h1 className="text-ink mt-5 text-3xl font-semibold tracking-tight">
             {SITE_NAME}
           </h1>
-          <p className="text-ink-muted mt-2.5 text-[1.0625rem] leading-normal">
+          <p className="text-ink-muted mt-2.5 text-base leading-normal">
             No ads. No odds. No spoilers until you ask.
           </p>
         </div>
@@ -91,7 +92,7 @@ export function About() {
         {/* A covered score's hatch, as a rule. */}
         <div className="hatched mx-auto h-1.5 w-40 rounded-full" aria-hidden />
 
-        <div className="text-ink-muted mx-auto mt-9 flex w-full max-w-[34rem] flex-col gap-4 text-center text-[0.9375rem] leading-relaxed">
+        <div className="text-ink-muted mx-auto mt-9 flex w-full max-w-[34rem] flex-col gap-4 text-center text-sm leading-relaxed text-pretty">
           <p>
             An NFL season browser for anyone watching on their own time. Pick a
             week, catch up at your own pace, and watch a game play by play

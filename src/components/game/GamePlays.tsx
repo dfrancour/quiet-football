@@ -10,6 +10,7 @@ import {
   StepForward,
 } from "lucide-react";
 import { useRef, type ReactNode } from "react";
+import { control } from "~/components/common/control";
 import { FieldView, fieldToFill } from "~/components/game/FieldView";
 import { PlayFeed, playTime } from "~/components/game/PlayFeed";
 import { useBoxSize } from "~/hooks/useBoxSize";
@@ -30,15 +31,21 @@ import { type SituationState } from "~/lib/score.schema";
 import { type Team } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
 
-const CONTROL =
-  "text-ink-faint hover:text-ink-muted -my-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md py-2 text-xs whitespace-nowrap transition-colors";
+const ACTION = cn(control({ shape: "text" }), "text-xs");
 
 /** The leading watch action: unframed, a shade brighter than the rest. */
-const PRIMARY =
-  "text-ink-muted hover:text-ink -my-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md py-2 text-xs font-semibold whitespace-nowrap transition-colors";
+const PRIMARY = cn(
+  control({ tone: "muted", shape: "text" }),
+  "text-xs font-semibold",
+);
 
-const TRANSPORT =
-  "text-ink-muted hover:text-ink hover:bg-surface-raised inline-flex size-9 cursor-pointer items-center justify-center rounded-md transition-colors select-none disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
+const TRANSPORT = control({ tone: "muted", shape: "box" });
+
+/** A transport control that is words, not a glyph. */
+const TRANSPORT_WORDS = cn(
+  control({ tone: "muted", shape: "box", fit: true }),
+  "text-xs",
+);
 
 function Caption({
   play,
@@ -179,7 +186,7 @@ function Transport({
         <button
           type="button"
           onClick={replay.cycleSpeed}
-          className={cn(TRANSPORT, "w-auto px-1.5 font-mono text-xs")}
+          className={cn(TRANSPORT_WORDS, "font-mono")}
           aria-label={`Speed ${speed}×`}
           title="Change speed"
         >
@@ -190,7 +197,7 @@ function Transport({
           <button
             type="button"
             onClick={delay.onCycle}
-            className={cn(TRANSPORT, "w-auto px-1.5 font-mono text-xs")}
+            className={cn(TRANSPORT_WORDS, "font-mono")}
             aria-label={`Delay ${delay.seconds}s`}
             title={
               nextBroadcastDelay(delay.seconds) > 0
@@ -206,7 +213,7 @@ function Transport({
         <button
           type="button"
           onClick={onWatchLive}
-          className={cn(TRANSPORT, "w-auto gap-1.5 px-1.5 text-xs")}
+          className={TRANSPORT_WORDS}
           aria-label="Watch live"
           title="Watch live"
         >
@@ -238,7 +245,7 @@ function WatchActions({
   onWatchLive?: () => void;
 }) {
   const live = onWatchLive && (
-    <button type="button" onClick={onWatchLive} className={CONTROL}>
+    <button type="button" onClick={onWatchLive} className={ACTION}>
       <LiveDot />
       Watch live
     </button>
@@ -260,7 +267,7 @@ function WatchActions({
         <button
           type="button"
           onClick={() => replay.resume(null)}
-          className={CONTROL}
+          className={ACTION}
         >
           <RotateCcw className="size-3.5" aria-hidden />
           From kickoff
@@ -283,7 +290,7 @@ function WatchActions({
       <button
         type="button"
         onClick={() => replay.resume(null)}
-        className={limited ? PRIMARY : CONTROL}
+        className={limited ? PRIMARY : ACTION}
       >
         <Play className="size-3.5" aria-hidden />
         Watch from kickoff

@@ -1,4 +1,5 @@
 import { type MetadataRoute } from "next";
+import { ICON_GROUND, PALETTE } from "~/lib/palette";
 import { SITE_DESCRIPTION, SITE_NAME } from "~/lib/site";
 
 // Under `output: "export"` a metadata route must say it is static.
@@ -12,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: SITE_DESCRIPTION,
     start_url: "/",
     display: "standalone",
-    background_color: "#1a1420",
-    theme_color: "#1a1420",
+    background_color: ICON_GROUND,
+    theme_color: PALETTE.surface,
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },

@@ -9,6 +9,12 @@
   --font-mono:
     ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
 
+  /* Below Tailwind's scale: a seed, a week's cell, a rule's label. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  /* The small capitals of an eyebrow label, at any size. */
+  --tracking-eyebrow: 0.14em;
+
   --color-surface: oklch(16% 0.014 300);
   --color-surface-raised: oklch(21% 0.017 300);
   --color-surface-sunken: oklch(12% 0.012 300);
@@ -17,7 +23,9 @@
 
   --color-ink: oklch(96% 0.004 300);
   --color-ink-muted: oklch(72% 0.014 300);
-  --color-ink-faint: oklch(55% 0.016 300);
+  /* Every ink reads at 4.5:1 or better on the surface and raised surface,
+     faint included: it is used for small text. */
+  --color-ink-faint: oklch(61% 0.016 300);
 
   --color-accent: oklch(55% 0.19 305);
   --color-accent-strong: oklch(63% 0.21 305);
@@ -46,6 +54,12 @@
   /* Keep focus rings visible for keyboard users without ringing every click. */
   :focus-visible {
     @apply outline-accent-strong outline-2 outline-offset-2;
+  }
+
+  /* Anything pressable says so; a disabled control does not. */
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
   }
 
   /* A tap on a control is a tap, never the first half of a double-tap zoom:
@@ -85,41 +99,16 @@
 
 @layer components {
   .label-eyebrow {
-    @apply text-ink-faint text-xs font-semibold tracking-[0.14em] uppercase;
+    @apply text-ink-faint tracking-eyebrow text-xs font-semibold uppercase;
   }
 
+  /* A score's figures; the size is the caller's. */
   .stat-figure {
-    @apply font-mono text-4xl font-semibold tabular-nums;
+    @apply font-mono font-semibold tabular-nums;
   }
 
-  /* A hidden figure: a hatched bar, never a glyph that could pass for a
-     value. */
-  .redacted {
-    @apply inline-block rounded-[0.2em] align-[-0.06em];
-    height: 0.8em;
-    background-color: color-mix(
-      in oklch,
-      var(--color-ink-faint) 30%,
-      transparent
-    );
-    background-image: repeating-linear-gradient(
-      135deg,
-      transparent 0 0.18em,
-      color-mix(in oklch, var(--color-ink) 7%, transparent) 0.18em 0.3em
-    );
-  }
-
-  /* A favorite team's wash, in the color `tintStyle()` sets
-     (`src/lib/team-tint.ts`). In this layer, a hover utility still wins. */
-  .team-tint {
-    background-color: color-mix(in oklch, var(--team-tint) 18%, transparent);
-  }
-
-  .redacted-reveal {
-    @apply cursor-pointer transition-colors;
-  }
-
-  /* A week whose results are covered, hatched as a hidden figure is. */
+  /* What is covered: a hidden figure, a week whose results are hidden. */
+  .redacted,
   .hatched {
     background-color: color-mix(
       in oklch,
@@ -131,6 +120,23 @@
       transparent 0 0.18em,
       color-mix(in oklch, var(--color-ink) 7%, transparent) 0.18em 0.3em
     );
+  }
+
+  /* A hidden figure: a hatched bar, never a glyph that could pass for a
+     value. */
+  .redacted {
+    @apply inline-block rounded-[0.2em] align-[-0.06em];
+    height: 0.8em;
+  }
+
+  /* A favorite team's wash, in the color `tintStyle()` sets
+     (`src/lib/team-tint.ts`). In this layer, a hover utility still wins. */
+  .team-tint {
+    background-color: color-mix(in oklch, var(--team-tint) 18%, transparent);
+  }
+
+  .redacted-reveal {
+    @apply transition-colors;
   }
 
   .redacted-reveal:hover {

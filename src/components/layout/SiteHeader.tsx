@@ -4,6 +4,7 @@ import { Info } from "lucide-react";
 import { type ReactNode } from "react";
 import { type PartialWeek } from "~/hooks/useSpoilers";
 import { CaughtUp } from "~/components/common/CaughtUp";
+import { control } from "~/components/common/control";
 import Link from "next/link";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { aboutPath, standingsPath } from "~/lib/routes";
@@ -18,7 +19,7 @@ export function AboutLink() {
       href={aboutPath()}
       aria-label="About"
       title="About"
-      className="text-ink-faint hover:text-ink-muted hover:bg-surface-raised flex size-8 shrink-0 items-center justify-center rounded-md transition-colors"
+      className={control({ shape: "box", size: 8 })}
     >
       <Info className="size-4" aria-hidden />
     </Link>

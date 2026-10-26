@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { control } from "~/components/common/control";
 import { useDismiss } from "~/hooks/useDismiss";
 
 interface SheetProps {
@@ -74,7 +75,7 @@ export function Sheet({ label, title = label, onClose, children }: SheetProps) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-ink-faint hover:text-ink -m-2 cursor-pointer rounded-md p-2 transition-colors"
+            className={control({ shape: "glyph" })}
           >
             <X className="size-4" aria-hidden />
           </button>

@@ -42,7 +42,7 @@ const ROUND_HEADINGS = ["Wild Card", "Divisional", "Conference", "Super Bowl"];
 
 function Seed({ seed }: { seed: number | null }) {
   return (
-    <span className="text-ink-faint w-2.5 shrink-0 text-right font-mono text-[0.6875rem] tabular-nums">
+    <span className="text-ink-faint text-micro w-2.5 shrink-0 text-right font-mono tabular-nums">
       {seed !== null && (
         <>
           <span className="sr-only">Seed </span>
@@ -429,7 +429,7 @@ export function Bracket({ bracket, ...context }: BracketProps) {
             {bracket.conferences.map(({ conference }) => (
               <span
                 key={conference}
-                className="text-ink-muted flex flex-1 rotate-180 items-center justify-center text-[0.6875rem] font-semibold tracking-[0.14em] [writing-mode:vertical-rl]"
+                className="text-ink-muted text-micro tracking-eyebrow flex flex-1 rotate-180 items-center justify-center font-semibold [writing-mode:vertical-rl]"
               >
                 {conference}
               </span>

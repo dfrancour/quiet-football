@@ -113,6 +113,16 @@ function StatusCell({
   return null;
 }
 
+/** A row of the schedule, selected or not. */
+function rowClass(selected: boolean) {
+  return cn(
+    "relative flex w-full items-center gap-3 rounded-sm py-2 pr-1 pl-3 text-left transition-colors",
+    selected
+      ? "before:bg-accent-strong before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full"
+      : "hover:bg-surface-raised/60",
+  );
+}
+
 /**
  * The season schedule, playoff games after it; picking a row selects the
  * detail panel's game. Only the result column reacts to the spoiler switch
@@ -166,12 +176,7 @@ export function ScheduleSelector({
                 type="button"
                 onClick={() => onSelectBye(row.week)}
                 aria-current={isSelected ? "true" : undefined}
-                className={cn(
-                  "relative flex w-full cursor-pointer items-center gap-3 rounded-sm py-2 pr-1 pl-3 text-left transition-colors",
-                  isSelected
-                    ? "before:bg-accent-strong before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full"
-                    : "hover:bg-surface-raised/60",
-                )}
+                className={rowClass(isSelected)}
               >
                 <span
                   className={cn(
@@ -208,12 +213,7 @@ export function ScheduleSelector({
               type="button"
               onClick={() => onSelect(game.gameId)}
               aria-current={isSelected ? "true" : undefined}
-              className={cn(
-                "relative flex w-full cursor-pointer items-center gap-3 rounded-sm py-2 pr-1 pl-3 text-left transition-colors",
-                isSelected
-                  ? "before:bg-accent-strong before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full"
-                  : "hover:bg-surface-raised/60",
-              )}
+              className={rowClass(isSelected)}
             >
               <span
                 className={cn(

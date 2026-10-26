@@ -66,7 +66,7 @@ function PaneSwitch({
       aria-pressed={pane === value}
       onClick={() => onChange(value)}
       className={cn(
-        "flex-1 cursor-pointer rounded-md py-2 text-sm font-semibold transition-colors",
+        "flex-1 rounded-md py-2 text-sm font-semibold transition-colors",
         pane === value
           ? "bg-surface-raised text-ink"
           : "text-ink-faint hover:text-ink-muted",

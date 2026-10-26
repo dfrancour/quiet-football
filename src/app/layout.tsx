@@ -4,6 +4,7 @@ import { type Metadata, type Viewport } from "next";
 import { Providers } from "~/app/providers";
 import { VercelAnalytics } from "~/components/layout/VercelAnalytics";
 import { FALLBACK_STYLE } from "~/lib/fallback-style";
+import { PALETTE } from "~/lib/palette";
 import { PREFETCH_SCRIPT } from "~/lib/prefetch";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "~/lib/site";
 
@@ -40,7 +41,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#1a1420",
+  themeColor: PALETTE.surface,
   colorScheme: "dark",
 };
 
