@@ -73,6 +73,11 @@ interface GameDetailProps {
   onLoadPlays?: () => Promise<PlayByPlay | null>;
   expanded?: boolean;
   onToggleExpanded?: () => void;
+  /**
+   * A phone on its side: a live or final game fills the panel's height,
+   * the score one line over the field and its controls beside the feed.
+   */
+  sideways?: boolean;
 }
 
 /** The team's own record is in the page's header; the opponent's is here. */
@@ -281,15 +286,18 @@ function Eyebrow({
   expanded,
   onToggleExpanded,
   recap = null,
+  flush = false,
 }: {
   children: ReactNode;
   /** A finished game's recap, once the dataset has one. */
   recap?: Recap | null;
+  /** Spaced by its parent, not its own margin. */
+  flush?: boolean;
 } & ExpandControl) {
   const Icon = expanded ? Minimize2 : Maximize2;
   const label = expanded ? "Exit full screen" : "Full screen";
   return (
-    <div className="mb-4 flex items-center gap-3">
+    <div className={cn("flex items-center gap-3", !flush && "mb-4")}>
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
         {children}
       </div>
@@ -346,6 +354,7 @@ export function GameDetail({
   onLoadPlays,
   expanded = false,
   onToggleExpanded,
+  sideways = false,
 }: GameDetailProps) {
   const expand = { expanded, onToggleExpanded };
   const gameId = game?.gameId ?? null;
@@ -440,6 +449,10 @@ export function GameDetail({
 
   const phase = broadcastPhase(gamePhase(game, now), broadcastClock);
   const { gameId: selectedId } = game;
+  // A game with plays: sideways it fills the height it is given.
+  const playsPanel = sideways
+    ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
+    : "md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain";
   // Plays not yet asked for: the first move to watch asks, then starts.
   const loadThen = (atEnd: boolean) =>
     onLoadPlays
@@ -536,10 +549,11 @@ export function GameDetail({
     const updatedMs =
       activeScore && scoreUpdatedAt !== null ? scoreUpdatedAt : Number.NaN;
 
-    // From md up the play feed scrolls; the panel scrolls only as a fallback.
-    return (
-      <Panel className="md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain">
-        <Eyebrow {...expand}>
+    // Sideways, the label and score head the field's column.
+    const inColumn = sideways && shownDrives !== null;
+    const head = (
+      <>
+        <Eyebrow {...expand} flush={inColumn}>
           <LiveLabel
             game={game}
             // The row stands at a play; the game itself is here.
@@ -576,6 +590,7 @@ export function GameDetail({
             </span>
           }
           onReveal={onReveal}
+          compact={sideways}
           periods={
             watched?.periods ??
             (showSpoilers && activeScore
@@ -586,6 +601,13 @@ export function GameDetail({
               : null)
           }
         />
+      </>
+    );
+
+    // From md up the play feed scrolls; the panel scrolls only as a fallback.
+    return (
+      <Panel className={playsPanel}>
+        {!inColumn && head}
 
         {shownDrives ? (
           <GamePlays
@@ -601,6 +623,8 @@ export function GameDetail({
             seenThrough={limit}
             onLoadPlays={loadPlays}
             onWatchLive={onFollow}
+            sideways={sideways}
+            head={inColumn ? head : undefined}
           />
         ) : (
           situation && (
@@ -614,7 +638,7 @@ export function GameDetail({
           </p>
         )}
 
-        {!expanded && (
+        {!expanded && !sideways && (
           <div className="border-edge mt-4 border-t pt-3">
             <Meta game={game} />
           </div>
@@ -631,10 +655,16 @@ export function GameDetail({
       true,
     );
 
-    // As the live panel: from md up the play feed scrolls.
-    return (
-      <Panel className="md:flex md:min-h-0 md:flex-col md:overflow-y-auto md:overscroll-contain">
-        <Eyebrow {...expand} recap={findRecap(recaps, game.gameId)}>
+    // As the live panel: the label and score head the field's column
+    // sideways, and from md up the play feed scrolls.
+    const inColumn = sideways && shownDrives !== null;
+    const head = (
+      <>
+        <Eyebrow
+          {...expand}
+          flush={inColumn}
+          recap={findRecap(recaps, game.gameId)}
+        >
           {/* Covered or stood at a play, the game itself is over. */}
           {watched || onReveal ? (
             <FinalLabel game={game} onFinish={onReveal} />
@@ -643,7 +673,7 @@ export function GameDetail({
           )}
         </Eyebrow>
 
-        <div className="mb-4">
+        <div className={inColumn ? undefined : "mb-4"}>
           <ScoreRow
             game={game}
             team={team}
@@ -667,6 +697,7 @@ export function GameDetail({
               )
             }
             onReveal={onReveal}
+            compact={sideways}
             periods={
               watched?.periods ??
               (showSpoilers && game.periods
@@ -678,6 +709,12 @@ export function GameDetail({
             }
           />
         </div>
+      </>
+    );
+
+    return (
+      <Panel className={playsPanel}>
+        {!inColumn && head}
 
         {shownDrives && (
           <GamePlays
@@ -687,10 +724,12 @@ export function GameDetail({
             ongoing={false}
             seenThrough={limit}
             onLoadPlays={loadPlays}
+            sideways={sideways}
+            head={inColumn ? head : undefined}
           />
         )}
 
-        {!expanded && (
+        {!expanded && !sideways && (
           <div className="border-edge mt-4 border-t pt-3">
             <Meta game={game} />
           </div>

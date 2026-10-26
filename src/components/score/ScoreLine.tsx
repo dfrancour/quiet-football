@@ -27,6 +27,11 @@ interface ScoreLineProps {
   mirrored?: boolean;
   /** Makes a covered figure the way to uncover it. */
   onReveal?: () => void;
+  /**
+   * A scorebug's side: mark, abbreviation and points as one block, the
+   * timeouts under the abbreviation and no record.
+   */
+  compact?: boolean;
   className?: string;
 }
 
@@ -67,8 +72,96 @@ export function ScoreLine({
   won = null,
   mirrored = false,
   onReveal,
+  compact = false,
   className,
 }: ScoreLineProps) {
+  const pips = timeouts !== null && <TimeoutPips remaining={timeouts} />;
+  const figure = display ?? (
+    <Redacted
+      onReveal={onReveal}
+      revealLabel={`Reveal score, ${team.abbreviation}`}
+    />
+  );
+  const caret = won !== null && (
+    // Points inward at the winner's figure from the middle of the row.
+    <span className="flex h-5 w-4 shrink-0 items-center justify-center">
+      {won && (
+        <>
+          <svg
+            viewBox="0 0 8 10"
+            className={cn("text-ink h-2.5 w-2", mirrored && "rotate-180")}
+            aria-hidden
+          >
+            <path d="M0 5 8 0v10z" fill="currentColor" />
+          </svg>
+          <span className="sr-only">Winner</span>
+        </>
+      )}
+    </span>
+  );
+
+  if (compact) {
+    // The ball sits with the timeouts under the name, so the block keeps
+    // to its width whoever has it.
+    return (
+      <div
+        className={cn(
+          "flex items-center",
+          mirrored && "flex-row-reverse",
+          className,
+        )}
+      >
+        <span
+          className={cn(
+            "bg-surface-raised flex items-center gap-2 rounded-lg py-1 pr-2.5 pl-1",
+            mirrored && "flex-row-reverse pr-1 pl-2.5",
+          )}
+        >
+          <TeamLogo team={team} size="md" />
+          <span
+            className={cn(
+              "flex flex-col gap-1",
+              mirrored ? "items-end" : "items-start",
+            )}
+          >
+            <span
+              className={cn(
+                "font-mono text-base leading-none tracking-wide",
+                emphasis ? "text-ink font-semibold" : "text-ink-muted",
+              )}
+              title={team.displayName}
+            >
+              {team.abbreviation}
+            </span>
+            {(pips || hasBall) && (
+              <span
+                className={cn(
+                  "flex h-2.5 items-center gap-1.5",
+                  mirrored && "flex-row-reverse",
+                )}
+              >
+                {pips}
+                {hasBall && (
+                  <FootballIcon className="text-ink-muted h-2.5 w-4 shrink-0" />
+                )}
+              </span>
+            )}
+          </span>
+          <span
+            className={cn(
+              "stat-figure min-w-[2ch] text-2xl leading-none",
+              mirrored ? "text-left" : "text-right",
+              leading ? "text-ink" : "text-ink-muted",
+            )}
+          >
+            {figure}
+          </span>
+        </span>
+        {caret}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -117,7 +210,7 @@ export function ScoreLine({
                   {record}
                 </span>
               )}
-              {timeouts !== null && <TimeoutPips remaining={timeouts} />}
+              {pips}
             </span>
           )}
         </span>
@@ -129,30 +222,9 @@ export function ScoreLine({
             leading ? "text-ink" : "text-ink-muted",
           )}
         >
-          {display ?? (
-            <Redacted
-              onReveal={onReveal}
-              revealLabel={`Reveal score, ${team.abbreviation}`}
-            />
-          )}
+          {figure}
         </span>
-        {won !== null && (
-          // Points inward at the winner's figure from the middle of the row.
-          <span className="flex h-5 w-4 shrink-0 items-center justify-center">
-            {won && (
-              <>
-                <svg
-                  viewBox="0 0 8 10"
-                  className={cn("text-ink h-2.5 w-2", mirrored && "rotate-180")}
-                  aria-hidden
-                >
-                  <path d="M0 5 8 0v10z" fill="currentColor" />
-                </svg>
-                <span className="sr-only">Winner</span>
-              </>
-            )}
-          </span>
-        )}
+        {caret}
       </span>
     </div>
   );

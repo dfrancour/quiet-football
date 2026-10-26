@@ -66,3 +66,16 @@ export function useFullScreen(): [expanded: boolean, toggle: () => void] {
 
   return [expanded, toggle];
 }
+
+function noSubscription(): () => void {
+  return () => undefined;
+}
+
+/** Whether the browser can put the page itself full screen (an iPhone cannot). */
+export function useFullScreenEnabled(): boolean {
+  return useSyncExternalStore(
+    noSubscription,
+    () => document.fullscreenEnabled,
+    () => false,
+  );
+}

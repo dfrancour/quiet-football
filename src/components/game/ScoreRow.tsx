@@ -38,7 +38,9 @@ export interface SidePeriods {
  *
  * The status sits between the scores, and the quarter grid under it. A
  * narrow panel drops the grid below the row, and a phone the status too,
- * leaving a gutter between the scores.
+ * leaving a gutter between the scores. `compact` is one line, a scorebug:
+ * each side a block of mark, name and score, meeting at the status, and no
+ * grid or records.
  */
 export function ScoreRow({
   game,
@@ -48,6 +50,7 @@ export function ScoreRow({
   status,
   periods = null,
   onReveal,
+  compact = false,
 }: {
   game: TeamGame;
   team: Team;
@@ -58,12 +61,14 @@ export function ScoreRow({
   onReveal?: () => void;
   /** Spoilers only. */
   periods?: SidePeriods | null;
+  compact?: boolean;
 }) {
   const { away, home } = sides(game, team);
   const [awayFigures, homeFigures] =
     game.homeAway === "home" ? [opposing, followed] : [followed, opposing];
 
   const hasPeriods =
+    !compact &&
     periods !== null &&
     (periods.followed.length > 0 || periods.opposing.length > 0);
 
@@ -74,13 +79,17 @@ export function ScoreRow({
       </p>
       <div
         className={cn(
-          "grid grid-cols-[auto_minmax(1rem,1fr)_auto] items-center gap-x-2 gap-y-3 sm:gap-x-3 @sm:grid-cols-[1fr_minmax(1rem,auto)_1fr] @xl:gap-x-6 @xl:gap-y-2",
+          "items-center",
+          compact
+            ? "flex justify-center gap-2"
+            : "grid grid-cols-[auto_minmax(1rem,1fr)_auto] gap-x-2 gap-y-3 sm:gap-x-3 @sm:grid-cols-[1fr_minmax(1rem,auto)_1fr] @xl:gap-x-6 @xl:gap-y-2",
         )}
       >
         <ScoreLine
           team={away}
           emphasis={away === team}
           onReveal={onReveal}
+          compact={compact}
           {...awayFigures}
           className={cn(
             "col-start-1 row-start-1",
@@ -89,7 +98,10 @@ export function ScoreRow({
         />
         <p
           className={cn(
-            "col-span-3 row-start-2 justify-self-center font-mono text-xs whitespace-nowrap @sm:col-span-1 @sm:col-start-2 @sm:row-start-1",
+            "justify-self-center font-mono text-xs whitespace-nowrap",
+            compact
+              ? "col-start-2 row-start-1"
+              : "col-span-3 row-start-2 @sm:col-span-1 @sm:col-start-2 @sm:row-start-1",
             hasPeriods && "@xl:self-end",
           )}
         >
@@ -100,6 +112,7 @@ export function ScoreRow({
           emphasis={home === team}
           mirrored
           onReveal={onReveal}
+          compact={compact}
           {...homeFigures}
           className={cn(
             "col-start-3 row-start-1",

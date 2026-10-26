@@ -367,6 +367,21 @@ scrolls up or nears the top (`useScrollAway`). The game and the schedule
 are never on screen together on a phone. The site's mark in the header
 gains a chevron there, reading as the way back.
 
+A phone on its side (`useSideways()`: landscape, at most 30rem tall) is
+held to watch. With a live or final game selected, the header and schedule
+give way as in full screen and the panel is the viewport, in two columns.
+The field's column is headed by the label and the score on one line
+(`compact`: each side a block of mark, name and score, timeouts and
+possession under the name, meeting at the clock; no records or quarters),
+with the field and its controls beneath. Beside it the feed runs the
+panel's height and scrolls on its own, so the score, the field and the
+plays are on screen together, and nothing spans both. The field fills what its
+column leaves it, drawn taller than usual up to half as tall as it is long
+(`fieldToFill()`), the set of downs growing with it. A game to come or a
+bye keeps the usual page. Where the browser cannot go full screen itself
+(an iPhone), the panel offers no full-screen control while sideways: there
+is nothing left to hide.
+
 `GameDetail` branches on `gamePhase()` of the **selected** game:
 
 | Phase  | Shows                                    |
@@ -805,7 +820,8 @@ scroll: the header is fixed, and the schedule rail and detail panel scroll
 independently, with the selected week kept in view. Below `md` the page
 scrolls normally, the field and its transport stick to the top, so a
 replay can be followed from anywhere in the feed, and the schedule's bar
-keeps to the bottom.
+keeps to the bottom. A phone on its side watching a game is neither: the
+panel is the viewport (see the team page).
 
 The site is meant to be installed on a phone, so it is laid out for touch:
 every control has at least about 36px to tap (padding past the glyph, not a

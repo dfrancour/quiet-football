@@ -587,6 +587,54 @@ describe("GameDetail full screen", () => {
   });
 });
 
+describe("GameDetail sideways", () => {
+  const live = {
+    game: liveGame,
+    now: KICKOFF_MS + 60_000,
+    score: liveScoreWithSituation,
+    situationAfter,
+    playByPlay,
+    showSpoilers: true,
+    records: {
+      team: { wins: 5, losses: 0, ties: 0 },
+      opponent: { wins: 1, losses: 3, ties: 1 },
+    },
+    sideways: true,
+  };
+
+  it("keeps the field, its controls and the feed", () => {
+    renderDetail(live);
+    expect(screen.getByRole("img", { name: /ball on NO 18/ })).toBeVisible();
+    expect(
+      screen.getByRole("region", { name: "Play-by-play" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("A.Jones run for 20 yards.")).toBeVisible();
+  });
+
+  it("puts the score on one line: no records, quarters or kickoff", () => {
+    const { unmount } = renderDetail({ ...live, sideways: false });
+    expect(screen.getByText("5-0")).toBeInTheDocument();
+    unmount();
+
+    renderDetail(live);
+    expect(screen.queryByText("5-0")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: "Scoring by quarter" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Kickoff")).not.toBeInTheDocument();
+  });
+
+  it("gives the field the width while nothing has been watched", () => {
+    renderDetail({ ...live, showSpoilers: false, records: null });
+    expect(
+      screen.queryByRole("region", { name: "Play-by-play" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Watch from kickoff/ }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("GameDetail winner caret", () => {
   const finalGame = (teamScore: number, opponentScore: number) =>
     makeTeamGame({

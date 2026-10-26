@@ -9,8 +9,10 @@ import {
   StepBack,
   StepForward,
 } from "lucide-react";
-import { FieldView } from "~/components/game/FieldView";
+import { useRef, type ReactNode } from "react";
+import { FieldView, fieldToFill } from "~/components/game/FieldView";
 import { PlayFeed, playTime } from "~/components/game/PlayFeed";
+import { useBoxSize } from "~/hooks/useBoxSize";
 import { type ReplayControls } from "~/hooks/useReplay";
 import { nextBroadcastDelay } from "~/lib/broadcast-delay";
 import {
@@ -348,6 +350,8 @@ export function GamePlays({
   delay,
   onLoadPlays,
   onWatchLive,
+  sideways = false,
+  head,
 }: {
   drives: Drive[];
   home: Team;
@@ -374,8 +378,18 @@ export function GamePlays({
   onLoadPlays?: () => void;
   /** Joins a game under way at its newest play, and follows it. */
   onWatchLive?: () => void;
+  /**
+   * A phone on its side: the field and its controls beside the feed, filling
+   * the height the parent gives them.
+   */
+  sideways?: boolean;
+  /** Sideways, what heads the field's column: the label and the score. */
+  head?: ReactNode;
 }) {
   const { play, running, stage, revealedId } = replay;
+  const fieldBox = useRef<HTMLDivElement>(null);
+  const box = useBoxSize(fieldBox, sideways);
+  const fill = sideways && box ? fieldToFill(box.width, box.height) : null;
   const limited = seenThrough !== undefined;
   const seen = seenThrough ?? null;
   // With nothing on the field, it rests where the viewer left off.
@@ -433,77 +447,131 @@ export function GamePlays({
     else replay.select(playId);
   };
 
+  const field = (
+    <FieldView
+      home={home}
+      away={away}
+      field={shown.field}
+      set={shown.set}
+      kick={shown.kick}
+      scoredBy={shown.scoredBy}
+      focusId={
+        onField && !atEdge && !(play && stage === "snap") ? shownPlayId : null
+      }
+      drawFocus={stage === "result" && play !== null && shownPlayId === play.id}
+      linedUp={shown.waiting}
+      height={fill?.height}
+    />
+  );
+
+  // A phone gets the caption over the controls, every play alike, so they
+  // never jump rows as the caption's length changes; sideways, a narrow
+  // column does.
+  const controls = (
+    <>
+      <Announcement
+        play={play}
+        offense={offense}
+        stage={stage}
+        nextDown={edge?.downDistance ?? null}
+      />
+      <div
+        className={cn(
+          "flex min-h-7 flex-col gap-y-1",
+          sideways
+            ? "@md:flex-row @md:items-center @md:justify-between @md:gap-x-3"
+            : "sm:flex-row sm:items-center sm:justify-between sm:gap-x-3",
+        )}
+      >
+        <Caption
+          play={atEdge && edge?.downDistance ? null : onField}
+          situation={atEdge ? edge : null}
+        />
+        <div
+          className={cn(
+            "flex items-center gap-4 self-end",
+            sideways ? "@md:self-auto" : "sm:self-auto",
+          )}
+        >
+          {play !== null || running ? (
+            <Transport
+              replay={replay}
+              delay={delay}
+              over={!ongoing}
+              onWatchLive={onWatchLive}
+            />
+          ) : (
+            <WatchActions
+              replay={replay}
+              limited={limited}
+              seen={seen}
+              onLoad={onLoadPlays}
+              // At the newest play already, Resume is watching live.
+              onWatchLive={resting?.id === newestId ? undefined : onWatchLive}
+            />
+          )}
+        </div>
+      </div>
+    </>
+  );
+
+  const feedDrives =
+    feedThrough === undefined
+      ? drives
+      : feedThrough === null
+        ? []
+        : drivesThrough(drives, feedThrough);
+  const feed = (
+    <PlayFeed
+      drives={feedDrives}
+      home={home}
+      away={away}
+      ongoing={ongoing}
+      selectedId={play ? revealedId : (resting?.id ?? null)}
+      onSelect={onSelect}
+      bounded={sideways}
+    />
+  );
+
+  if (sideways) {
+    // The score heads the field's column, so it reads with the field and
+    // not the feed, which runs the height beside them. The field fills what
+    // the column leaves it; with nothing in the feed, it has the width.
+    return (
+      <div className="flex min-h-0 flex-1 gap-4">
+        <div className="@container flex min-w-0 flex-1 flex-col gap-2">
+          {head}
+          <div
+            ref={fieldBox}
+            className="flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+          >
+            <div
+              className="w-full"
+              style={fill ? { width: fill.width } : undefined}
+            >
+              {field}
+            </div>
+          </div>
+          {controls}
+        </div>
+        {feedDrives.length > 0 && (
+          <div className="border-edge flex w-2/5 max-w-80 shrink-0 flex-col border-l pl-3">
+            {feed}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Below md the page scrolls, not the feed: the field and its
           controls stay put so a replay can be followed from anywhere in it. */}
       <div className="bg-surface mt-4 space-y-2 max-md:sticky max-md:top-[env(safe-area-inset-top)] max-md:z-10 max-md:-mx-2 max-md:px-2 max-md:pb-2">
-        <FieldView
-          home={home}
-          away={away}
-          field={shown.field}
-          set={shown.set}
-          kick={shown.kick}
-          scoredBy={shown.scoredBy}
-          focusId={
-            onField && !atEdge && !(play && stage === "snap")
-              ? shownPlayId
-              : null
-          }
-          drawFocus={
-            stage === "result" && play !== null && shownPlayId === play.id
-          }
-          linedUp={shown.waiting}
-        />
-        <Announcement
-          play={play}
-          offense={offense}
-          stage={stage}
-          nextDown={edge?.downDistance ?? null}
-        />
-        {/* A phone gets the caption over the controls, every play alike,
-            so they never jump rows as the caption's length changes. */}
-        <div className="flex min-h-7 flex-col gap-y-1 sm:flex-row sm:items-center sm:justify-between sm:gap-x-3">
-          <Caption
-            play={atEdge && edge?.downDistance ? null : onField}
-            situation={atEdge ? edge : null}
-          />
-          <div className="flex items-center gap-4 self-end sm:self-auto">
-            {play !== null || running ? (
-              <Transport
-                replay={replay}
-                delay={delay}
-                over={!ongoing}
-                onWatchLive={onWatchLive}
-              />
-            ) : (
-              <WatchActions
-                replay={replay}
-                limited={limited}
-                seen={seen}
-                onLoad={onLoadPlays}
-                // At the newest play already, Resume is watching live.
-                onWatchLive={resting?.id === newestId ? undefined : onWatchLive}
-              />
-            )}
-          </div>
-        </div>
+        {field}
+        {controls}
       </div>
-
-      <PlayFeed
-        drives={
-          feedThrough === undefined
-            ? drives
-            : feedThrough === null
-              ? []
-              : drivesThrough(drives, feedThrough)
-        }
-        home={home}
-        away={away}
-        ongoing={ongoing}
-        selectedId={play ? revealedId : (resting?.id ?? null)}
-        onSelect={onSelect}
-      />
+      {feed}
     </>
   );
 }

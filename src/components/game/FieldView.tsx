@@ -30,18 +30,47 @@ interface FieldViewProps {
   kick?: KickFlight | null;
   /** Lights the end zone this side scored in. */
   scoredBy?: FieldSide | null;
+  /**
+   * In drawing units, `FIELD_HEIGHT` unless the field fills a taller box
+   * (`fieldToFill`). The set of downs and its rows grow with it.
+   */
+  height?: number;
 }
 
 /** Drawing units per yard; the end zones are ten yards deep. */
 const UNIT = 10;
 const END_ZONE = 10 * UNIT;
 const WIDTH = FIELD_YARDS * UNIT + 2 * END_ZONE;
-const HEIGHT = 250;
-const MID = HEIGHT / 2;
+const FIELD_HEIGHT = 250;
+/** The tallest a field is drawn: half as tall as it is long. */
+const MAX_HEIGHT = WIDTH / 2;
+
+/**
+ * The field that fills a box of this size: drawn taller (`height`, in
+ * drawing units) rather than leave the box's height empty, and as wide as
+ * fits (`width`, in pixels). It is never shorter than the usual field, so in
+ * a wide, short box it is narrower than the box, and never taller than half
+ * its length, so a tall box keeps some height.
+ */
+export function fieldToFill(
+  width: number,
+  height: number,
+): { height: number; width: number } {
+  if (width <= 0 || height <= 0) return { height: FIELD_HEIGHT, width };
+  const units = Math.round(
+    Math.min(MAX_HEIGHT, Math.max(FIELD_HEIGHT, (WIDTH * height) / width)),
+  );
+  return {
+    height: units,
+    width: Math.min(width, Math.floor((height * WIDTH) / units)),
+  };
+}
 
 /** The set-of-downs band, clear of the drive rule and the yard numbers. */
 const TRACK_TOP = 36;
-const TRACK_BOTTOM = HEIGHT - 56;
+/** Below the band: the yard numbers. */
+const TRACK_FOOT = 56;
+/** A row's height at most, on a field of the usual height. */
 const MAX_ROW = 20;
 /** The share of a row a bar fills; the rest is the gap between bars. */
 const BAR_SHARE = 0.82;
@@ -79,12 +108,15 @@ function EndZone({
   side,
   lit,
   litAfterMs,
+  height,
 }: {
   team: Team;
   side: "left" | "right";
   lit: boolean;
   litAfterMs: number;
+  height: number;
 }) {
+  const mid = height / 2;
   const x = side === "left" ? 0 : WIDTH - END_ZONE;
   const center = x + END_ZONE / 2;
   return (
@@ -94,7 +126,7 @@ function EndZone({
           x={x}
           y={0}
           width={END_ZONE}
-          height={HEIGHT}
+          height={height}
           fill={`#${team.color}`}
           style={{
             opacity: lit ? 0.95 : 0.55,
@@ -108,7 +140,7 @@ function EndZone({
           x={x}
           y={0}
           width={END_ZONE}
-          height={HEIGHT}
+          height={height}
           className="animate-field-light fill-white"
           opacity={0}
           style={{ animationDelay: `${litAfterMs}ms` }}
@@ -116,8 +148,8 @@ function EndZone({
       )}
       <text
         x={center}
-        y={MID}
-        transform={`rotate(${side === "left" ? -90 : 90} ${center} ${MID})`}
+        y={mid}
+        transform={`rotate(${side === "left" ? -90 : 90} ${center} ${mid})`}
         textAnchor="middle"
         dominantBaseline="central"
         className="fill-white font-sans font-bold"
@@ -282,6 +314,7 @@ export function FieldView({
   linedUp = false,
   kick = null,
   scoredBy = null,
+  height = FIELD_HEIGHT,
 }: FieldViewProps) {
   const scrimmageX = field ? toX(field.ballOn) : null;
   const end = kick?.to ?? set.at(-1)?.to ?? field?.ballOn;
@@ -290,12 +323,14 @@ export function FieldView({
 
   // The set stacks from the top so each snap keeps its place as the next is
   // added. Rows shrink only once the set would overrun the band.
+  const trackBottom = height - TRACK_FOOT;
+  const maxRow = (MAX_ROW * height) / FIELD_HEIGHT;
   const rows = Math.max(1, set.length + (linedUp ? 1 : 0));
-  const row = Math.min(MAX_ROW, (TRACK_BOTTOM - TRACK_TOP) / rows);
+  const row = Math.min(maxRow, (trackBottom - TRACK_TOP) / rows);
   const barHeight = row * BAR_SHARE;
   const barY = (index: number) =>
     TRACK_TOP + index * row + (row - barHeight) / 2;
-  const kickY = TRACK_BOTTOM - MAX_ROW / 2;
+  const kickY = trackBottom - maxRow / 2;
   const ballY = DRIVE_Y;
 
   const focus = set.find((step) => step.id === focusId);
@@ -325,20 +360,20 @@ export function FieldView({
 
   return (
     <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      viewBox={`0 0 ${WIDTH} ${height}`}
       className="block h-auto w-full overflow-hidden rounded-lg ring-1 ring-white/5"
       role="img"
       aria-label={describe(field, set, kick, scoredBy, home, away)}
       style={{ "--field-draw": `${drawMs}ms` } as CSSProperties}
     >
-      <rect width={WIDTH} height={HEIGHT} className="fill-turf" />
+      <rect width={WIDTH} height={height} className="fill-turf" />
       {Array.from({ length: 5 }, (_, index) => (
         <rect
           key={index}
           x={END_ZONE + (index * 20 + 10) * UNIT}
           y={0}
           width={10 * UNIT}
-          height={HEIGHT}
+          height={height}
           className="fill-white"
           opacity={0.025}
         />
@@ -348,12 +383,14 @@ export function FieldView({
         side="left"
         lit={scoredBy === "home"}
         litAfterMs={drawnFor}
+        height={height}
       />
       <EndZone
         team={home}
         side="right"
         lit={scoredBy === "away"}
         litAfterMs={drawnFor}
+        height={height}
       />
 
       {[0, FIELD_YARDS].map((goal) => (
@@ -362,7 +399,7 @@ export function FieldView({
           x1={toX(goal)}
           x2={toX(goal)}
           y1={0}
-          y2={HEIGHT}
+          y2={height}
           className="stroke-white"
           strokeWidth={2}
           opacity={0.45}
@@ -375,7 +412,7 @@ export function FieldView({
           x1={toX(yard)}
           x2={toX(yard)}
           y1={0}
-          y2={HEIGHT}
+          y2={height}
           className="stroke-white"
           strokeWidth={1.5}
           opacity={yard % 10 === 0 ? 0.16 : 0.07}
@@ -386,7 +423,7 @@ export function FieldView({
         <text
           key={yard}
           x={toX(yard)}
-          y={HEIGHT - 20}
+          y={height - 20}
           textAnchor="middle"
           className="fill-white font-sans font-semibold tabular-nums"
           fontSize={30}
@@ -404,7 +441,7 @@ export function FieldView({
               x={Math.min(...priorDrive)}
               y={0}
               width={Math.abs(priorDrive[1]! - priorDrive[0]!)}
-              height={HEIGHT}
+              height={height}
               className="fill-white"
               opacity={0.05}
             />
@@ -444,7 +481,7 @@ export function FieldView({
               x1={toX(setStart)}
               x2={toX(setStart)}
               y1={0}
-              y2={HEIGHT}
+              y2={height}
               className="stroke-white"
               strokeWidth={2}
               strokeDasharray="6 6"
@@ -457,7 +494,7 @@ export function FieldView({
               x1={toX(field.lineToGain)}
               x2={toX(field.lineToGain)}
               y1={0}
-              y2={HEIGHT}
+              y2={height}
               className="stroke-gold"
               strokeWidth={3.5}
               opacity={0.9}
@@ -467,7 +504,7 @@ export function FieldView({
             x1={scrimmageX}
             x2={scrimmageX}
             y1={0}
-            y2={HEIGHT}
+            y2={height}
             className="stroke-scrimmage"
             strokeWidth={3.5}
           />
@@ -515,8 +552,8 @@ export function FieldView({
                 penalty: false,
                 action: "run",
               }}
-              y={kickY - (MAX_ROW * BAR_SHARE) / 2}
-              height={MAX_ROW * BAR_SHARE}
+              y={kickY - (maxRow * BAR_SHARE) / 2}
+              height={maxRow * BAR_SHARE}
               dimmed={false}
               drawn={drawFocus}
               drawAfterMs={drawMs}

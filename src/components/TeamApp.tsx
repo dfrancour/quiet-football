@@ -9,11 +9,12 @@ import { GameDetail } from "~/components/game/GameDetail";
 import { AppHeader } from "~/components/layout/AppHeader";
 import { ScheduleSelector } from "~/components/schedule/ScheduleSelector";
 import { ScheduleSwitcher } from "~/components/schedule/ScheduleSwitcher";
-import { useFullScreen } from "~/hooks/useFullScreen";
+import { useFullScreen, useFullScreenEnabled } from "~/hooks/useFullScreen";
 import { useSeason, useTeams, type SeasonData } from "~/hooks/useLeague";
 import { useNow } from "~/hooks/useNow";
 import { usePlayByPlay } from "~/hooks/usePlayByPlay";
 import { useRecaps } from "~/hooks/useRecaps";
+import { useSideways } from "~/hooks/useSideways";
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
 import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
@@ -73,6 +74,8 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   const client = useQueryClient();
 
   const [expanded, toggleExpanded] = useFullScreen();
+  const fullScreenEnabled = useFullScreenEnabled();
+  const sideways = useSideways();
 
   const spoilers = useSpoilers({
     season,
@@ -192,6 +195,10 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   const progress = useWatchProgressByGame();
   const [asked, setAsked] = useState<ReadonlySet<string>>(() => new Set());
   const playable = selectedIsLive || selectedPhase === "final";
+  // A phone on its side is held to watch: a game with plays has the screen.
+  const watching = sideways && playable && selectedBye === null;
+  // No header or schedule: full screen, or watching.
+  const bare = expanded || watching;
   const playsWanted =
     playable &&
     selectedGame !== null &&
@@ -233,15 +240,21 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     // From md up the page is the viewport, the schedule a rail beside the
     // game, and each column scrolls on its own. Below md the game has the
     // page to itself, the schedule is a bar along the bottom, and the page
-    // scrolls, clear of the bar at its end.
+    // scrolls, clear of the bar at its end. Watching on a phone on its side,
+    // the game is the viewport, and nothing else is drawn.
     <div
       className={cn(
-        "mx-auto flex w-full flex-col gap-6 px-4 md:h-dvh",
-        // Same width as the league page.
-        expanded ? "max-w-7xl py-4" : "max-w-6xl py-6 max-md:pb-20",
+        "mx-auto flex w-full flex-col px-4",
+        watching
+          ? "h-viewport max-w-7xl py-2"
+          : cn(
+              "gap-6 md:h-dvh",
+              // Same width as the league page.
+              expanded ? "max-w-7xl py-4" : "max-w-6xl py-6 max-md:pb-20",
+            ),
       )}
     >
-      {!expanded && (
+      {!bare && (
         <AppHeader
           team={schedule.team}
           record={record}
@@ -259,12 +272,15 @@ function TeamView({ registry, data, team }: TeamViewProps) {
       <div
         ref={bodyRef}
         className={cn(
-          "grid items-start gap-x-8 gap-y-6 md:min-h-0 md:flex-1 md:grid-rows-[minmax(0,1fr)]",
-          !expanded && "md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]",
+          "grid gap-x-8 gap-y-6",
+          watching
+            ? "min-h-0 flex-1 grid-rows-[minmax(0,1fr)]"
+            : "items-start md:min-h-0 md:flex-1 md:grid-rows-[minmax(0,1fr)]",
+          !bare && "md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]",
           revealClass(revealed),
         )}
       >
-        {!expanded && (
+        {!bare && (
           <div className="border-edge hidden md:flex md:max-h-full md:flex-col md:border-r md:pr-5">
             <ScheduleSelector
               schedule={schedule}
@@ -278,8 +294,14 @@ function TeamView({ registry, data, team }: TeamViewProps) {
           </div>
         )}
 
-        <div className="md:flex md:max-h-full md:flex-col md:overflow-y-auto md:overscroll-contain">
-          {!expanded && (
+        <div
+          className={
+            watching
+              ? "flex min-h-0 flex-col"
+              : "md:flex md:max-h-full md:flex-col md:overflow-y-auto md:overscroll-contain"
+          }
+        >
+          {!bare && (
             <div className="md:hidden">
               <ScheduleSwitcher
                 schedule={schedule}
@@ -311,7 +333,14 @@ function TeamView({ registry, data, team }: TeamViewProps) {
               situationAfter={situationAfterPlay}
               onLoadPlays={playable && !playsWanted ? loadPlays : undefined}
               expanded={expanded}
-              onToggleExpanded={toggleExpanded}
+              // Watching already hides all the page can; only the browser's
+              // full screen has more to hide.
+              onToggleExpanded={
+                watching && !expanded && !fullScreenEnabled
+                  ? undefined
+                  : toggleExpanded
+              }
+              sideways={watching}
             />
           )}
         </div>

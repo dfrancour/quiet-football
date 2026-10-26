@@ -27,6 +27,8 @@ interface PlayFeedProps {
   /** Marked and kept in view. */
   selectedId?: string | null;
   onSelect?: (playId: string) => void;
+  /** Fills a flex-column parent and scrolls within it, at any width. */
+  bounded?: boolean;
 }
 
 const OUTCOMES: Record<PlayOutcome, { label: string; tone: string }> = {
@@ -286,8 +288,8 @@ function keepInView(list: HTMLElement, row: HTMLElement): void {
  *
  * A spoiler; the caller renders it only when allowed.
  *
- * From md up the drives scroll on their own, so a flex-column parent can bound
- * the feed's height.
+ * From md up, or `bounded`, the drives scroll on their own, so a flex-column
+ * parent can bound the feed's height.
  */
 export function PlayFeed({
   drives,
@@ -296,6 +298,7 @@ export function PlayFeed({
   ongoing = false,
   selectedId = null,
   onSelect,
+  bounded = false,
 }: PlayFeedProps) {
   const listRef = useRef<HTMLOListElement>(null);
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
@@ -343,11 +346,20 @@ export function PlayFeed({
   return (
     <section
       aria-label="Play-by-play"
-      className="mt-3 md:flex md:min-h-40 md:flex-col"
+      className={
+        bounded
+          ? "flex min-h-0 flex-1 flex-col"
+          : "mt-3 md:flex md:min-h-40 md:flex-col"
+      }
     >
       <ol
         ref={listRef}
-        className="space-y-1 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
+        className={cn(
+          "space-y-1",
+          bounded
+            ? "min-h-0 overflow-y-auto overscroll-contain"
+            : "md:min-h-0 md:overflow-y-auto md:overscroll-contain",
+        )}
       >
         {newestFirst(drivesByQuarter(drives)).flatMap((group) => {
           const rule = group.period !== null && (
