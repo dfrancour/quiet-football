@@ -79,6 +79,32 @@ describe("StandingsTables", () => {
     );
   });
 
+  it("lists a hidden division by the names it shows", () => {
+    const line = (team: (typeof TEAMS)[keyof typeof TEAMS]) => ({
+      team,
+      record: { wins: 0, losses: 0, ties: 0 },
+      mark: null,
+    });
+    render(
+      <StandingsTables
+        standings={[
+          {
+            conference: "NFC",
+            divisions: [
+              { division: "East", rows: [line(TEAMS.NYG), line(TEAMS.WSH)] },
+            ],
+          },
+        ]}
+        showSpoilers={false}
+      />,
+    );
+    // Commanders before Giants, though New York comes before Washington.
+    expect(teamOrder(screen.getByRole("table", { name: "NFC East" }))).toEqual([
+      "/team/WSH",
+      "/team/NYG",
+    ]);
+  });
+
   it("points at a team, and lights up a team pointed at elsewhere", () => {
     const onPoint = vi.fn();
     const table = renderStandings(true, {

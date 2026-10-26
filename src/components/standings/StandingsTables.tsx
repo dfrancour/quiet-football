@@ -78,12 +78,11 @@ function DivisionTable({
   rows: StandingsLine[];
 } & Required<Omit<StandingsTablesProps, "standings" | "week">> &
   Pick<StandingsTablesProps, "week">) {
-  // The order reveals results, so hidden divisions list alphabetically.
+  // The order reveals results, so hidden divisions list alphabetically, by
+  // the name each row shows.
   const ordered = showSpoilers
     ? rows
-    : [...rows].sort((a, b) =>
-        a.team.displayName.localeCompare(b.team.displayName),
-      );
+    : [...rows].sort((a, b) => a.team.nickname.localeCompare(b.team.nickname));
 
   return (
     <table className="w-full text-sm">
