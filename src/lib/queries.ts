@@ -311,5 +311,6 @@ export function recapDatasetQuery(season: number) {
   return queryOptions({
     queryKey: ["recaps", season],
     queryFn: ({ signal }) => fetchRecapDataset(season, signal),
+    staleTime: Infinity,
   });
 }

@@ -75,24 +75,52 @@ export function recapsFromDataset(
   const recaps: Record<string, Recap> = {};
   if (dataset.season !== season.season) return recaps;
 
-  const meeting = (week: number, teamIds: string[]) =>
-    `${week}:${teamIds.sort().join()}`;
   const games = new Map(
     season.games.map((game) => [
-      meeting(game.week, [game.away.teamId, game.home.teamId]),
+      meeting(game.week, game.away.teamId, game.home.teamId),
       game.gameId,
     ]),
   );
-
   for (const entry of dataset.games) {
-    if (entry.season_type === "preseason") continue;
-    if (entry.status !== "found" || !entry.video) continue;
-
-    const away = teamByAbbreviation(registry, entry.away)?.teamId;
-    const home = teamByAbbreviation(registry, entry.home)?.teamId;
-    if (!away || !home) continue;
-    const gameId = games.get(meeting(entry.week, [away, home]));
-    if (gameId) recaps[gameId] = { youtubeId: entry.video.youtube_id };
+    const found = foundMeeting(entry, registry);
+    const gameId = found && games.get(found.meeting);
+    if (found && gameId) recaps[gameId] = found.recap;
   }
   return recaps;
+}
+
+/** Whether the dataset has linked a recap for one game yet. */
+export function hasRecap(
+  dataset: RecapDataset,
+  season: SeasonFile,
+  registry: TeamRegistry,
+  gameId: string,
+): boolean {
+  const game = season.games.find((candidate) => candidate.gameId === gameId);
+  if (!game || dataset.season !== season.season) return false;
+  const wanted = meeting(game.week, game.away.teamId, game.home.teamId);
+  return dataset.games.some(
+    (entry) => foundMeeting(entry, registry)?.meeting === wanted,
+  );
+}
+
+/** A week and its two teams, whichever is home. */
+function meeting(week: number, ...teamIds: string[]): string {
+  return `${week}:${teamIds.sort().join()}`;
+}
+
+/** A found recap and the meeting it is for; null for anything else. */
+function foundMeeting(
+  entry: RecapEntry,
+  registry: TeamRegistry,
+): { meeting: string; recap: Recap } | null {
+  if (entry.season_type === "preseason") return null;
+  if (entry.status !== "found" || !entry.video) return null;
+  const away = teamByAbbreviation(registry, entry.away)?.teamId;
+  const home = teamByAbbreviation(registry, entry.home)?.teamId;
+  if (!away || !home) return null;
+  return {
+    meeting: meeting(entry.week, away, home),
+    recap: { youtubeId: entry.video.youtube_id },
+  };
 }

@@ -18,13 +18,11 @@ import {
   regularSeasonWeeks,
   weekName,
 } from "~/lib/season-calendar";
-import { seasonFromWeeks, type WeekBoard } from "~/lib/season-sync";
+import { seasonFromWeeks } from "~/lib/season-sync";
 import { type SeasonFile } from "~/lib/season.schema";
 import { type TeamRegistry } from "~/lib/teams.schema";
 
-export interface LoadedWeek extends WeekBoard {
-  /** When its scoreboard last arrived from ESPN. */
-  updatedAt: number;
+export interface LoadedWeek extends LoadedBoard {
   /** The last poll's failure, with the week as it stood before it. */
   error: Error | null;
 }
@@ -94,15 +92,7 @@ function combineWeeks(results: UseQueryResult<LoadedBoard>[]): WeeksSoFar {
   }
   return {
     weeks: results.flatMap((result) =>
-      result.data
-        ? [
-            {
-              ...result.data,
-              updatedAt: result.data.fetchedAt,
-              error: result.error,
-            },
-          ]
-        : [],
+      result.data ? [{ ...result.data, error: result.error }] : [],
     ),
     failed: null,
     empty,

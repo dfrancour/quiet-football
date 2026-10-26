@@ -12,8 +12,16 @@ import { queryWrapper, requestUrl, stubFetch } from "~/lib/test-utils/query";
 
 const KICKOFF = "2026-10-11T17:00:00.000Z";
 const season = makeSeason([makeSeasonGame({ status: "final" })]);
-const selected = { gameId: GAME_ID, status: "final", kickoff: KICKOFF };
-const OTHER = { gameId: "401872999", status: "final", kickoff: KICKOFF };
+const selected = {
+  gameId: GAME_ID,
+  status: "final" as const,
+  kickoff: KICKOFF,
+};
+const OTHER = {
+  gameId: "401872999",
+  status: "final" as const,
+  kickoff: KICKOFF,
+};
 
 /** The dataset's file for the season, with MIN at NO found. */
 const dataset = {

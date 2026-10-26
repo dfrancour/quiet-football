@@ -324,7 +324,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
               team={schedule.team}
               score={score}
               scoreError={selectedWeek?.error?.message ?? null}
-              scoreUpdatedAt={selectedWeek ? selectedWeek.updatedAt : null}
+              scoreUpdatedAt={selectedWeek ? selectedWeek.fetchedAt : null}
               showSpoilers={
                 selectedGame !== null && spoilers.isShown(selectedGame)
               }

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  hasRecap,
   readRecapDataset,
   recapsFromDataset,
   type RecapEntry,
@@ -122,6 +123,14 @@ describe("recapsFromDataset", () => {
         entry({ away: "XXX", home: "YYY" }),
       ),
     ).toEqual({});
+  });
+
+  it("tells whether one game has its recap yet", () => {
+    const has = (...games: RecapEntry[]) =>
+      hasRecap({ season: 2026, games }, season, REGISTRY, "min-no");
+    expect(has(entry({ away: "NO", home: "MIN" }))).toBe(true);
+    expect(has(entry({ status: "searching", video: undefined }))).toBe(false);
+    expect(has(entry({ week: 9 }))).toBe(false);
   });
 
   it("returns nothing for another season's file", () => {

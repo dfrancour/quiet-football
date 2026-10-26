@@ -151,7 +151,7 @@ describe("useSeason", () => {
       .map(({ week }) => week);
     expect(weeksFetched).not.toContain(7);
     expect(weeksFetched).toContain(8);
-    expect(result.current.data?.weeks.get(7)?.updatedAt).toBe(
+    expect(result.current.data?.weeks.get(7)?.fetchedAt).toBe(
       NOW - scoreConfig.aheadStaleMs / 2,
     );
     expect(savedWeek(2026, 8)?.savedAt).toBe(NOW);

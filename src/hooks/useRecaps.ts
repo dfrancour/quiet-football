@@ -5,9 +5,9 @@ import { useMemo } from "react";
 import { scoreConfig } from "~/lib/config";
 import { gameSettledAt } from "~/lib/game-clocks";
 import { recapDatasetQuery } from "~/lib/queries";
-import { recapsFromDataset } from "~/lib/recap-dataset";
+import { hasRecap, recapsFromDataset } from "~/lib/recap-dataset";
 import { type RecapsFile } from "~/lib/recaps";
-import { type SeasonFile } from "~/lib/season.schema";
+import { type GameStatus, type SeasonFile } from "~/lib/season.schema";
 import { type TeamRegistry } from "~/lib/teams.schema";
 
 /**
@@ -34,7 +34,7 @@ export function gameEndedAt(gameId: string, kickoff: string): number {
 
 interface Watched {
   gameId: string;
-  status: string;
+  status: GameStatus;
   kickoff: string;
 }
 
@@ -53,15 +53,12 @@ export function useRecaps(
 ): RecapsFile {
   const { data } = useQuery({
     ...recapDatasetQuery(season.season),
-    staleTime: Infinity,
     refetchInterval: (query) => {
       if (selected === null || selected.status !== "final") return false;
-      const recaps = query.state.data;
-      if (
-        recaps &&
-        recapsFromDataset(recaps, season, registry)[selected.gameId]
-      )
+      const dataset = query.state.data;
+      if (dataset && hasRecap(dataset, season, registry, selected.gameId)) {
         return false;
+      }
       return recapsPollMs(
         Date.now() - gameEndedAt(selected.gameId, selected.kickoff),
       );
