@@ -828,7 +828,8 @@ every control has at least about 36px to tap (padding past the glyph, not a
 bigger glyph), controls set `touch-action: manipulation` so quick repeated
 taps never zoom, nothing depends on hover or a `title` tooltip for meaning,
 and the root `main` pads by the safe-area insets so an installed page is not
-under the notch or home indicator.
+under the notch or home indicator, and covers the top inset with its
+background, since the status bar is translucent and the page scrolls under it.
 
 ### The stylesheet's layers
 

@@ -64,6 +64,17 @@
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
   }
+
+  /* The status bar is translucent, so whatever scrolls up past the top
+     inset (the feed past the field held at it) is covered there. */
+  main::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 20;
+    height: env(safe-area-inset-top);
+    background: var(--color-surface);
+  }
 }
 
 /* The viewport inside `main`'s safe-area padding: a page this tall fills the
