@@ -16,7 +16,10 @@ interface ScoreLineProps {
   hasBall?: boolean;
   /** Timeouts left this half, shown as pips. Leave unset to show none. */
   timeouts?: number | null;
-  /** Record going in, e.g. "3-1". Leave unset while spoilers are hidden. */
+  /**
+   * A record, e.g. "3-1": after the game, going in, or as far as caught up
+   * (`recordsShown`). Leave unset while spoilers are hidden.
+   */
   record?: string | null;
   /**
    * Whether this side won. Any boolean reserves the caret's slot; true draws
@@ -210,7 +213,7 @@ export function ScoreLine({
             >
               {record !== null && (
                 <span className="text-ink-faint font-mono text-xs">
-                  <span className="sr-only">Record before the game </span>
+                  <span className="sr-only">Record </span>
                   {record}
                 </span>
               )}
