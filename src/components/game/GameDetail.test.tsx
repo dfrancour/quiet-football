@@ -817,6 +817,14 @@ describe("GameDetail plays on the field", () => {
     // A browser chord is not a step.
     fireEvent.keyDown(window, { key: "ArrowLeft", altKey: true });
     expect(picked()).toEqual([expect.stringMatching(/4th & Goal at ATL 3/)]);
+
+    // Nor is a key another control took, as the spoiler strip's weeks do.
+    const strip = document.createElement("div");
+    strip.addEventListener("keydown", (event) => event.preventDefault());
+    document.body.append(strip);
+    fireEvent.keyDown(strip, { key: "ArrowRight" });
+    strip.remove();
+    expect(picked()).toEqual([expect.stringMatching(/4th & Goal at ATL 3/)]);
   });
 
   it("skips a drive at a time, by button or shifted arrow", () => {

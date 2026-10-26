@@ -244,7 +244,8 @@ export function useReplay(
 
   // Arrow keys step as the buttons do, and with shift skip a drive, once
   // something is on the field or there is a place to step from. Other
-  // chords are left to the browser.
+  // chords, and keys a control already took (the spoiler strip's weeks), are
+  // left alone.
   const hasPlay = origin !== -1;
   const onArrow = useEffectEvent((delta: 1 | -1, drive: boolean) =>
     drive ? skip(delta) : step(delta),
@@ -254,6 +255,7 @@ export function useReplay(
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (
+        event.defaultPrevented ||
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
