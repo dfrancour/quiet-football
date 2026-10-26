@@ -14,6 +14,7 @@ import {
 } from "~/lib/playoffs";
 import { teamPath } from "~/lib/routes";
 import { weekParam } from "~/lib/season-calendar";
+import { scoreShown, type ScoreShown } from "~/lib/spoilers";
 import { tintStyle } from "~/lib/team-tint";
 import { type Team } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
@@ -73,8 +74,7 @@ function TeamLine({
   team: Team;
   seed: number | null;
   href: string;
-  /** Null for no score yet; "hidden" while masked. */
-  score: number | "hidden" | null;
+  score: ScoreShown;
   /** Known only once the game is seen. */
   outcome: "won" | "lost" | null;
   favorite: boolean;
@@ -100,14 +100,14 @@ function TeamLine({
       >
         {team.abbreviation}
       </span>
-      {score !== null && (
+      {score.kind !== "none" && (
         <span
           className={cn(
             "font-mono text-xs tabular-nums",
             outcome === "won" ? "text-ink font-semibold" : "text-ink-muted",
           )}
         >
-          {score === "hidden" ? <Redacted /> : score}
+          {score.kind === "hidden" ? <Redacted /> : score.text}
         </span>
       )}
     </Link>
@@ -172,7 +172,7 @@ function GameCard({ game, context }: { game: BracketGame; context: Context }) {
           team={side.team}
           seed={side.seed}
           href={teamPath(side.team.abbreviation, week)}
-          score={!started ? null : isShown(game) ? (side.score ?? 0) : "hidden"}
+          score={scoreShown(started, side.score, isShown(game))}
           outcome={winner === null ? null : winner === side ? "won" : "lost"}
           favorite={favorites.has(side.team.teamId)}
         />
@@ -210,7 +210,7 @@ function ByeCard({
         team={bye.team}
         seed={bye.seed}
         href={teamPath(bye.team.abbreviation)}
-        score={null}
+        score={{ kind: "none" }}
         outcome={null}
         favorite={context.favorites.has(bye.team.teamId)}
       />

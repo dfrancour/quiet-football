@@ -6,12 +6,22 @@ import {
   maskedScore,
   recordsShown,
   resultVisibility,
+  scoreShown,
   spoilerSafeClock,
 } from "~/lib/spoilers";
 
 const won = makeTeamGame({
   status: "final",
   result: { teamScore: 15, opponentScore: 10, outcome: "win" },
+});
+
+describe("scoreShown", () => {
+  it("draws nothing before kickoff, covers a hidden score, and shows the rest", () => {
+    expect(scoreShown(false, null, true)).toEqual({ kind: "none" });
+    expect(scoreShown(true, 21, false)).toEqual({ kind: "hidden" });
+    expect(scoreShown(true, 21, true)).toEqual({ kind: "shown", text: "21" });
+    expect(scoreShown(true, null, true)).toEqual({ kind: "shown", text: "--" });
+  });
 });
 
 describe("maskedScore", () => {

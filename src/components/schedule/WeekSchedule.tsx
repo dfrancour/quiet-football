@@ -38,7 +38,7 @@ import {
   weekParam,
 } from "~/lib/season-calendar";
 import { type BoardGame } from "~/lib/score.schema";
-import { maskedScore, spoilerSafeClock } from "~/lib/spoilers";
+import { scoreShown, spoilerSafeClock, type ScoreShown } from "~/lib/spoilers";
 import { tintStyle } from "~/lib/team-tint";
 import { type WeekGame, type WeekSide } from "~/lib/week";
 import { cn } from "~/lib/utils";
@@ -159,8 +159,7 @@ function TeamCell({
   record,
 }: {
   side: WeekSide;
-  /** Null while hidden; empty before the game starts. */
-  score: string | null;
+  score: ScoreShown;
   href: string;
   align: "end" | "start";
   leading: boolean;
@@ -182,7 +181,11 @@ function TeamCell({
           leading ? "text-ink font-semibold" : "text-ink-muted",
         )}
       >
-        {score ?? <Redacted />}
+        {score.kind === "hidden" ? (
+          <Redacted />
+        ) : score.kind === "shown" ? (
+          score.text
+        ) : null}
       </span>
       <TeamLogo team={side.team} />
       <span
@@ -313,8 +316,7 @@ function GameRow({
     revealed && started && awayScore !== null && homeScore !== null
       ? Math.sign(awayScore - homeScore)
       : 0;
-  const score = (value: number | null) =>
-    started ? maskedScore(value, revealed) : "";
+  const score = (value: number | null) => scoreShown(started, value, revealed);
   // A favorite's own side of the game is tinted, not the whole row.
   const sideCell = (side: WeekSide) =>
     favorites.has(side.team.teamId)

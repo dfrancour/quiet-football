@@ -94,6 +94,24 @@ export function maskedScore(
   return score === null ? "--" : String(score);
 }
 
+/** A score as a schedule row or bracket line draws it. */
+export type ScoreShown =
+  /** The game has not started: nothing to draw. */
+  | { kind: "none" }
+  /** Covered, for `Redacted`. */
+  | { kind: "hidden" }
+  | { kind: "shown"; text: string };
+
+export function scoreShown(
+  started: boolean,
+  score: number | null,
+  showSpoilers: boolean,
+): ScoreShown {
+  if (!started) return { kind: "none" };
+  const text = maskedScore(score, showSpoilers);
+  return text === null ? { kind: "hidden" } : { kind: "shown", text };
+}
+
 /**
  * Overtime reveals a tie after regulation, so with spoilers hidden a game
  * reads "Q4+" from the fourth quarter on (so nothing changes when regulation
