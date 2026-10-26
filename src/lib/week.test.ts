@@ -70,6 +70,12 @@ describe("currentWeek", () => {
     expect(currentWeek(settled("sun", "mon"), MONDAY + LATER_MS)).toBe(6);
   });
 
+  it("goes by the scoreboard alone before the clock has started", () => {
+    expect(currentWeek(settled("sun"), null)).toBe(5);
+    expect(currentWeek(settled("sun", "mon"), null)).toBe(6);
+    expect(currentWeek(settled("sun", "mon", "thu"), null)).toBe(6);
+  });
+
   it("stays on the last week once the season is over", () => {
     expect(currentWeek(settled("sun", "mon", "thu"), THURSDAY + LATER_MS)).toBe(
       6,

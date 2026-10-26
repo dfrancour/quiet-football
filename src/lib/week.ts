@@ -36,22 +36,21 @@ export interface WeekGame {
 
 /**
  * The week holding the next game the store has not settled. After the season,
- * the last week.
+ * the last week. Without a clock, the scoreboard's word on each game decides.
  */
-export function currentWeek(season: SeasonFile, now: number): number {
+export function currentWeek(season: SeasonFile, now: number | null): number {
   const ordered = [...season.games].sort(
     (a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff),
   );
   const next = ordered.find((game) => {
+    if (now === null) {
+      return game.status === "scheduled" || game.status === "in_progress";
+    }
     const phase = gamePhase(game, now);
     return phase === "upcoming" || phase === "pregame" || phase === "live";
   });
   if (next) return next.week;
   return ordered.at(-1)?.week ?? 1;
-}
-
-export function currentWeekNow(season: SeasonFile): number {
-  return currentWeek(season, Date.now());
 }
 
 /**

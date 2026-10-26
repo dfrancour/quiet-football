@@ -17,21 +17,14 @@ import {
   type SeasonData,
 } from "~/hooks/useLeague";
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
-import { useSpoilers } from "~/hooks/useSpoilers";
+import { useSeasonSpoilers } from "~/hooks/useSpoilers";
 import { buildBracket } from "~/lib/playoffs";
 import { playoffRound, weekParam } from "~/lib/season-calendar";
 import { buildStandings } from "~/lib/standings";
 import { teamByAbbreviation } from "~/lib/teams";
 import { type TeamRegistry } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
-import {
-  buildLeagueGames,
-  currentWeekNow,
-  settledThrough,
-  weekGameRecords,
-  weekInProgress,
-  type WeekGame,
-} from "~/lib/week";
+import { buildLeagueGames, weekGameRecords, type WeekGame } from "~/lib/week";
 
 /** The league: the week's games and the standings, once both have loaded. */
 export function HomeApp() {
@@ -105,15 +98,9 @@ function HomeView({ registry, data }: HomeViewProps) {
   const { season: seasonFile, weeks } = data;
   const season = seasonFile.season;
   const totalWeeks = seasonFile.totalWeeks;
-  const currentWeek = currentWeekNow(seasonFile);
-  const spoilers = useSpoilers({
-    season,
-    totalWeeks,
-    settledThrough: settledThrough(seasonFile),
-    currentWeek,
-    inProgress: useMemo(() => weekInProgress(seasonFile), [seasonFile]),
-  });
-  const { through, showAll, standingsThrough, marksShown } = spoilers;
+  const spoilers = useSeasonSpoilers(seasonFile);
+  const { through, showAll, standingsThrough, marksShown, currentWeek } =
+    spoilers;
 
   const favoriteAbbreviations = useFavorites();
   const favorites = useMemo(

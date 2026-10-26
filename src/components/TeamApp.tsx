@@ -16,7 +16,7 @@ import { usePlayByPlay } from "~/hooks/usePlayByPlay";
 import { useRecaps } from "~/hooks/useRecaps";
 import { useSideways } from "~/hooks/useSideways";
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
-import { useSpoilers } from "~/hooks/useSpoilers";
+import { useSeasonSpoilers } from "~/hooks/useSpoilers";
 import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
 import { situationAfter } from "~/lib/game-situations";
 import { type PlayByPlay } from "~/lib/plays.schema";
@@ -29,7 +29,6 @@ import { buildTeamSchedule, teamGameRecords } from "~/lib/team-view";
 import { teamByAbbreviation } from "~/lib/teams";
 import { type Team, type TeamRegistry } from "~/lib/teams.schema";
 import { cn } from "~/lib/utils";
-import { currentWeekNow, settledThrough, weekInProgress } from "~/lib/week";
 
 /** One team's season, once the league has loaded; an unknown team goes to the standings. */
 export function TeamApp({ abbreviation }: { abbreviation: string }) {
@@ -70,7 +69,6 @@ interface TeamViewProps {
  */
 function TeamView({ registry, data, team }: TeamViewProps) {
   const { season: seasonFile, weeks } = data;
-  const season = seasonFile.season;
   const now = useNow();
   const client = useQueryClient();
 
@@ -78,13 +76,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   const fullScreenEnabled = useFullScreenEnabled();
   const sideways = useSideways();
 
-  const spoilers = useSpoilers({
-    season,
-    totalWeeks: seasonFile.totalWeeks,
-    settledThrough: settledThrough(seasonFile),
-    currentWeek: currentWeekNow(seasonFile),
-    inProgress: useMemo(() => weekInProgress(seasonFile), [seasonFile]),
-  });
+  const spoilers = useSeasonSpoilers(seasonFile);
   const { isOpen, recordThrough, recordsAt } = spoilers;
 
   const fullSchedule = useMemo(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useNow } from "~/hooks/useNow";
 import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
 import { isGateOpen, type GateGame } from "~/lib/playoffs";
 import { teamRecord, type TeamRecord } from "~/lib/schedule";
@@ -16,10 +17,15 @@ import {
   subscribeToShowAll,
   type RecordsShown,
 } from "~/lib/spoilers";
-import { type GameStatus } from "~/lib/season.schema";
+import { type GameStatus, type SeasonFile } from "~/lib/season.schema";
 import { type TeamGame } from "~/lib/team-view";
 import { clearWatchProgress, finishGames } from "~/lib/watch-progress";
-import { type WeekInProgress } from "~/lib/week";
+import {
+  currentWeek as leagueWeek,
+  settledThrough as settledWeeks,
+  weekInProgress,
+  type WeekInProgress,
+} from "~/lib/week";
 
 export interface CaughtUpState {
   season: number;
@@ -195,4 +201,19 @@ export function useSpoilers({
       recordThrough,
     ],
   );
+}
+
+/**
+ * `useSpoilers` for a season that has arrived: where the league is, read
+ * from its games and, for the week it is on, the shared clock once a minute.
+ */
+export function useSeasonSpoilers(season: SeasonFile) {
+  const now = useNow(60_000);
+  return useSpoilers({
+    season: season.season,
+    totalWeeks: season.totalWeeks,
+    settledThrough: useMemo(() => settledWeeks(season), [season]),
+    currentWeek: leagueWeek(season, now),
+    inProgress: useMemo(() => weekInProgress(season), [season]),
+  });
 }
