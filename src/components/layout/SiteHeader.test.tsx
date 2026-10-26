@@ -5,6 +5,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppHeader } from "~/components/layout/AppHeader";
 import { SiteHeader } from "~/components/layout/SiteHeader";
@@ -21,20 +22,28 @@ afterEach(() => {
 const home = () => screen.getByRole("link", { name: "Quiet Football" });
 
 describe("SiteHeader", () => {
-  const renderSite = (through: number, settledThrough: number) => {
+  /** The header under a page that catches up as the viewer picks. */
+  const renderSite = (initial: number, settledThrough: number) => {
     const onCatchUp = vi.fn();
-    render(
-      <SiteHeader
-        through={through}
-        showAll={false}
-        onShowAll={() => undefined}
-        settledThrough={settledThrough}
-        currentWeek={settledThrough + 1}
-        totalWeeks={18}
-        partial={null}
-        onCatchUp={onCatchUp}
-      />,
-    );
+    function Page() {
+      const [through, setThrough] = useState(initial);
+      return (
+        <SiteHeader
+          through={through}
+          showAll={false}
+          onShowAll={() => undefined}
+          settledThrough={settledThrough}
+          currentWeek={settledThrough + 1}
+          totalWeeks={18}
+          partial={null}
+          onCatchUp={(week) => {
+            onCatchUp(week);
+            setThrough(week);
+          }}
+        />
+      );
+    }
+    render(<Page />);
     return onCatchUp;
   };
 
@@ -73,13 +82,20 @@ describe("SiteHeader", () => {
     open();
     fireEvent.click(screen.getByRole("button", { name: "Through Week 3" }));
     expect(onCatchUp).toHaveBeenCalledWith(3);
-    // It stays open, showing the pick before the page catches up.
+    // It stays open, showing the pick.
     expect(
       screen.getByRole("button", { name: "Through Week 3", pressed: true }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Through Week 10" }),
     ).toBeDisabled();
+    // The covers sweep from the old place, each a step after the one before.
+    const cover = (n: number) =>
+      screen
+        .getByRole("button", { name: `Through Week ${n}` })
+        .querySelector<HTMLElement>(".hatched");
+    expect(cover(6)?.style.transitionDelay).toBe("18ms");
+    expect(cover(4)?.style.transitionDelay).toBe("54ms");
   });
 
   it("says where a hovered week would leave the viewer", () => {
