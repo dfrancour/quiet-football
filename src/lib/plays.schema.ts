@@ -157,12 +157,6 @@ export const driveSchema = z.object({
   plays: z.array(playSchema),
 });
 
-export const playByPlayResponseSchema = z.object({
-  gameId: z.string(),
-  /** Oldest first, the drive under way last. */
-  drives: z.array(driveSchema),
-});
-
 export type Summary = z.infer<typeof summarySchema>;
 export type PlayKind = z.infer<typeof playKindSchema>;
 export type PlayAction = z.infer<typeof playActionSchema>;
@@ -178,4 +172,15 @@ export interface Series {
   plays: Play[];
   gainedBy: "play" | "penalty" | null;
 }
-export type PlayByPlay = z.infer<typeof playByPlayResponseSchema>;
+
+/** A game's plays, as its summary last had them. */
+export interface PlayByPlay {
+  gameId: string;
+  /** Oldest first, the drive under way last. */
+  drives: Drive[];
+  /**
+   * Whether the summary's own header calls the game over: until it does, the
+   * last plays may still be on their way, whatever the scoreboard says.
+   */
+  final: boolean;
+}

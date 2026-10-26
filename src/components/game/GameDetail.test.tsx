@@ -338,6 +338,7 @@ const playByPlay: PlayByPlay = {
       ],
     },
   ],
+  final: false,
 };
 
 /** The scoreboard's word after the newest play, as a poll noted it. */
@@ -727,6 +728,7 @@ describe("GameDetail plays on the field", () => {
     playByPlay: {
       gameId: finalGame.gameId,
       drives: extractPlayByPlay(SHORT_GAME),
+      final: true,
     },
     showSpoilers: true,
   };
@@ -1047,7 +1049,7 @@ describe("GameDetail watching with spoilers hidden", () => {
   // BAL at ATL stands in for MIN at NO: BAL's drives are MIN's.
   const drives = extractPlayByPlay(SHORT_GAME);
   const hidden = {
-    playByPlay: { gameId: finalGame.gameId, drives },
+    playByPlay: { gameId: finalGame.gameId, drives, final: true },
     showSpoilers: false,
   };
   const feed = () => screen.queryByRole("region", { name: "Play-by-play" });
@@ -1063,6 +1065,7 @@ describe("GameDetail watching with spoilers hidden", () => {
     const onLoadPlays = vi.fn(async () => ({
       gameId: finalGame.gameId,
       drives,
+      final: true,
     }));
     const { rerender } = render(
       <GameDetail
@@ -1090,7 +1093,7 @@ describe("GameDetail watching with spoilers hidden", () => {
         scoreError={null}
         showSpoilers={false}
         recaps={makeRecaps()}
-        playByPlay={{ gameId: finalGame.gameId, drives }}
+        playByPlay={{ gameId: finalGame.gameId, drives, final: true }}
       />,
     );
     // Running from kickoff: nothing seen yet, the transport is up.
@@ -1300,7 +1303,7 @@ describe("GameDetail following a live game with spoilers hidden", () => {
     game: liveGame,
     now: KICKOFF_MS + 60_000,
     score: liveScoreWithSituation,
-    playByPlay: { gameId: liveGame.gameId, drives },
+    playByPlay: { gameId: liveGame.gameId, drives, final: false },
     showSpoilers: false,
   };
   const feed = () => screen.queryByRole("region", { name: "Play-by-play" });
@@ -1336,7 +1339,7 @@ describe("GameDetail following a live game with spoilers hidden", () => {
   });
 
   it("asks for the plays to watch live, and starts at the newest", async () => {
-    const loaded = { gameId: liveGame.gameId, drives };
+    const loaded = { gameId: liveGame.gameId, drives, final: false };
     const onLoadPlays = vi.fn(async () => loaded);
     const { rerender } = renderDetail({
       ...live,
@@ -1453,10 +1456,24 @@ describe("GameDetail following a live game with spoilers hidden", () => {
       ...live,
       game: finalGame,
       now: AFTER_GAME_MS,
-      playByPlay: { gameId: finalGame.gameId, drives },
+      playByPlay: { gameId: finalGame.gameId, drives, final: true },
     });
     expect(getWatchProgress()[liveGame.gameId]?.finished).toBe(true);
     expect(screen.getByText("Final")).toBeInTheDocument();
+  });
+
+  it("is not seen to the end while the summary may still lack the last plays", () => {
+    recordWatchProgress(liveGame.gameId, {
+      playId: last.id,
+      finished: false,
+    });
+    renderDetail({
+      ...live,
+      game: finalGame,
+      now: AFTER_GAME_MS,
+      playByPlay: { gameId: finalGame.gameId, drives, final: false },
+    });
+    expect(getWatchProgress()[liveGame.gameId]?.finished).toBe(false);
   });
 });
 
@@ -1467,7 +1484,7 @@ describe("GameDetail held back to match a broadcast", () => {
     game: liveGame,
     now: KICKOFF_MS + 60_000,
     score: liveScoreWithSituation,
-    playByPlay: { gameId: liveGame.gameId, drives },
+    playByPlay: { gameId: liveGame.gameId, drives, final: false },
     showSpoilers: false,
   };
   const delayBy = (seconds: number) => {

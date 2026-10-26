@@ -270,27 +270,34 @@ function readPlay(play: RawPlay, sideOfCode: SideOfCode): Play | null {
 }
 
 /**
- * Every drive from ESPN's `summary`, oldest first. A malformed payload yields
- * no drives.
- *
+ * ESPN's `summary`, read once: its drives, and whether its own header calls
+ * the game over. A malformed payload yields no drives and is not over.
+ */
+export function readSummary(payload: unknown): {
+  drives: Drive[];
+  final: boolean;
+} {
+  const parsed = summarySchema.safeParse(payload);
+  if (!parsed.success) return { drives: [], final: false };
+  return {
+    drives: drivesOf(parsed.data),
+    final:
+      parsed.data.header?.competitions?.[0]?.status?.type?.completed === true,
+  };
+}
+
+/** Every drive from ESPN's `summary`, oldest first. */
+export function extractPlayByPlay(payload: unknown): Drive[] {
+  return readSummary(payload).drives;
+}
+
+/**
  * The drive under way appears both as `current` and as the last of
  * `previous`, so drives are keyed by id. Official timeouts (TV breaks) are
  * dropped.
  */
-/** Whether the summary's own header calls the game over. */
-export function summaryIsFinal(payload: unknown): boolean {
-  const parsed = summarySchema.safeParse(payload);
-  return (
-    parsed.success &&
-    parsed.data.header?.competitions?.[0]?.status?.type?.completed === true
-  );
-}
-
-export function extractPlayByPlay(payload: unknown): Drive[] {
-  const parsed = summarySchema.safeParse(payload);
-  if (!parsed.success) return [];
-
-  const competitors = parsed.data.header?.competitions?.[0]?.competitors ?? [];
+function drivesOf(summary: Summary): Drive[] {
+  const competitors = summary.header?.competitions?.[0]?.competitors ?? [];
   const sideOf = (teamId: string | number | null | undefined) => {
     if (teamId === null || teamId === undefined) return null;
     const side = competitors.find(
@@ -305,7 +312,7 @@ export function extractPlayByPlay(payload: unknown): Drive[] {
     return competitor ? sideOf(competitor.id) : null;
   };
 
-  const { previous, current } = parsed.data.drives ?? {};
+  const { previous, current } = summary.drives ?? {};
   const byId = new Map<string, RawDrive>();
   for (const drive of [...(previous ?? []), ...(current ? [current] : [])]) {
     byId.set(String(drive.id), drive);

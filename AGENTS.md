@@ -722,7 +722,9 @@ all ways of moving it; nothing past it is shown. Once the place reaches the
 end of a game that is over, the game is **seen to the end** (`finished`), and
 `isShown` treats it like a week caught up through: panel, schedule rows and
 playoff gates show its result. The record and standings still stop at the
-week caught up through.
+week caught up through. Over means the summary says so as well as the
+scoreboard, since the scoreboard can call a game before the summary has its
+last plays.
 
 - the place only moves forward. A play once seen cannot be unseen, so
   stepping back, pausing early or watching again from kickoff leaves it

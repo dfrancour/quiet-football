@@ -5,7 +5,7 @@ import { noteSituations } from "~/lib/game-situations";
 import { notePlayArrivals } from "~/lib/play-arrivals";
 import { playoffMarksFromEspn } from "~/lib/playoff-marks";
 import { type PlayoffMarks } from "~/lib/playoff-marks.schema";
-import { extractPlayByPlay, SUMMARY_URL, summaryIsFinal } from "~/lib/plays";
+import { readSummary, SUMMARY_URL } from "~/lib/plays";
 import { type PlayByPlay } from "~/lib/plays.schema";
 import { fetchRecapDataset } from "~/lib/recap-dataset";
 import {
@@ -211,11 +211,6 @@ export function weekQueries(season: number, totalWeeks: number) {
   );
 }
 
-export interface LoadedPlayByPlay extends PlayByPlay {
-  /** Whether ESPN's summary calls the game over. */
-  final: boolean;
-}
-
 /**
  * A game's play-by-play from ESPN's summary, trimmed as it arrives since the
  * payload is hundreds of kilobytes, mostly not plays. A finished game's is
@@ -226,14 +221,12 @@ export interface LoadedPlayByPlay extends PlayByPlay {
 export function playByPlayQuery(gameId: string, live: boolean) {
   return queryOptions({
     queryKey: ["play-by-play", gameId],
-    queryFn: async ({ signal }): Promise<LoadedPlayByPlay> => {
-      const payload = await fetchUpstream(
-        `${SUMMARY_URL}?event=${gameId}`,
-        signal,
+    queryFn: async ({ signal }): Promise<PlayByPlay> => {
+      const { drives, final } = readSummary(
+        await fetchUpstream(`${SUMMARY_URL}?event=${gameId}`, signal),
       );
-      const drives = extractPlayByPlay(payload);
       notePlayArrivals(gameId, drives, Date.now());
-      return { gameId, drives, final: summaryIsFinal(payload) };
+      return { gameId, drives, final };
     },
     staleTime: (query) => (query.state.data?.final ? Infinity : 0),
     refetchInterval: (query) =>

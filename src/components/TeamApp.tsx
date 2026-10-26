@@ -19,7 +19,8 @@ import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSpoilers } from "~/hooks/useSpoilers";
 import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
 import { situationAfter } from "~/lib/game-situations";
-import { type LoadedPlayByPlay, playByPlayQuery } from "~/lib/queries";
+import { type PlayByPlay } from "~/lib/plays.schema";
+import { playByPlayQuery } from "~/lib/queries";
 import { standingsPath, teamPath } from "~/lib/routes";
 import { defaultGameId, gamePhase } from "~/lib/schedule";
 import { parseWeekParam, weekParam } from "~/lib/season-calendar";
@@ -205,7 +206,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     (spoilers.isShown(selectedGame) ||
       selectedGame.gameId in progress ||
       asked.has(selectedGame.gameId));
-  const loadPlays = useCallback(async (): Promise<LoadedPlayByPlay | null> => {
+  const loadPlays = useCallback(async (): Promise<PlayByPlay | null> => {
     if (selectedGameId === null) return null;
     setAsked((before) => new Set(before).add(selectedGameId));
     return client.fetchQuery(playByPlayQuery(selectedGameId, selectedIsLive));

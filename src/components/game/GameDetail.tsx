@@ -358,8 +358,9 @@ export function GameDetail({
 }: GameDetailProps) {
   const expand = { expanded, onToggleExpanded };
   const gameId = game?.gameId ?? null;
-  const allDrives =
-    game && playByPlay?.gameId === game.gameId ? playByPlay.drives : null;
+  const summary =
+    game && playByPlay?.gameId === game.gameId ? playByPlay : null;
+  const allDrives = summary?.drives ?? null;
   const allPlays = useMemo(() => playsInOrder(allDrives ?? []), [allDrives]);
 
   // A viewer matching a broadcast holds the game back: its plays, its clock,
@@ -398,7 +399,9 @@ export function GameDetail({
     plays,
     stored,
     showSpoilers ? null : replay.revealedId,
-    !ongoing,
+    // Over once the summary says so too: the scoreboard can call a game
+    // before the summary has its last plays.
+    !ongoing && summary?.final === true,
   );
   const limit = showSpoilers ? undefined : seenThrough;
 
