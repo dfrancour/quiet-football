@@ -30,15 +30,21 @@ describe("week-store", () => {
     expect(savedTeams(2025)).toBeNull();
   });
 
-  it("keeps one season only", () => {
+  it("keeps a season and the one before it, which the offseason reads too", () => {
+    saveWeek(2024, 18, board, AT);
+    saveTeams(2024, registry, AT);
     saveWeek(2025, 18, board, AT);
     saveTeams(2025, registry, AT);
     saveWeek(2026, 1, board, AT);
-    expect(savedWeek(2025, 18)).toBeNull();
-    expect(savedWeek(2026, 1)?.payload).toEqual(board);
     saveTeams(2026, registry, AT);
-    expect(savedTeams(2025)).toBeNull();
-    expect(savedWeek(2026, 1)).not.toBeNull();
+    expect(savedWeek(2024, 18)).toBeNull();
+    expect(savedTeams(2024)).toBeNull();
+    // Saving the season before lets go of nothing newer.
+    saveWeek(2025, 17, board, AT);
+    expect(savedWeek(2025, 18)?.payload).toEqual(board);
+    expect(savedWeek(2026, 1)?.payload).toEqual(board);
+    expect(savedTeams(2025)).not.toBeNull();
+    expect(savedTeams(2026)).not.toBeNull();
   });
 
   it("drops a copy it cannot read", () => {

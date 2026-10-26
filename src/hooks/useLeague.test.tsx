@@ -198,6 +198,27 @@ describe("useSeason", () => {
     vi.useRealTimers();
   });
 
+  it("reads both seasons from storage on a return visit while ESPN has no schedule", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2027-04-01T12:00:00Z"));
+    const fetchMock = stubFetch((url) => {
+      const { season, week } = params(url);
+      return scoreboard(season, week, season === 2026 ? 1 : 0);
+    });
+    const visit = async () => {
+      const { result, unmount } = renderHook(() => useSeason(), {
+        wrapper: queryWrapper(),
+      });
+      await waitFor(() => expect(result.current.data).not.toBeNull());
+      unmount();
+    };
+    await visit();
+    fetchMock.mockClear();
+    await visit();
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it("asks for a playoff round only once the week before it is settled", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.parse("2026-10-16T12:00:00Z"));

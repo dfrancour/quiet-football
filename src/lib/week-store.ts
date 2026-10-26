@@ -64,21 +64,19 @@ function read<T>(key: string, schema: z.ZodType<T>): T | null {
 }
 
 /**
- * Saves under a season, letting go of other seasons' first so storage holds
- * one season at most. Blocked or full storage is left alone: the value is
- * simply fetched next time.
+ * Saves under a season, letting go first of any season older than the one
+ * before it. Storage holds two seasons at most, since between March and the
+ * schedule's release a visit reads both: the new season's empty weeks, and
+ * the season before, which it shows. Blocked or full storage is left alone:
+ * the value is simply fetched next time.
  */
 function save(prefix: string, season: number, key: string, value: unknown) {
   try {
-    const mine = `${prefix}${season}`;
     for (const stored of Object.keys(window.localStorage)) {
-      if (
-        stored.startsWith(prefix) &&
-        stored !== mine &&
-        !stored.startsWith(`${mine}:`)
-      ) {
-        window.localStorage.removeItem(stored);
-      }
+      if (!stored.startsWith(prefix)) continue;
+      // A key naming no season reads as NaN, and is let go with the old.
+      const storedSeason = Number(stored.slice(prefix.length).split(":")[0]);
+      if (!(storedSeason >= season - 1)) window.localStorage.removeItem(stored);
     }
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch {}

@@ -167,8 +167,9 @@ fields (about 11 KB), under its season and week with when it arrived;
 still good: for good once settled, for `aheadStaleMs` while ahead, and not
 at all once a saved game's kickoff has passed. So a return visit fetches
 only the week in play, and a week ahead at most every few hours across
-visits, not every page load. Storage holds one season: saving a week lets
-go of any other season's. A copy that cannot be read, or was saved under an
+visits, not every page load. Storage holds two seasons at most: saving a
+week lets go of any season older than the one before it, since between
+March and the schedule's release a visit reads both. A copy that cannot be read, or was saved under an
 older `FORMAT`, is dropped and fetched; blocked or full storage is simply
 not saved to.
 
