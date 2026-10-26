@@ -9,6 +9,7 @@ import { GameDetail } from "~/components/game/GameDetail";
 import { AppHeader } from "~/components/layout/AppHeader";
 import { ScheduleSelector } from "~/components/schedule/ScheduleSelector";
 import { ScheduleSwitcher } from "~/components/schedule/ScheduleSwitcher";
+import { useFullScreen } from "~/hooks/useFullScreen";
 import { useSeason, useTeams, type SeasonData } from "~/hooks/useLeague";
 import { useNow } from "~/hooks/useNow";
 import { usePlayByPlay } from "~/hooks/usePlayByPlay";
@@ -70,8 +71,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   const now = useNow();
   const client = useQueryClient();
 
-  const [expanded, setExpanded] = useState(false);
-  const toggleExpanded = useCallback(() => setExpanded((open) => !open), []);
+  const [expanded, toggleExpanded] = useFullScreen();
 
   const spoilers = useSpoilers({
     season,
@@ -219,17 +219,6 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   // The body comes in whole, marks and all, under the header already there.
   const bodyRef = useRef<HTMLDivElement>(null);
   const revealed = useRevealed(bodyRef);
-
-  useEffect(() => {
-    if (!expanded) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setExpanded(false);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [expanded]);
 
   return (
     // From md up the page is the viewport, the schedule a rail beside the

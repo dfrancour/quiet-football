@@ -386,9 +386,14 @@ the scoreboard calls them; a tie gets none.
 
 Every panel has a full-screen control in its top row that hides the header and
 schedule, and on a live or final panel the bottom bar too; Escape or the same
-control exits. A final game with a recap linked has a YouTube icon beside it.
-The panel's inset (`Panel`) is as wide as those controls' hit areas, since the
-column scrolls sideways if anything pokes past it.
+control exits. Where the browser allows it the page itself goes full screen,
+hiding the browser's and the system's bars (`useFullScreen`); an iPhone,
+which allows it only for video, gets the page's own full screen alone. The
+browser can leave full screen on its own (Escape, the back gesture), so the
+panel reads it from the browser rather than keeping it. A final game with a
+recap linked has a YouTube icon beside it. The panel's inset (`Panel`) is as
+wide as those controls' hit areas, since the column scrolls sideways if
+anything pokes past it.
 
 Keep the upcoming-game panel minimal: no score placeholders or empty recap
 slots. Every panel's details are one line, kickoff and network; the venue is
