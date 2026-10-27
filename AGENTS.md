@@ -301,6 +301,8 @@ for one: a two-way switch under the header, Schedule or Standings
 both stacked. There the page is exactly the viewport and does not scroll:
 the header and switch stay put and the pane shown scrolls beneath them.
 Section headings are screen-reader only.
+A week's games are one table, each day's name heading its rows, so the
+teams and the @ between them line up from one day to the next.
 The chooser lists the regular season's weeks on one line and, after a
 hairline, each playoff round once its games are known. The weeks share the
 line's width, so it never scrolls. Below `sm` it is a stepper at the foot of

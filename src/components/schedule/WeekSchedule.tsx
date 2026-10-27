@@ -416,69 +416,78 @@ export function WeekSchedule({
       {shown.length === 0 ? (
         <p className="text-ink-muted text-sm">No games this week.</p>
       ) : (
-        <div className="flex flex-col gap-5">
-          {byDayAndSlot(shown, timeZone).map((day) => (
-            <table key={day.key} className="w-full text-sm">
-              <caption className="label-eyebrow pb-1.5 text-left">
-                {day.label}
-              </caption>
-              <tbody>
-                {day.slots.flatMap((slot) => [
-                  <SlotTimeRow key={`time-${slot.key}`} slot={slot} />,
-                  ...slot.games.map((game, index) => {
-                    // Until the clock mounts, only a stored status is trusted.
-                    const phase =
-                      now === null
-                        ? game.status === "final"
-                          ? "final"
-                          : null
-                        : gamePhase(game, now);
-                    if (!isOpen(game.gate)) {
-                      return (
-                        <CoveredRow
-                          key={game.gameId}
-                          game={game}
-                          slot={slot}
-                          isFirstInSlot={index === 0}
-                          phase={phase}
-                        />
-                      );
-                    }
-                    const board = boardById.get(game.gameId);
+        // One table for every day, so the columns, and the @ between the
+        // teams, line up from one day to the next.
+        <table className="w-full text-sm">
+          {byDayAndSlot(shown, timeZone).map((day, dayIndex) => (
+            <tbody key={day.key}>
+              <tr>
+                <th
+                  scope="colgroup"
+                  colSpan={5}
+                  className={cn(
+                    "label-eyebrow pb-1.5 text-left",
+                    dayIndex > 0 && "pt-5",
+                  )}
+                >
+                  {day.label}
+                </th>
+              </tr>
+              {day.slots.flatMap((slot) => [
+                <SlotTimeRow key={`time-${slot.key}`} slot={slot} />,
+                ...slot.games.map((game, index) => {
+                  // Until the clock mounts, only a stored status is trusted.
+                  const phase =
+                    now === null
+                      ? game.status === "final"
+                        ? "final"
+                        : null
+                      : gamePhase(game, now);
+                  if (!isOpen(game.gate)) {
                     return (
-                      <GameRow
+                      <CoveredRow
                         key={game.gameId}
                         game={game}
                         slot={slot}
                         isFirstInSlot={index === 0}
                         phase={phase}
-                        board={board}
-                        // A live game followed to its newest play is seen
-                        // as far as the scoreboard goes.
-                        revealed={
-                          isShown(game) ||
-                          (phase === "live" &&
-                            isCaughtUpLive(
-                              game.gameId,
-                              board?.lastPlayId ?? null,
-                            ))
-                        }
-                        records={recordsFor(game)}
-                        totalWeeks={totalWeeks}
-                        highlighted={
-                          highlighted.has(game.away.team.teamId) ||
-                          highlighted.has(game.home.team.teamId)
-                        }
-                        favorites={favorites}
-                        onPoint={onPoint}
                       />
                     );
-                  }),
-                ])}
-              </tbody>
-            </table>
+                  }
+                  const board = boardById.get(game.gameId);
+                  return (
+                    <GameRow
+                      key={game.gameId}
+                      game={game}
+                      slot={slot}
+                      isFirstInSlot={index === 0}
+                      phase={phase}
+                      board={board}
+                      // A live game followed to its newest play is seen
+                      // as far as the scoreboard goes.
+                      revealed={
+                        isShown(game) ||
+                        (phase === "live" &&
+                          isCaughtUpLive(
+                            game.gameId,
+                            board?.lastPlayId ?? null,
+                          ))
+                      }
+                      records={recordsFor(game)}
+                      totalWeeks={totalWeeks}
+                      highlighted={
+                        highlighted.has(game.away.team.teamId) ||
+                        highlighted.has(game.home.team.teamId)
+                      }
+                      favorites={favorites}
+                      onPoint={onPoint}
+                    />
+                  );
+                }),
+              ])}
+            </tbody>
           ))}
-        </div>
+        </table>
       )}
 
       <WeekStepper
