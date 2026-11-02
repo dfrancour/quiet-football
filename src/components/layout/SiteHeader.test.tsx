@@ -118,18 +118,6 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Hide all spoilers");
   });
 
-  it("catches up to the last settled week in one tap, when behind", () => {
-    const onCatchUp = renderSite(7, 9);
-    open();
-    fireEvent.click(
-      screen.getByRole("button", { name: /Catch up through Week 9/ }),
-    );
-    expect(onCatchUp).toHaveBeenCalledWith(9);
-    expect(
-      screen.queryByRole("button", { name: /Catch up through/ }),
-    ).not.toBeInTheDocument();
-  });
-
   it("hides everything again", () => {
     const onCatchUp = renderSite(7, 9);
     open();

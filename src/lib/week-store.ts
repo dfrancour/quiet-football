@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type GameSwings } from "~/lib/interesting";
 import { scoreboardSchema } from "~/lib/score.schema";
 import { teamRegistrySchema, type TeamRegistry } from "~/lib/teams.schema";
 
@@ -9,7 +10,8 @@ import { teamRegistrySchema, type TeamRegistry } from "~/lib/teams.schema";
  * a week still ahead is kept with the time it arrived and stands in until
  * it is older than the query trusts (`aheadStaleMs`). Trimmed to the
  * schema's fields a week is about 11 KB, a season under 250 KB. The team
- * registry, which a season does not change, is kept the same way.
+ * registry, which a season does not change, is kept the same way, and so is
+ * how each finished game turned (`interesting.ts`), a few bytes a game.
  */
 
 /** Bumped when a schema gains a field a saved copy would lack. */
@@ -17,6 +19,7 @@ const FORMAT = 3;
 
 export const WEEK_PREFIX = "scoreboard:";
 export const TEAMS_PREFIX = "teams:";
+export const SWINGS_PREFIX = "swings:";
 
 const savedWeekSchema = z.object({
   format: z.literal(FORMAT),
@@ -29,6 +32,15 @@ const savedTeamsSchema = z.object({
   format: z.literal(FORMAT),
   savedAt: z.number(),
   registry: teamRegistrySchema,
+});
+
+/** A season's finished games by id, each as it turned. */
+const savedSwingsSchema = z.object({
+  format: z.literal(FORMAT),
+  games: z.record(
+    z.string(),
+    z.object({ swing: z.number(), winnerLow: z.number().nullable() }),
+  ),
 });
 
 export interface SavedTeams {
@@ -47,6 +59,10 @@ function weekKey(season: number, week: number): string {
 
 function teamsKey(season: number): string {
   return `${TEAMS_PREFIX}${season}`;
+}
+
+function swingsKey(season: number): string {
+  return `${SWINGS_PREFIX}${season}`;
 }
 
 /** A saved value, or null; a copy that cannot be read is dropped. */
@@ -116,5 +132,24 @@ export function saveTeams(
     format: FORMAT,
     savedAt,
     registry,
+  });
+}
+
+/** How a finished game turned, as saved, or null. */
+export function savedSwings(season: number, gameId: string): GameSwings | null {
+  const saved = read(swingsKey(season), savedSwingsSchema)?.games[gameId];
+  return saved ? { ...saved, complete: true } : null;
+}
+
+/** Saved only once the feed has the whole game, so it never changes. */
+export function saveSwings(
+  season: number,
+  gameId: string,
+  { swing, winnerLow }: GameSwings,
+): void {
+  const games = read(swingsKey(season), savedSwingsSchema)?.games ?? {};
+  save(SWINGS_PREFIX, season, swingsKey(season), {
+    format: FORMAT,
+    games: { ...games, [gameId]: { swing, winnerLow } },
   });
 }

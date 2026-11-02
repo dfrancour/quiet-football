@@ -72,6 +72,7 @@ function renderSchedule(
     favorites = new Set<string>() as ReadonlySet<string>,
     onPoint = () => undefined,
     isOpen = () => true,
+    interesting = new Set<string>() as ReadonlySet<string>,
   }: {
     games?: WeekGame[];
     board?: readonly BoardGame[];
@@ -80,6 +81,7 @@ function renderSchedule(
     favorites?: ReadonlySet<string>;
     onPoint?: (teamIds: readonly string[]) => void;
     isOpen?: (gate: readonly GateGame[]) => boolean;
+    interesting?: ReadonlySet<string>;
   } = {},
 ) {
   // The page owns the week, as the home page does.
@@ -99,6 +101,7 @@ function renderSchedule(
           getWatchProgress()[gameId]?.playId === lastPlayId
         }
         isOpen={isOpen}
+        interesting={interesting}
         recordsFor={(game) =>
           revealed
             ? { away: game.away.recordAfter, home: game.home.recordAfter }
@@ -186,6 +189,23 @@ describe("WeekSchedule", () => {
     const card = gameRow();
     expect(within(card).queryAllByRole("img", { name: "Hidden" })).toEqual([]);
     expect(within(card).getByText("CBS")).toBeInTheDocument();
+  });
+
+  it("marks a finished game worth watching beside Final, and nothing else", () => {
+    renderSchedule(false, {
+      interesting: new Set([played.gameId, next.gameId]),
+    });
+    const row = gameRow();
+    expect(within(row).getByText("Interesting game")).toBeInTheDocument();
+    expect(within(row).getByText("Final")).toBeInTheDocument();
+    // A game still to come has no mark, whatever it is given.
+    fireEvent.click(screen.getByRole("button", { name: "Week 6" }));
+    expect(screen.queryByText("Interesting game")).not.toBeInTheDocument();
+  });
+
+  it("marks nothing while marks are off", () => {
+    renderSchedule(true);
+    expect(screen.queryByText("Interesting game")).not.toBeInTheDocument();
   });
 
   it("says Final, not how far the viewer watched", () => {
@@ -333,6 +353,7 @@ describe("WeekSchedule", () => {
         currentWeek: 19,
         isOpen: (gate) => !gate.some((entry) => entry.gameId === played.gameId),
         favorites: new Set([TEAMS.MIN.teamId]),
+        interesting: new Set([wildCard.gameId]),
         onPoint,
       });
       const row = gameRow();
@@ -341,6 +362,7 @@ describe("WeekSchedule", () => {
       expect(within(row).getAllByRole("img", { name: "Hidden" })).toHaveLength(
         2,
       );
+      expect(within(row).queryByText("Interesting game")).toBeNull();
       // Neither the tint nor the standings may say who is playing.
       expect(row.querySelector(".team-tint")).toBeNull();
       fireEvent.mouseEnter(row);

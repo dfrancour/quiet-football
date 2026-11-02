@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Redacted } from "~/components/common/Redacted";
 import { CoveredTeam } from "~/components/playoffs/CoveredTeam";
 import { WeekChooser, WeekStepper } from "~/components/schedule/WeekChooser";
+import { InterestingMark } from "~/components/score/InterestingMark";
 import { TeamLogo } from "~/components/team/TeamLogo";
 import { useNow } from "~/hooks/useNow";
 import { useBroadcastClock, useBroadcastDelay } from "~/hooks/useBroadcast";
@@ -47,6 +48,8 @@ interface WeekScheduleProps {
   isCaughtUpLive: (gameId: string, lastPlayId: string | null) => boolean;
   /** Whether a playoff matchup may be shown (`playoffs.ts`). */
   isOpen: (gate: readonly GateGame[]) => boolean;
+  /** Finished games worth watching, marked beside Final; empty while marks are off. */
+  interesting: ReadonlySet<string>;
   /** The records a game may show beside its teams; null for none. */
   recordsFor: (game: WeekGame) => { away: TeamRecord; home: TeamRecord } | null;
   /** Teams pointed at elsewhere on the page; their games light up. */
@@ -94,18 +97,21 @@ function byDayAndSlot(games: WeekGame[], timeZone: string): Day[] {
 
 /**
  * What a row says in its last column: the network, the game's own clock, or
- * Final, however far the viewer has watched.
+ * Final, however far the viewer has watched, marked if it was worth
+ * watching.
  */
 function Status({
   game,
   phase: storedPhase,
   board,
   revealed,
+  interesting,
 }: {
   game: WeekGame;
   phase: GamePhase | null;
   board: BoardGame | undefined;
   revealed: boolean;
+  interesting: boolean;
 }) {
   // A game held back to match a broadcast reads as that broadcast has it.
   const broadcastClock = useBroadcastClock(
@@ -125,7 +131,8 @@ function Status({
   if (phase === "final") {
     // "Final/OT" says the game was close, so it waits for the result too.
     return (
-      <span className="text-ink-faint">
+      <span className="text-ink-faint inline-flex items-center gap-1">
+        {interesting && <InterestingMark />}
         {revealed && board?.completed ? board.detail : "Final"}
       </span>
     );
@@ -263,7 +270,13 @@ function CoveredRow({
         </span>
       </td>
       <td className="w-20 py-1.5 pl-2 text-right font-mono text-xs sm:w-24 sm:pl-3">
-        <Status game={game} phase={phase} board={undefined} revealed={false} />
+        <Status
+          game={game}
+          phase={phase}
+          board={undefined}
+          revealed={false}
+          interesting={false}
+        />
       </td>
     </tr>
   );
@@ -276,6 +289,7 @@ function GameRow({
   phase,
   board,
   revealed,
+  interesting,
   records,
   totalWeeks,
   highlighted,
@@ -288,6 +302,7 @@ function GameRow({
   phase: GamePhase | null;
   board: BoardGame | undefined;
   revealed: boolean;
+  interesting: boolean;
   records: { away: TeamRecord; home: TeamRecord } | null;
   totalWeeks: number;
   highlighted: boolean;
@@ -351,7 +366,13 @@ function GameRow({
         />
       </td>
       <td className="w-20 py-1.5 pl-2 text-right font-mono text-xs sm:w-24 sm:pl-3">
-        <Status game={game} phase={phase} board={board} revealed={revealed} />
+        <Status
+          game={game}
+          phase={phase}
+          board={board}
+          revealed={revealed}
+          interesting={interesting}
+        />
       </td>
     </tr>
   );
@@ -372,6 +393,7 @@ export function WeekSchedule({
   isShown,
   isCaughtUpLive,
   isOpen,
+  interesting,
   recordsFor,
   highlighted,
   favorites,
@@ -473,6 +495,7 @@ export function WeekSchedule({
                             board?.lastPlayId ?? null,
                           ))
                       }
+                      interesting={interesting.has(game.gameId)}
                       records={recordsFor(game)}
                       totalWeeks={totalWeeks}
                       highlighted={

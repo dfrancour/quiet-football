@@ -19,6 +19,11 @@ export interface LeagueGame {
   home: Team;
   /** Final scores, away then home; a game without them is still to come. */
   score?: [number, number];
+  /**
+   * ESPN's win probability for the home side, play by play; by default a
+   * game that barely turned.
+   */
+  homeChances?: number[];
 }
 
 const SEASON = 2026;
@@ -100,6 +105,19 @@ function standings() {
   };
 }
 
+/** ESPN's win probability feed for a finished game. */
+function probabilities(game: LeagueGame) {
+  const [away = 0, home = 0] = game.score ?? [];
+  const chances = game.homeChances ?? [
+    0.5,
+    home > away ? 0.6 : 0.4,
+    home > away ? 1 : home < away ? 0 : 0.5,
+  ];
+  return {
+    items: chances.map((homeWinPercentage) => ({ homeWinPercentage })),
+  };
+}
+
 /**
  * Answers every request the pages make from `games`; anything else, the
  * recap dataset included, is a 404. Returns the fetch mock.
@@ -112,6 +130,12 @@ export function stubLeague(
     const query = new URL(url).searchParams;
     if (url.includes("/standings")) return standings();
     if (url.includes("/summary")) return { drives: {} };
+    if (url.includes("/probabilities")) {
+      const game = games.find(
+        (entry) => entry.score && url.includes(`/events/${entry.id}/`),
+      );
+      return game ? probabilities(game) : new Response(null, { status: 404 });
+    }
     if (url.includes("/scoreboard")) {
       const season = Number(query.get("dates"));
       const postseason = query.get("seasontype") === "3";

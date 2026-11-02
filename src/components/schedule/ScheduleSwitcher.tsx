@@ -18,6 +18,7 @@ interface ScheduleSwitcherProps {
   onSelect: (gameId: string) => void;
   onSelectBye: (week: number) => void;
   isShown: (game: TeamGame) => boolean;
+  interesting: ReadonlySet<string>;
   now: number | null;
 }
 
@@ -35,6 +36,7 @@ export function ScheduleSwitcher({
   onSelect,
   onSelectBye,
   isShown,
+  interesting,
   now,
 }: ScheduleSwitcherProps) {
   const timeZone = useTimeZone();
@@ -84,6 +86,7 @@ export function ScheduleSwitcher({
                 close();
               }}
               isShown={isShown}
+              interesting={interesting}
               now={now}
             />
           )}

@@ -7,6 +7,10 @@ import {
   markIntroduced,
   resetIntroducedCache,
 } from "~/lib/first-run";
+import {
+  getMarkInteresting,
+  resetMarkInterestingCache,
+} from "~/lib/interesting";
 
 /** A phone: no media query matches. */
 function narrow() {
@@ -24,6 +28,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
   resetIntroducedCache();
+  resetMarkInterestingCache();
 });
 
 function firstVisit() {
@@ -131,7 +136,7 @@ describe("CaughtUp with a week in progress", () => {
     expect(onCatchUp).toHaveBeenCalledWith(8);
   });
 
-  it("names the week so far once caught up into it, and offers nothing further", async () => {
+  it("names the week so far once caught up into it", async () => {
     const user = userEvent.setup();
     const onCatchUp = renderControl(7, { week: 8, uncovered: true });
     await user.click(screen.getByRole("button", { name: "Week 8 so far" }));
@@ -141,23 +146,10 @@ describe("CaughtUp with a week in progress", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Caught up through Week 8 so far",
     );
-    expect(
-      screen.queryByRole("button", { name: /^Catch up through/ }),
-    ).not.toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Week 8 so far", pressed: true }),
     );
     expect(onCatchUp).not.toHaveBeenCalled();
-  });
-
-  it("leads the shortcut to the week in progress", async () => {
-    const user = userEvent.setup();
-    const onCatchUp = renderControl(3, { week: 8, uncovered: false });
-    await user.click(screen.getByRole("button", { name: "Through Week 3" }));
-    await user.click(
-      screen.getByRole("button", { name: "Catch up through Week 8 so far" }),
-    );
-    expect(onCatchUp).toHaveBeenCalledWith(8);
   });
 });
 
@@ -236,13 +228,10 @@ describe("CaughtUp showing everything", () => {
     expect(onShowAll).toHaveBeenCalledWith(false);
   });
 
-  it("offers no shortcut while everything is shown, and picking a week still goes there", async () => {
+  it("still goes to a week picked while everything is shown", async () => {
     const user = userEvent.setup();
     const onCatchUp = renderControl(3, null, true);
     await user.click(screen.getByRole("button", { name: "Spoilers shown" }));
-    expect(
-      screen.queryByRole("button", { name: /Catch up through/ }),
-    ).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Through Week 3" }));
     expect(onCatchUp).toHaveBeenCalledWith(3);
   });
@@ -253,5 +242,29 @@ describe("CaughtUp showing everything", () => {
     await user.click(screen.getByRole("button", { name: "Spoilers shown" }));
     await user.click(screen.getByRole("button", { name: "Hide all" }));
     expect(onCatchUp).toHaveBeenCalledWith(0);
+  });
+});
+
+describe("CaughtUp marking interesting games", () => {
+  it("turns the marks on and off from a switch beside Show all, whatever the week", async () => {
+    const user = userEvent.setup();
+    const onCatchUp = renderControl(3);
+    await user.click(screen.getByRole("button", { name: "Through Week 3" }));
+    const toggle = screen.getByRole("switch", { name: "Interesting games" });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    await user.click(toggle);
+    expect(getMarkInteresting()).toBe(true);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    await user.click(toggle);
+    expect(getMarkInteresting()).toBe(false);
+    expect(onCatchUp).not.toHaveBeenCalled();
+  });
+
+  it("is offered on a first visit too, and ends the introduction", async () => {
+    firstVisit();
+    const user = userEvent.setup();
+    renderControl(0);
+    await user.click(screen.getByRole("switch", { name: "Interesting games" }));
+    expect(getIntroduced()).toBe(true);
   });
 });

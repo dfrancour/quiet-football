@@ -10,6 +10,7 @@ import {
   type StandingsView,
 } from "~/components/standings/StandingsTables";
 import { useFavorites } from "~/hooks/useFavorites";
+import { useInterestingGames } from "~/hooks/useInteresting";
 import {
   usePlayoffMarks,
   useSeason,
@@ -151,7 +152,19 @@ function HomeView({ registry, data }: HomeViewProps) {
     () => buildLeagueGames(seasonFile, registry),
     [seasonFile, registry],
   );
-  const { recordsAt } = spoilers;
+  // Only the week shown is marked, and a covered matchup says nothing.
+  const { isOpen, recordsAt } = spoilers;
+  const finishedGameIds = useMemo(
+    () =>
+      games
+        .filter(
+          (game) =>
+            game.week === week && game.status === "final" && isOpen(game.gate),
+        )
+        .map((game) => game.gameId),
+    [games, week, isOpen],
+  );
+  const interesting = useInterestingGames(season, finishedGameIds);
   const recordsFor = useCallback(
     (game: WeekGame) => weekGameRecords(seasonFile, game, recordsAt(game)),
     [seasonFile, recordsAt],
@@ -219,7 +232,8 @@ function HomeView({ registry, data }: HomeViewProps) {
             totalWeeks={totalWeeks}
             isShown={spoilers.isShown}
             isCaughtUpLive={spoilers.isCaughtUpLive}
-            isOpen={spoilers.isOpen}
+            isOpen={isOpen}
+            interesting={interesting}
             recordsFor={recordsFor}
             highlighted={highlighted}
             favorites={favorites}

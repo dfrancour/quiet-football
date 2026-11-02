@@ -37,6 +37,11 @@ export const scoreConfig = {
    * over when first seen: the scoreboard says final, not when.
    */
   typicalGameMs: 3 * 60 * 60_000 + 15 * 60_000,
+  /**
+   * How long a finished game's win probability is trusted while the feed is
+   * still catching up with its final plays.
+   */
+  swingsCatchUpMs: 10 * 60_000,
   /** How long a game's play-by-play is kept after the panel leaves it. */
   summaryKeepMs: 60 * 60_000,
 } as const;

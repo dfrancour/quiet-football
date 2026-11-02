@@ -10,6 +10,7 @@ import { AppHeader } from "~/components/layout/AppHeader";
 import { ScheduleSelector } from "~/components/schedule/ScheduleSelector";
 import { ScheduleSwitcher } from "~/components/schedule/ScheduleSwitcher";
 import { useFullScreen, useFullScreenEnabled } from "~/hooks/useFullScreen";
+import { useInterestingGames } from "~/hooks/useInteresting";
 import { useSeason, useTeams, type SeasonData } from "~/hooks/useLeague";
 import { useNow } from "~/hooks/useNow";
 import { usePlayByPlay } from "~/hooks/usePlayByPlay";
@@ -92,6 +93,15 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     }),
     [fullSchedule, isOpen],
   );
+
+  const finishedGameIds = useMemo(
+    () =>
+      schedule.games
+        .filter((game) => game.status === "final")
+        .map((game) => game.gameId),
+    [schedule.games],
+  );
+  const interesting = useInterestingGames(seasonFile.season, finishedGameIds);
 
   // Null follows the default; an explicit pick sticks as the default moves.
   // A bye week can be picked too, and shows nothing but itself.
@@ -282,6 +292,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
               onSelect={selectGame}
               onSelectBye={selectBye}
               isShown={spoilers.isShown}
+              interesting={interesting}
               now={now}
             />
           </div>
@@ -303,6 +314,7 @@ function TeamView({ registry, data, team }: TeamViewProps) {
                 onSelect={selectGame}
                 onSelectBye={selectBye}
                 isShown={spoilers.isShown}
+                interesting={interesting}
                 now={now}
               />
             </div>

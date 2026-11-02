@@ -6,6 +6,7 @@ import {
 import { scoreConfig } from "~/lib/config";
 import { noteGameClock } from "~/lib/game-clocks";
 import { noteSituations } from "~/lib/game-situations";
+import { fetchSwings, type GameSwings } from "~/lib/interesting";
 import { notePlayArrivals } from "~/lib/play-arrivals";
 import { playoffMarksFromEspn } from "~/lib/playoff-marks";
 import { readSummary, SUMMARY_URL } from "~/lib/plays";
@@ -30,7 +31,14 @@ import {
 } from "~/lib/team-fetch";
 import { kickoffMs } from "~/lib/schedule";
 import { fetchUpstream, retryAfterOf } from "~/lib/upstream";
-import { savedTeams, savedWeek, saveTeams, saveWeek } from "~/lib/week-store";
+import {
+  savedSwings,
+  savedTeams,
+  savedWeek,
+  saveSwings,
+  saveTeams,
+  saveWeek,
+} from "~/lib/week-store";
 
 /**
  * Everything the app reads, as TanStack Query options: ESPN and the recap
@@ -312,5 +320,30 @@ export function recapDatasetQuery(season: number) {
     queryKey: ["recaps", season],
     queryFn: ({ signal }) => fetchRecapDataset(season, signal),
     staleTime: Infinity,
+  });
+}
+
+/**
+ * How a finished game turned, from ESPN's win probability, for its mark
+ * (`interesting.ts`). Asked for only while marks are wanted and the game's
+ * row is drawn. Once the feed has the whole game it never changes, so it is
+ * saved for good; a feed still catching up with the final plays is asked
+ * again a while later.
+ */
+export function swingsQuery(season: number, gameId: string) {
+  return queryOptions({
+    queryKey: ["swings", gameId],
+    queryFn: async ({ signal }): Promise<GameSwings> => {
+      const saved = savedSwings(season, gameId);
+      if (saved) return saved;
+      const swings = await fetchSwings(gameId, signal);
+      if (swings.complete) saveSwings(season, gameId, swings);
+      return swings;
+    },
+    staleTime: (query) =>
+      query.state.data?.complete === false
+        ? scoreConfig.swingsCatchUpMs
+        : Infinity,
+    gcTime: Infinity,
   });
 }

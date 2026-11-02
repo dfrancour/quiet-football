@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TEAMS } from "~/lib/test-utils/fixtures";
-import { savedTeams, savedWeek, saveTeams, saveWeek } from "~/lib/week-store";
+import {
+  savedSwings,
+  savedTeams,
+  savedWeek,
+  saveSwings,
+  saveTeams,
+  saveWeek,
+} from "~/lib/week-store";
 
 const board = {
   season: { year: 2026, type: 2 },
@@ -28,6 +35,29 @@ describe("week-store", () => {
     saveTeams(2026, registry, AT);
     expect(savedTeams(2026)).toEqual({ registry, savedAt: AT });
     expect(savedTeams(2025)).toBeNull();
+  });
+
+  it("keeps how each finished game turned, under its season", () => {
+    saveSwings(2026, "401872987", {
+      swing: 6.1,
+      winnerLow: 0.2,
+      complete: true,
+    });
+    saveSwings(2026, "401872999", {
+      swing: 1.2,
+      winnerLow: null,
+      complete: true,
+    });
+    expect(savedSwings(2026, "401872987")).toEqual({
+      swing: 6.1,
+      winnerLow: 0.2,
+      complete: true,
+    });
+    expect(savedSwings(2026, "401872999")?.winnerLow).toBeNull();
+    expect(savedSwings(2026, "401872000")).toBeNull();
+    expect(savedSwings(2025, "401872987")).toBeNull();
+    saveSwings(2028, "401872001", { swing: 2, winnerLow: 0.4, complete: true });
+    expect(savedSwings(2026, "401872987")).toBeNull();
   });
 
   it("keeps a season and the one before it, which the offseason reads too", () => {

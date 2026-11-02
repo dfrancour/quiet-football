@@ -2,6 +2,10 @@ import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomeApp } from "~/components/HomeApp";
 import { markIntroduced, resetIntroducedCache } from "~/lib/first-run";
+import {
+  resetMarkInterestingCache,
+  setMarkInteresting,
+} from "~/lib/interesting";
 import { catchUpThrough, setShowAll } from "~/lib/spoilers";
 import { TEAMS } from "~/lib/test-utils/fixtures";
 import { stubLeague, type LeagueGame } from "~/lib/test-utils/league";
@@ -41,7 +45,17 @@ const GAMES: LeagueGame[] = [
     kickoff: "2026-09-27T17:00:00Z",
     away: TEAMS.MIN,
     home: TEAMS.GB,
-    score: [27, 3],
+    score: [27, 23],
+    // Back and forth, Green Bay's chance swinging all afternoon.
+    homeChances: [0.55, 0.9, 0.2, 0.85, 0.15, 0.8, 0.1, 0.7, 0],
+  },
+  {
+    id: "w3b",
+    week: 3,
+    kickoff: "2026-09-27T20:25:00Z",
+    away: TEAMS.CHI,
+    home: TEAMS.NO,
+    score: [31, 3],
   },
   {
     id: "w4a",
@@ -63,6 +77,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   resetIntroducedCache();
+  resetMarkInterestingCache();
 });
 
 async function renderLeague() {
@@ -99,6 +114,31 @@ describe("HomeApp", () => {
     expect(bears).toContain("0-1");
     // Seeds describe the present, so wait for the whole regular season.
     expect(within(north).queryByTitle(/Seed/)).not.toBeInTheDocument();
+  });
+
+  it("asks how no game turned while interesting games are not marked", async () => {
+    catchUpThrough(2026, 2);
+    const { fetchMock } = await renderLeague();
+    expect(
+      fetchMock.mock.calls.filter(([url]) =>
+        requestUrl(url).includes("/probabilities"),
+      ),
+    ).toEqual([]);
+    expect(screen.queryByText("Interesting game")).not.toBeInTheDocument();
+  });
+
+  it("marks the shown week's interesting games, asking only for that week's", async () => {
+    setMarkInteresting(true);
+    catchUpThrough(2026, 2);
+    const { fetchMock } = await renderLeague();
+    const marked = await within(schedule()).findByText("Interesting game");
+    expect(marked.closest("tr")).toHaveTextContent("GB");
+    expect(within(schedule()).getAllByText("Interesting game")).toHaveLength(1);
+    const asked = fetchMock.mock.calls
+      .map(([url]) => requestUrl(url))
+      .filter((url) => url.includes("/probabilities"));
+    expect(asked).toHaveLength(2);
+    expect(asked.every((url) => /\/events\/w3[ab]\//.test(url))).toBe(true);
   });
 
   it("opens on the week after the one caught up through, its scores covered", async () => {

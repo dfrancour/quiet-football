@@ -22,9 +22,9 @@ Vercel (or any static host) serves.
 The repository carries no data. Everything is fetched from ESPN (and the
 recap dataset, for recaps) by the browser, through TanStack Query, and kept
 for the session. What a visit can leave for the next it saves in
-`localStorage` (`src/lib/week-store.ts`): a settled week's scoreboard for
-good, a week still ahead and the team registry for as long as they are
-trusted. **Nothing is stored twice**, nothing is fetched unless a page is
+`localStorage` (`src/lib/week-store.ts`): a settled week's scoreboard and
+how each finished game turned for good, a week still ahead and the team
+registry for as long as they are trusted. **Nothing is stored twice**, nothing is fetched unless a page is
 drawing it, and nothing is fetched again just because the tab was looked at.
 ESPN sends `max-age=1` on everything, so the browser's own cache is no help;
 the query layer is the cache.
@@ -36,6 +36,7 @@ the query layer is the cache.
 | `week`, per week             | One week's scoreboard: its games, clocks and situations | see "Only a week with a game under way..."          |
 | `play-by-play`, per game     | ESPN's summary of a game, trimmed to its drives         | as the scoreboard shows a new play; once when over  |
 | `recaps`                     | The season's file from the recap dataset                | on `recapsPoll`'s schedule while a recap is awaited |
+| `swings`, per game           | How a finished game turned, from ESPN's win probability | never once complete; saved for good                 |
 
 Playoff marks are not a query of their own: `playoffMarksQuery` is the
 standings query with a `select`.
@@ -202,7 +203,8 @@ plays.
 ### Every upstream call goes through `fetchUpstream`
 
 `src/lib/upstream.ts` is the only code that calls ESPN or the recap dataset.
-Every endpoint used answers cross-origin requests (ESPN's `teams` endpoint
+Every endpoint used, ESPN's `sports.core.api.espn.com` win probability
+included, answers cross-origin requests (ESPN's `teams` endpoint
 does not, which is why the registry comes from the standings), so the
 browser calls them directly; it adds a timeout (8 seconds; ESPN answers in
 well under one) and turns a bad status into an `UpstreamError`, keeping any
@@ -681,8 +683,9 @@ control is the brighter of its two states, so it reads as the way in.
 
 ### Showing everything
 
-The one switch is **Show all**, on the strip's row of actions beside
-**Hide all** and the catch-up shortcut: with it on, every
+The one switch that shows results is **Show all**, on the strip's row of
+actions beside **Hide all** and **Interesting** (see "Interesting games"):
+with it on, every
 result of every season is shown as it comes, live or final, records,
 standings, seeds and playoff matchups included, and a game that kicks off
 later shows its score from the first snap. It is a preference, kept in
@@ -695,14 +698,43 @@ It changes only what is drawn. The week caught up through and every game's
 place stay as they were (watching with everything shown moves no place),
 so turning it off covers again whatever they cover. While it is on, the strip reads
 uncovered with the viewer's week still marked, the header control says
-"Spoilers shown" in the accent, and the catch-up shortcut is not offered.
-Picking a week, or **Hide all**, turns it off: a pick asks to see only that
+"Spoilers shown" in the accent. Picking a week, or **Hide all**, turns it off: a pick asks to see only that
 far.
 
 Masking is a matter of what is drawn, not what is fetched: the browser holds
 the whole season so uncovering a game needs no request, and anyone can read
 ESPN's answers in the network panel. That is accepted; they are public
 anyway.
+
+### Interesting games are marked only when asked
+
+A finished game worth watching can carry a small sparkle beside its Final
+or result (`InterestingMark`), on the league's week and a team's schedule.
+The mark says something of how a game went, and its absence that it was
+a rout, so it is off until the viewer turns on **Interesting** in the
+spoilers strip, a preference kept in `localStorage` (`interesting-marked`,
+`src/lib/interesting.ts`), not per season. It is independent of the week
+caught up through and of **Show all**: on, it marks every finished game
+shown, its result covered or not.
+
+Worth watching is read off ESPN's win probability, the home side's chance
+after every play (`sports.core.api.espn.com`'s `probabilities`, about 7 KB
+compressed a game, against the summary's 50): its `swing`, every change in
+that chance added up, is 5 or more, or the side that won fell to 5% or
+less (`isInteresting()`). Over 2025's regular season that marked 72 of
+272 games, about four a week, and ranked the season's classics first.
+Nothing from the feed is shown, and it is not odds or a line: only how
+much the game turned.
+
+- A mark waits for the row to read Final, so a game held back to match a
+  broadcast is not marked before the broadcast ends, and a live game is
+  never marked
+- A covered playoff matchup is not marked, nor asked about
+- With marks off nothing is fetched; on, only the games the page draws
+  (the week shown, or the team's season) are asked for (`useInterestingGames`)
+- The feed can trail the scoreboard's final by a few plays, so a game is
+  saved only once its feed settles it (a side certain, or a tie even), and
+  asked again after `swingsCatchUpMs` until then
 
 ### Playoff matchups are covered round by round
 

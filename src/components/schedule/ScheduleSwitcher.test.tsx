@@ -37,6 +37,7 @@ function renderSwitcher(
       onSelectBye={onSelectBye}
       onSelect={onSelect}
       isShown={() => false}
+      interesting={new Set()}
       now={NOW}
     />,
   );

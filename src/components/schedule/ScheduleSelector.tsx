@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { InterestingMark } from "~/components/score/InterestingMark";
 import { TeamLogo } from "~/components/team/TeamLogo";
 import { useTimeZone } from "~/hooks/useTimeZone";
 import { formatShortDate } from "~/lib/dates";
@@ -21,6 +22,8 @@ interface ScheduleSelectorProps {
   onSelectBye: (week: number) => void;
   /** Whether a game's result is shown: caught up through it, or uncovered. */
   isShown: (game: TeamGame) => boolean;
+  /** Finished games worth watching, marked beside the result; empty while marks are off. */
+  interesting: ReadonlySet<string>;
   /** Null until the clock mounts; live markers wait for it. */
   now: number | null;
 }
@@ -58,16 +61,19 @@ function WeekCell({ game, week }: { game: TeamGame | null; week: number }) {
 
 /**
  * A played game's result, or "Final" while spoilers are hidden, however far
- * the viewer has watched. A game seen to the end shows its result.
+ * the viewer has watched, marked if it was worth watching. A game seen to
+ * the end shows its result.
  */
 function StatusCell({
   game,
   showSpoilers,
   isLive,
+  interesting,
 }: {
   game: TeamGame;
   showSpoilers: boolean;
   isLive: boolean;
+  interesting: boolean;
 }) {
   // A game held back to match a broadcast is live until that broadcast ends.
   const broadcastClock = useBroadcastClock(
@@ -88,6 +94,7 @@ function StatusCell({
   }
 
   const visibility = resultVisibility(game, showSpoilers);
+  const mark = interesting && game.status === "final" && <InterestingMark />;
 
   if (visibility.kind === "result") {
     const { outcome, teamScore, opponentScore } = visibility;
@@ -95,19 +102,25 @@ function StatusCell({
     return (
       <span
         className={cn(
-          "font-mono text-xs font-semibold tabular-nums",
+          "inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums",
           outcome === "win" && "text-win",
           outcome === "loss" && "text-loss",
           outcome === "tie" && "text-ink-muted",
         )}
       >
+        {mark}
         {prefix} {teamScore}-{opponentScore}
       </span>
     );
   }
 
   if (visibility.kind === "label") {
-    return <span className="text-ink-faint text-xs">{visibility.text}</span>;
+    return (
+      <span className="text-ink-faint inline-flex items-center gap-1 text-xs">
+        {mark}
+        {visibility.text}
+      </span>
+    );
   }
 
   return null;
@@ -135,6 +148,7 @@ export function ScheduleSelector({
   onSelect,
   onSelectBye,
   isShown,
+  interesting,
   now,
 }: ScheduleSelectorProps) {
   const rows = buildRows(schedule);
@@ -246,6 +260,7 @@ export function ScheduleSelector({
                   game={game}
                   showSpoilers={isShown(game)}
                   isLive={isLive}
+                  interesting={interesting.has(game.gameId)}
                 />
               </span>
             </button>

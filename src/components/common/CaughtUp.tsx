@@ -1,20 +1,23 @@
 "use client";
 
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Sparkle } from "lucide-react";
 import {
   useCallback,
   useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
 } from "react";
 import { control } from "~/components/common/control";
 import { Sheet } from "~/components/common/Sheet";
 import { useDismiss } from "~/hooks/useDismiss";
 import { useIntroduced } from "~/hooks/useIntroduced";
+import { useMarkInteresting } from "~/hooks/useInteresting";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
 import { type PartialWeek } from "~/hooks/useSpoilers";
 import { markIntroduced } from "~/lib/first-run";
+import { setMarkInteresting } from "~/lib/interesting";
 import {
   playoffRound,
   ROUND_ABBREVIATIONS,
@@ -57,6 +60,52 @@ function label(totalWeeks: number, week: number, partial = false): string {
 /** Tailwind's `sm`: from here the strip is a popover under the control. */
 const WIDE = "(min-width: 40rem)";
 
+/** One of the strip's switches: its name, then a knob that slides. */
+function Switch({
+  on,
+  onFlip,
+  label,
+  children,
+}: {
+  on: boolean;
+  onFlip: () => void;
+  /** Its name in full, where the words shown are short of it. */
+  label?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      onClick={onFlip}
+      className={cn(
+        control({ tone: "muted", shape: "text" }),
+        "group shrink-0",
+      )}
+    >
+      {children}
+      <span
+        aria-hidden
+        className={cn(
+          "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200 motion-reduce:transition-none",
+          on
+            ? "bg-accent"
+            : "bg-surface-sunken group-hover:bg-edge ring-edge ring-1 ring-inset",
+        )}
+      >
+        <span
+          className={cn(
+            "bg-ink absolute top-0.5 left-0.5 size-3 rounded-full shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none",
+            on ? "translate-x-3" : "translate-x-0",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
 /**
  * Where the viewer is in the season: everything through that week is shown.
  * It opens the season as a strip: weeks caught up through read plainly,
@@ -72,7 +121,8 @@ const WIDE = "(min-width: 40rem)";
  * Beside the strip's actions, a switch shows all: every result, live or
  * final, as it comes. The strip reads all uncovered while it is on, its
  * week still marked, since turning it off goes back there; picking a week
- * turns it off.
+ * turns it off. Another marks interesting games (`interesting.ts`), which
+ * says something of how a game went, so it sits among the spoilers.
  *
  * A first visit opens the strip by itself, asking for the last week seen,
  * since a page of covered results says nothing about why; closing it or
@@ -94,6 +144,7 @@ export function CaughtUp({
   // Where the covers sweep from: the viewer's week before a pick, or as the
   // switch flipped.
   const [sweepFrom, setSweepFrom] = useState<number | null>(null);
+  const markInteresting = useMarkInteresting();
   const rootRef = useRef<HTMLDivElement>(null);
   const controlRef = useRef<HTMLButtonElement>(null);
   const wide = useMediaQuery(WIDE, true);
@@ -272,16 +323,6 @@ export function CaughtUp({
           ? `Catch up through ${name(preview)}`
           : `Go back to ${name(preview)}`;
 
-  // The shortcut's target: the week in progress once it has games to take,
-  // else the last settled week.
-  const ahead = showAll
-    ? null
-    : partial !== null && !partial.uncovered
-      ? partial.week
-      : through < settledThrough
-        ? settledThrough
-        : null;
-
   const flip = () => {
     setPreview(null);
     setSweepFrom(through);
@@ -340,55 +381,24 @@ export function CaughtUp({
           Hide all
         </button>
         <div className="flex min-w-0 items-center gap-4">
-          {ahead !== null && (
-            <button
-              type="button"
-              onClick={() => choose(ahead)}
-              onPointerEnter={() => setPreview(ahead)}
-              onPointerLeave={() => setPreview(null)}
-              className={cn(
-                control({ tone: "muted", shape: "text" }),
-                "min-w-0",
-              )}
-            >
-              {/* On a phone the row has room only for the verb. */}
-              <span className="truncate">
-                Catch up{" "}
-                <span className={cn(!wide && "sr-only")}>
-                  through {name(ahead)}
-                </span>
-              </span>
-              <ArrowRight className="size-3 shrink-0" aria-hidden />
-            </button>
-          )}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={showAll}
-            onClick={flip}
-            className={cn(
-              control({ tone: "muted", shape: "text" }),
-              "group shrink-0",
-            )}
+          <Switch
+            on={markInteresting}
+            label="Interesting games"
+            onFlip={() => {
+              markIntroduced();
+              setMarkInteresting(!markInteresting);
+            }}
           >
-            Show all
-            <span
+            <Sparkle
+              className="text-accent-strong size-3 shrink-0"
+              fill="currentColor"
               aria-hidden
-              className={cn(
-                "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200 motion-reduce:transition-none",
-                showAll
-                  ? "bg-accent"
-                  : "bg-surface-sunken group-hover:bg-edge ring-edge ring-1 ring-inset",
-              )}
-            >
-              <span
-                className={cn(
-                  "bg-ink absolute top-0.5 left-0.5 size-3 rounded-full shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none",
-                  showAll ? "translate-x-3" : "translate-x-0",
-                )}
-              />
-            </span>
-          </button>
+            />
+            Interesting
+          </Switch>
+          <Switch on={showAll} onFlip={flip}>
+            Show all
+          </Switch>
         </div>
       </div>
     </div>

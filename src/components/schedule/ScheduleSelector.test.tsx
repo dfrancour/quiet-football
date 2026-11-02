@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScheduleSelector } from "~/components/schedule/ScheduleSelector";
@@ -47,6 +47,7 @@ function renderSelector(
       onSelectBye={() => undefined}
       onSelect={onSelect}
       isShown={() => false}
+      interesting={new Set()}
       now={KICKOFF_MS + 5 * 24 * 60 * 60 * 1000}
       {...overrides}
     />,
@@ -152,6 +153,23 @@ describe("ScheduleSelector team marks", () => {
 });
 
 describe("ScheduleSelector watched games", () => {
+  it("marks a finished game worth watching beside its result, shown or not", () => {
+    renderSelector({ interesting: new Set(["played", "future"]) });
+    const played = screen.getByRole("button", { name: /Final/ });
+    expect(within(played).getByText("Interesting game")).toBeInTheDocument();
+    expect(screen.getAllByText("Interesting game")).toHaveLength(1);
+    cleanup();
+    renderSelector({
+      interesting: new Set(["played"]),
+      isShown: () => true,
+    });
+    expect(
+      within(screen.getByRole("button", { name: /W 20-13/ })).getByText(
+        "Interesting game",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("says Final, not how far the viewer watched", () => {
     recordWatchProgress("played", {
       playId: "1",
