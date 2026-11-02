@@ -96,7 +96,7 @@ describe("the components", () => {
   });
 
   it("leave the pointer and touch to the base layer", () => {
-    expect(offenders(/\bcursor-(pointer|default)\b/g)).toEqual([]);
+    expect(offenders(/\bcursor-[a-z-]+/g)).toEqual([]);
     expect(offenders(/\btouch-(manipulation|auto)\b/g)).toEqual([]);
   });
 

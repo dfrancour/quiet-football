@@ -717,6 +717,14 @@ spoilers strip, a preference kept in `localStorage` (`interesting-marked`,
 caught up through and of **Show all**: on, it marks every finished game
 shown, its result covered or not.
 
+A mouse resting on the mark gets a card naming it ("Interesting game",
+"Game metrics suggest it may be worth watching."), so the viewer knows it
+is figured, not picked, but never why: whether the game swung or was a
+comeback would say more than the mark does. It is drawn over the page in a portal since the
+schedules scroll within themselves and would clip it, and gone as soon as
+anything scrolls. It adds nothing the switch's name does not say, so a
+touch, which has no hover, misses nothing.
+
 Worth watching is read off ESPN's win probability, the home side's chance
 after every play (`sports.core.api.espn.com`'s `probabilities`, about 7 KB
 compressed a game, against the summary's 50): its `swing`, every change in
