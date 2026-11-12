@@ -960,8 +960,9 @@ for a day.
 ### Analytics and discoverability
 
 `VercelAnalytics` (in the root layout) mounts Vercel Analytics and Speed
-Insights, Vercel's anonymous page views and load times. There is no opt-out
-and nothing else is collected.
+Insights, Vercel's anonymous page views and load times. A browser that asks
+not to be tracked (Global Privacy Control or Do Not Track, `asksNotToTrack()`,
+`src/lib/tracking.ts`) sends neither. Nothing else is collected.
 
 `src/lib/site.ts` holds the site's name, URL and description. The root
 layout sets `metadataBase`, a title template and Open Graph tags from it,
