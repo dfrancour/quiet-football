@@ -284,7 +284,9 @@ There is no team switcher; teams are picked from the standings.
 
 `/about` (`About`, `src/components/layout/About.tsx`) says in a few lines
 what the site is, that it is independent of the NFL and ESPN, and links to the repository
-(`REPO_URL`) under the GitHub mark, as quietly as a recap link. Beside it,
+(`REPO_URL`) under the GitHub mark, as quietly as a recap link. Before it,
+dfrancour.dev (`AUTHOR_URL`) under the DF avatar (`public/dfrancour.png`), the
+favicon Derek's other sites share. After it,
 `ContactLink` gives the site's email: the address is kept in two halves
 (`CONTACT_USER`, `CONTACT_HOST`) and joined only after hydration, so the
 prerendered HTML reads "Email" with no `href` and carries no address for a

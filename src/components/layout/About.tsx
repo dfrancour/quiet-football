@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
@@ -9,7 +10,7 @@ import { ContactLink } from "~/components/layout/ContactLink";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
 import { standingsPath } from "~/lib/routes";
-import { REPO_URL, SITE_NAME } from "~/lib/site";
+import { AUTHOR_URL, REPO_URL, SITE_NAME } from "~/lib/site";
 
 /** The GitHub mark, drawn inline so it stays the brand's own shape. */
 function GitHubMark({ className }: { className?: string }) {
@@ -100,8 +101,7 @@ export function About() {
           </p>
           <p>
             It is a static site. Your browser reads ESPN&rsquo;s public
-            scoreboard directly, and nothing is kept beyond your own choices,
-            which stay in your browser.
+            scoreboard directly.
           </p>
         </div>
 
@@ -112,6 +112,21 @@ export function About() {
             or ESPN. Team names and logos belong to their respective owners.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <a
+              href={AUTHOR_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-ink-muted inline-flex items-center gap-1.5 transition-colors"
+            >
+              <Image
+                src="/dfrancour.png"
+                alt=""
+                width={12}
+                height={12}
+                className="size-3 rounded-[3px]"
+              />
+              dfrancour.dev
+            </a>
             <a
               href={REPO_URL}
               target="_blank"

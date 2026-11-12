@@ -7,6 +7,9 @@ export const SITE_DESCRIPTION =
 /** Where the source lives. */
 export const REPO_URL = "https://github.com/dfrancour/quiet-football";
 
+/** The author's site, linked under the DF avatar all of Derek's sites share. */
+export const AUTHOR_URL = "https://dfrancour.dev";
+
 /**
  * The contact address, kept in two halves so the whole never sits in the
  * markup or the bundle for an address harvester to lift. `ContactLink` joins

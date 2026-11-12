@@ -1,15 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { About } from "~/components/layout/About";
-import { REPO_URL } from "~/lib/site";
+import { AUTHOR_URL, REPO_URL } from "~/lib/site";
 import { router } from "~/lib/test-utils/setup";
 
 describe("About", () => {
-  it("leads home and links out to the source", () => {
+  it("leads home and links out to the author and the source", () => {
     render(<About />);
     expect(
       screen.getByRole("link", { name: "Quiet Football" }),
     ).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "dfrancour.dev" })).toHaveAttribute(
+      "href",
+      AUTHOR_URL,
+    );
     expect(
       screen.getByRole("link", { name: "Source on GitHub" }),
     ).toHaveAttribute("href", REPO_URL);
