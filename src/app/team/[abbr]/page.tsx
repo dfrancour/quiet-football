@@ -2,7 +2,7 @@ import { type Metadata } from "next";
 import { Suspense } from "react";
 import { TeamApp } from "~/components/TeamApp";
 import { Supported } from "~/components/common/LoadState";
-import { teamPath } from "~/lib/routes";
+import { teamMetadata } from "~/lib/metadata";
 import { TEAM_ABBREVIATIONS } from "~/lib/teams";
 
 /** The site is exported statically, so each team's page is named up front. */
@@ -20,12 +20,7 @@ export async function generateMetadata({
   params,
 }: TeamPageProps): Promise<Metadata> {
   const { abbr } = await params;
-  const team = abbr.toUpperCase();
-  return {
-    title: team,
-    description: `${team}'s schedule, record and play-by-play, with no result shown until you ask.`,
-    alternates: { canonical: teamPath(team) },
-  };
+  return teamMetadata(abbr);
 }
 
 /** One team's season; `?week=` opens on a game (`weekParam()`). */

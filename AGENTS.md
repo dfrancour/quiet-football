@@ -965,8 +965,14 @@ and nothing else is collected.
 layout sets `metadataBase`, a title template and Open Graph tags from it,
 with `public/og.png` (the site's mark, rendered from `icon.svg`) as the card;
 `robots.ts` and `sitemap.ts` (the home page and every team page) are
-metadata routes, prerendered like everything else. Each team page
-titles itself by abbreviation. Keep copy terse.
+metadata routes, prerendered like everything else. Every page states its
+whole title, description, canonical address and share tags through
+`pageMetadata()` (`src/lib/metadata.ts`), since Next replaces a layout's
+Open Graph tags whole and a page without its own would share as the home
+page. A team page is titled by the team's name ("Minnesota Vikings |
+Quiet Football"), from `TEAM_NAMES` (`src/lib/teams.ts`), so the
+export can name it before ESPN is asked. The layout names the site in
+JSON-LD (`WebSite`). Keep copy terse.
 
 The site is installable: `manifest.ts` is a metadata route too, and its
 icons (`public/icon-*.png`, plus `app/apple-icon.png` for iOS) are the mark

@@ -8,11 +8,19 @@ import { PALETTE } from "~/lib/palette";
 import { PREFETCH_SCRIPT } from "~/lib/prefetch";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "~/lib/site";
 
+/** Names the site to a search engine, so a result reads "Quiet Football". */
+const SITE_JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: `${SITE_URL}/`,
+  description: SITE_DESCRIPTION,
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
@@ -55,6 +63,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: PREFETCH_SCRIPT }} />
         {/* The frame a browser too old to draw the site draws instead. */}
         <style dangerouslySetInnerHTML={{ __html: FALLBACK_STYLE }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: SITE_JSON_LD }}
+        />
       </head>
       <body>
         {/* Every page reads ESPN as soon as it hydrates; open the connections while the script loads. */}
