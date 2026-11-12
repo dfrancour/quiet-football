@@ -22,9 +22,9 @@ import { useWatchProgressByGame } from "~/hooks/useWatchProgress";
 import { situationAfter } from "~/lib/game-situations";
 import { type PlayByPlay } from "~/lib/plays.schema";
 import { playByPlayQuery } from "~/lib/queries";
-import { standingsPath, teamPath } from "~/lib/routes";
+import { standingsPath, teamPath, weekFromQuery } from "~/lib/routes";
 import { defaultGameId, gamePhase } from "~/lib/schedule";
-import { parseWeekParam, weekParam } from "~/lib/season-calendar";
+import { weekParam } from "~/lib/season-calendar";
 import { extractTeamScore } from "~/lib/score";
 import { buildTeamSchedule, teamGameRecords } from "~/lib/team-view";
 import { teamByAbbreviation } from "~/lib/teams";
@@ -66,7 +66,7 @@ interface TeamViewProps {
 /**
  * `ScheduleSelector` on the left drives `GameDetail` on the right. The
  * selection is `pickedGameId ?? default`, so an explicit pick sticks as the
- * default moves; `?week=` is the first pick.
+ * default moves; `?week=` in the season shown is the first pick.
  */
 function TeamView({ registry, data, team }: TeamViewProps) {
   const { season: seasonFile, weeks } = data;
@@ -105,10 +105,14 @@ function TeamView({ registry, data, team }: TeamViewProps) {
 
   // Null follows the default; an explicit pick sticks as the default moves.
   // A bye week can be picked too, and shows nothing but itself.
-  const weekQuery = useSearchParams().get("week") ?? undefined;
+  const query = useSearchParams();
   const [pick, setPick] = useState<{ gameId: string } | { bye: number } | null>(
     () => {
-      const week = parseWeekParam(seasonFile.totalWeeks, weekQuery);
+      const week = weekFromQuery(
+        query,
+        seasonFile.season,
+        seasonFile.totalWeeks,
+      );
       if (week === null) return null;
       const game = fullSchedule.games.find((entry) => entry.week === week);
       if (game) return { gameId: game.gameId };
@@ -118,16 +122,16 @@ function TeamView({ registry, data, team }: TeamViewProps) {
   const pickedGameId = pick && "gameId" in pick ? pick.gameId : null;
   const selectedBye = pick && "bye" in pick ? pick.bye : null;
   // A pick is kept in the URL, in place, so a reload lands on it again.
-  const totalWeeks = seasonFile.totalWeeks;
+  const { season, totalWeeks } = seasonFile;
   const abbreviation = team.abbreviation;
   const showWeek = useCallback(
     (week: number) =>
       window.history.replaceState(
         null,
         "",
-        teamPath(abbreviation, weekParam(totalWeeks, week)),
+        teamPath(abbreviation, { season, week: weekParam(totalWeeks, week) }),
       ),
-    [abbreviation, totalWeeks],
+    [abbreviation, season, totalWeeks],
   );
   const selectGame = useCallback(
     (gameId: string) => {

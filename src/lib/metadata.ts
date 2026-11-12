@@ -1,5 +1,5 @@
 import { type Metadata } from "next";
-import { aboutPath, standingsPath, teamPath } from "~/lib/routes";
+import { aboutPath, standingsPath, teamFeedUrl, teamPath } from "~/lib/routes";
 import { SITE_DESCRIPTION, SITE_NAME } from "~/lib/site";
 import { teamName } from "~/lib/teams";
 
@@ -8,6 +8,8 @@ interface PageMetadata {
   title: string;
   description: string;
   path: string;
+  /** An Atom feed the page offers, for a reader to find from the page. */
+  feed?: { url: string; title: string };
 }
 
 /**
@@ -20,11 +22,15 @@ export function pageMetadata({
   title,
   description,
   path,
+  feed,
 }: PageMetadata): Metadata {
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: path },
+    alternates: {
+      canonical: path,
+      ...(feed && { types: { "application/atom+xml": [feed] } }),
+    },
     openGraph: {
       type: "website",
       siteName: SITE_NAME,
@@ -66,5 +72,6 @@ export function teamMetadata(abbreviation: string): Metadata {
     title: `${name} | ${SITE_NAME}`,
     description: `${name} schedule, record, and play-by-play with no ads, no odds, and no result shown until you ask.`,
     path: teamPath(abbreviation),
+    feed: { url: teamFeedUrl(abbreviation), title: `${name} recaps` },
   });
 }

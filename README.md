@@ -37,8 +37,9 @@ page makes it your favorite, which the home page highlights.
 A team page lists the schedule on the left and the selected game on the right,
 opening on the live game, then the next one, then the last one played.
 
-Team and week are in the URL: `/team/MIN?week=5`, with `?week=wild-card` for
-a playoff round. Only the current season is shown.
+Season, team and week are in the URL: `/team/MIN?season=2026&week=5`, with
+`week=wild-card` for a playoff round. Only the current season is shown; a
+link to another season's game opens on the team's default.
 
 - **Played game:** score, field, every play, and a link to the NFL's recap on
   YouTube, usually within half an hour of the final whistle, or a YouTube

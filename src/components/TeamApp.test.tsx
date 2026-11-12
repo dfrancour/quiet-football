@@ -1,4 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TeamApp } from "~/components/TeamApp";
 import { markIntroduced, resetIntroducedCache } from "~/lib/first-run";
@@ -68,6 +74,12 @@ function headerRecord() {
   return figure?.querySelector('[role="img"]') ? null : figure?.textContent;
 }
 
+/** The schedule's selected row. */
+const selectedRow = () =>
+  screen
+    .getByRole("list", { name: "2026 schedule" })
+    .querySelector("[aria-current]");
+
 const summaryCalls = (fetchMock: ReturnType<typeof stubLeague>) =>
   fetchMock.mock.calls
     .map(([url]) => requestUrl(url))
@@ -89,6 +101,41 @@ describe("TeamApp", () => {
     await renderTeam();
     expect(screen.getByTitle("Wild Card")).toBeInTheDocument();
     expect(screen.getAllByText(/Wild Card/).length).toBeGreaterThan(0);
+  });
+
+  it("opens on the week a URL names in the season shown", async () => {
+    location.search = new URLSearchParams("season=2026&week=1");
+    await renderTeam();
+    expect(selectedRow()?.textContent).toMatch(/^1\D/);
+  });
+
+  it("opens on its default when the URL names another season's week", async () => {
+    location.search = new URLSearchParams("season=2025&week=1");
+    await renderTeam();
+    expect(selectedRow()?.textContent).toMatch(/^18\D/);
+  });
+
+  it("keeps the season in the URL with a pick", async () => {
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    await renderTeam();
+    fireEvent.click(
+      within(screen.getByRole("list", { name: "2026 schedule" })).getAllByRole(
+        "button",
+      )[0]!,
+    );
+    expect(replaceState).toHaveBeenLastCalledWith(
+      null,
+      "",
+      "/team/MIN?season=2026&week=1",
+    );
+  });
+
+  it("links the header to the team's recap feed", async () => {
+    await renderTeam();
+    expect(screen.getByRole("link", { name: "Recaps feed" })).toHaveAttribute(
+      "href",
+      "https://feeds.quiet-football.com/nfl/min.atom",
+    );
   });
 
   it("covers the team's record until a week is caught up through", async () => {

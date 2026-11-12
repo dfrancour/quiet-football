@@ -12,6 +12,17 @@ describe("teamMetadata", () => {
     expect(metadata.alternates?.canonical).toBe("/team/MIN");
   });
 
+  it("offers the team's recap feed to a feed reader", () => {
+    expect(teamMetadata("min").alternates?.types).toEqual({
+      "application/atom+xml": [
+        {
+          url: "https://feeds.quiet-football.com/nfl/min.atom",
+          title: "Minnesota Vikings recaps",
+        },
+      ],
+    });
+  });
+
   it("shares a team page as itself, not the home page", () => {
     const metadata = teamMetadata("sea");
     expect(metadata.openGraph).toMatchObject({
@@ -52,6 +63,7 @@ describe("page metadata", () => {
   it("gives the home and about pages their own address when shared", () => {
     expect(homeMetadata().openGraph).toMatchObject({ url: "/" });
     expect(aboutMetadata().openGraph).toMatchObject({ url: "/about" });
+    expect(homeMetadata().alternates?.types).toBeUndefined();
     expect(aboutMetadata().title).toEqual({
       absolute: "About | Quiet Football",
     });

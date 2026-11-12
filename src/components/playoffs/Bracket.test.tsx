@@ -58,6 +58,7 @@ function renderBracket(
   render(
     <Bracket
       bracket={buildBracket(makeSeason(games), REGISTRY, marks)}
+      season={2026}
       totalWeeks={18}
       isShown={() => seen}
       isOpen={() => open}
@@ -81,12 +82,12 @@ describe("Bracket", () => {
     renderBracket(wildCard);
     expect(linkOrder()).toEqual([
       "/team/MIN",
-      "/team/GB?week=wild-card",
-      "/team/NYG?week=wild-card",
-      "/team/CHI?week=wild-card",
-      "/team/DET?week=wild-card",
-      "/team/TB?week=wild-card",
-      "/team/NO?week=wild-card",
+      "/team/GB?season=2026&week=wild-card",
+      "/team/NYG?season=2026&week=wild-card",
+      "/team/CHI?season=2026&week=wild-card",
+      "/team/DET?season=2026&week=wild-card",
+      "/team/TB?season=2026&week=wild-card",
+      "/team/NO?season=2026&week=wild-card",
     ]);
     expect(screen.getAllByText("Bye")).toHaveLength(1);
   });
@@ -104,12 +105,12 @@ describe("Bracket", () => {
       href?.endsWith("wild-card"),
     );
     expect(wildCardLinks).toEqual([
-      "/team/CHI?week=wild-card",
-      "/team/DET?week=wild-card",
-      "/team/GB?week=wild-card",
-      "/team/NYG?week=wild-card",
-      "/team/TB?week=wild-card",
-      "/team/NO?week=wild-card",
+      "/team/CHI?season=2026&week=wild-card",
+      "/team/DET?season=2026&week=wild-card",
+      "/team/GB?season=2026&week=wild-card",
+      "/team/NYG?season=2026&week=wild-card",
+      "/team/TB?season=2026&week=wild-card",
+      "/team/NO?season=2026&week=wild-card",
     ]);
   });
 

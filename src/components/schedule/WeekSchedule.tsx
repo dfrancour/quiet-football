@@ -41,6 +41,7 @@ interface WeekScheduleProps {
   onWeekChange: (week: number) => void;
   /** The week the clock says is on now: marked in the chooser. */
   currentWeek: number;
+  season: number;
   totalWeeks: number;
   /** Whether a game's result is shown: caught up through it, or uncovered. */
   isShown: (game: GateGame) => boolean;
@@ -291,6 +292,7 @@ function GameRow({
   revealed,
   interesting,
   records,
+  season,
   totalWeeks,
   highlighted,
   favorites,
@@ -304,13 +306,14 @@ function GameRow({
   revealed: boolean;
   interesting: boolean;
   records: { away: TeamRecord; home: TeamRecord } | null;
+  season: number;
   totalWeeks: number;
   highlighted: boolean;
   favorites: ReadonlySet<string>;
   onPoint: (teamIds: readonly string[]) => void;
 }) {
   const started = phase === "live" || phase === "final";
-  const week = weekParam(totalWeeks, game.week);
+  const at = { season, week: weekParam(totalWeeks, game.week) };
   const awayScore = board?.away.score ?? game.away.score;
   const homeScore = board?.home.score ?? game.home.score;
   // Highlighting the leader gives a game away, so it waits for spoilers.
@@ -348,7 +351,7 @@ function GameRow({
         <TeamCell
           side={game.away}
           score={score(awayScore)}
-          href={teamPath(game.away.team.abbreviation, week)}
+          href={teamPath(game.away.team.abbreviation, at)}
           align="end"
           leading={lead > 0}
           record={records?.away ?? null}
@@ -359,7 +362,7 @@ function GameRow({
         <TeamCell
           side={game.home}
           score={score(homeScore)}
-          href={teamPath(game.home.team.abbreviation, week)}
+          href={teamPath(game.home.team.abbreviation, at)}
           align="start"
           leading={lead < 0}
           record={records?.home ?? null}
@@ -389,6 +392,7 @@ export function WeekSchedule({
   board,
   onWeekChange,
   currentWeek,
+  season,
   totalWeeks,
   isShown,
   isCaughtUpLive,
@@ -497,6 +501,7 @@ export function WeekSchedule({
                       }
                       interesting={interesting.has(game.gameId)}
                       records={recordsFor(game)}
+                      season={season}
                       totalWeeks={totalWeeks}
                       highlighted={
                         highlighted.has(game.away.team.teamId) ||

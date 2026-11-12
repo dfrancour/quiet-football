@@ -65,8 +65,9 @@ broadcast delays, recaps, the summary query — uses it. Never parse meaning
 out of an id or construct one to look a game up. `teamId` is ESPN's team id;
 URLs use the abbreviation.
 
-URLs name a game by team and week (a team plays once a week). The week is the
-one the game was fetched under, which ESPN keeps on a postponed game.
+URLs name a game by season, team and week (a team plays once a week). The
+week is the one the game was fetched under, which ESPN keeps on a postponed
+game.
 
 ### Only the current season
 
@@ -74,7 +75,11 @@ The app shows one season: the current one (`currentSeason()`), or between
 March and the schedule's release in May, when ESPN has none, the one before.
 `useSeason()` fetches every week of the current season at once, waiting on
 nothing first; only when its week 1 arrives empty does it read the season
-before. There is no season picker and no `?season=`.
+before. There is no season picker. A link names its season
+(`?season=2026&week=5`) so that one kept past it, from a feed say, does not
+open on the next season's game that week: a page given another season's week
+opens on its default (`weekFromQuery()`), and one with no season takes the
+week as the shown season's.
 
 ### Playoff games are weeks after the regular season
 
@@ -276,8 +281,10 @@ Every page shares `SiteHeader`: the site's mark (the possession football, as
 in the favicon) and name on the left, linking home; at the right, in the same
 place on every page, where the viewer is caught up to and, on the league
 page only, a circled i to `/about` (`AboutLink`), the same size. A team
-page's `AppHeader` adds the team's logo, name, record, and a favorite star;
-below `sm` the team takes a row of its own beneath the mark and controls.
+page's `AppHeader` adds the team's logo, name, record, a favorite star and,
+beside it, the team's Atom feed of recaps (`FeedLink`, `teamFeedUrl()`,
+served off the site at `FEEDS_URL`); below `sm` the team takes a row of its
+own beneath the mark and controls.
 There is no team switcher; teams are picked from the standings.
 
 ### About page
@@ -342,7 +349,7 @@ hovering a team highlights its game. The schedule opens on the current week —
 the one holding the next game ESPN has not settled — and the chooser changes
 weeks in place, not by route. The shown week's scores and clocks come from its
 own `WeekBoard`. Each side of a game links to that team's page on the game's
-week (`/team/MIN?week=5`).
+week (`/team/MIN?season=2026&week=5`).
 
 ### Favorite teams
 
@@ -434,10 +441,10 @@ naming it) shows the week and "Bye", and nothing else.
 
 ### Selection is derived
 
-`pickedGameId` starts as the game `?week=` names, or null, meaning "use the
-default". A pick writes its week to the URL in place
-(`history.replaceState`), so a reload lands on the same game and the back
-button does not step through every game looked at. The selection is
+`pickedGameId` starts as the game `?week=` names in the season shown, or
+null, meaning "use the default". A pick writes its season and week to the
+URL in place (`history.replaceState`), so a reload lands on the same game
+and the back button does not step through every game looked at. The selection is
 `pickedGameId ?? defaultGameId`, so an explicit pick sticks as the default
 moves and no effect writes selection state. The default is live, then
 about to kick off, then one played in the last four days (`JUST_PLAYED_MS`),
@@ -566,9 +573,10 @@ test requires that no play in the corpus does.
 
 ### Team and week come from the URL
 
-The league is at `/`, a team at `/team/MIN` (optionally `?week=5`, or
-`?week=wild-card` for a playoff round). `src/lib/routes.ts` builds every such
-link. The export names every team page up front (`TEAM_ABBREVIATIONS`,
+The league is at `/`, a team at `/team/MIN` (optionally
+`?season=2026&week=5`, or `&week=wild-card` for a playoff round).
+`src/lib/routes.ts` builds every such link and reads the week back. The
+export names every team page up front (`TEAM_ABBREVIATIONS`,
 `generateStaticParams`), and an abbreviation ESPN does not know falls back to
 the standings.
 
@@ -974,7 +982,8 @@ whole title, description, canonical address and share tags through
 Open Graph tags whole and a page without its own would share as the home
 page. A team page is titled by the team's name ("Minnesota Vikings |
 Quiet Football"), from `TEAM_NAMES` (`src/lib/teams.ts`), so the
-export can name it before ESPN is asked. The layout names the site in
+export can name it before ESPN is asked, and names the team's recap feed as
+an `alternate` for a feed reader to find. The layout names the site in
 JSON-LD (`WebSite`). Keep copy terse.
 
 The site is installable: `manifest.ts` is a metadata route too, and its

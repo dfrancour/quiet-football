@@ -21,6 +21,7 @@ import { cn } from "~/lib/utils";
 
 interface BracketProps {
   bracket: BracketData;
+  season: number;
   totalWeeks: number;
   /** Whether a game's result may be shown. */
   isShown: (game: GateGame) => boolean;
@@ -170,10 +171,10 @@ function GameCard({ game, context }: { game: BracketGame; context: Context }) {
       </Card>
     );
   }
-  const { totalWeeks, isShown, favorites } = context;
+  const { season, totalWeeks, isShown, favorites } = context;
   const started = game.status === "in_progress" || game.status === "final";
   const winner = decided(game, context);
-  const week = weekParam(totalWeeks, game.week);
+  const at = { season, week: weekParam(totalWeeks, game.week) };
   return (
     <Card>
       {[game.away, game.home].map((side, index) => (
@@ -182,7 +183,7 @@ function GameCard({ game, context }: { game: BracketGame; context: Context }) {
           reach={index === 0 ? "up" : "down"}
           team={side.team}
           seed={side.seed}
-          href={teamPath(side.team.abbreviation, week)}
+          href={teamPath(side.team.abbreviation, at)}
           score={scoreShown(started, side.score, isShown(game))}
           outcome={winner === null ? null : winner === side ? "won" : "lost"}
           favorite={favorites.has(side.team.teamId)}

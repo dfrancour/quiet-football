@@ -229,6 +229,7 @@ function HomeView({ registry, data }: HomeViewProps) {
             board={weeks.get(week)?.board ?? []}
             onWeekChange={setWeek}
             currentWeek={currentWeek}
+            season={season}
             totalWeeks={totalWeeks}
             isShown={spoilers.isShown}
             isCaughtUpLive={spoilers.isCaughtUpLive}
@@ -251,6 +252,7 @@ function HomeView({ registry, data }: HomeViewProps) {
             </h2>
             <Bracket
               bracket={bracket}
+              season={season}
               totalWeeks={totalWeeks}
               isShown={spoilers.isShown}
               isOpen={spoilers.isOpen}
@@ -271,7 +273,7 @@ function HomeView({ registry, data }: HomeViewProps) {
               highlighted={highlighted}
               favorites={favorites}
               onPoint={setPointed}
-              week={weekParam(totalWeeks, week)}
+              at={{ season, week: weekParam(totalWeeks, week) }}
             />
           </section>
         )}

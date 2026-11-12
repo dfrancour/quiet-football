@@ -94,6 +94,7 @@ function renderSchedule(
         board={board}
         onWeekChange={setWeek}
         currentWeek={currentWeek}
+        season={2026}
         totalWeeks={18}
         isShown={() => revealed}
         isCaughtUpLive={(gameId, lastPlayId) =>
@@ -161,7 +162,10 @@ describe("WeekSchedule", () => {
     expect(
       screen.getByRole("button", { name: "Week 5, this week" }),
     ).toHaveAttribute("aria-pressed", "true");
-    expect(links()).toEqual(["/team/MIN?week=5", "/team/NO?week=5"]);
+    expect(links()).toEqual([
+      "/team/MIN?season=2026&week=5",
+      "/team/NO?season=2026&week=5",
+    ]);
   });
 
   it("masks a played game's scores until spoilers are shown", () => {
@@ -184,7 +188,10 @@ describe("WeekSchedule", () => {
   it("moves between weeks in place", () => {
     renderSchedule(false);
     fireEvent.click(screen.getByRole("button", { name: "Week 6" }));
-    expect(links()).toEqual(["/team/GB?week=6", "/team/CHI?week=6"]);
+    expect(links()).toEqual([
+      "/team/GB?season=2026&week=6",
+      "/team/CHI?season=2026&week=6",
+    ]);
     // A future game says when, not a score.
     const card = gameRow();
     expect(within(card).queryAllByRole("img", { name: "Hidden" })).toEqual([]);
@@ -291,7 +298,10 @@ describe("WeekSchedule", () => {
       renderSchedule(false);
       fireEvent.click(step("Next week"));
       expect(bar()).toHaveTextContent("Week 6 · Oct 18");
-      expect(links()).toEqual(["/team/GB?week=6", "/team/CHI?week=6"]);
+      expect(links()).toEqual([
+        "/team/GB?season=2026&week=6",
+        "/team/CHI?season=2026&week=6",
+      ]);
       fireEvent.click(step("Previous week"));
       expect(bar()).toHaveTextContent("Week 5");
 
@@ -341,8 +351,8 @@ describe("WeekSchedule", () => {
     it("names the round in its links", () => {
       renderSchedule(false, { games: [wildCard], currentWeek: 19 });
       expect(links()).toEqual([
-        "/team/MIN?week=wild-card",
-        "/team/NO?week=wild-card",
+        "/team/MIN?season=2026&week=wild-card",
+        "/team/NO?season=2026&week=wild-card",
       ]);
     });
 

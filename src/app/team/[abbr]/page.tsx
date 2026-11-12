@@ -23,7 +23,7 @@ export async function generateMetadata({
   return teamMetadata(abbr);
 }
 
-/** One team's season; `?week=` opens on a game (`weekParam()`). */
+/** One team's season; `?season=&week=` opens on a game (`weekFromQuery()`). */
 export default async function TeamPage({ params }: TeamPageProps) {
   const { abbr } = await params;
   return (

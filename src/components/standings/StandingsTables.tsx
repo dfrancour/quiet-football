@@ -3,7 +3,7 @@ import { Redacted } from "~/components/common/Redacted";
 import { TeamLogo } from "~/components/team/TeamLogo";
 import { clincherName, PLAYOFF_SEEDS } from "~/lib/playoff-marks";
 import { type PlayoffMark } from "~/lib/playoff-marks.schema";
-import { teamPath } from "~/lib/routes";
+import { teamPath, type WeekAt } from "~/lib/routes";
 import { formatRecord } from "~/lib/schedule";
 import { type StandingsRow } from "~/lib/standings";
 import { tintStyle } from "~/lib/team-tint";
@@ -57,8 +57,8 @@ interface StandingsTablesProps {
   favorites?: ReadonlySet<string>;
   /** Points at a team, or at nothing. */
   onPoint?: (teamIds: readonly string[]) => void;
-  /** The week a team's page opens on, as `weekParam()` names it; its default if absent. */
-  week?: string;
+  /** The week a team's page opens on; its default if absent. */
+  at?: WeekAt;
 }
 
 const NOTHING: ReadonlySet<string> = new Set();
@@ -71,13 +71,13 @@ function DivisionTable({
   highlighted,
   favorites,
   onPoint,
-  week,
+  at,
 }: {
   conference: Conference;
   division: Division;
   rows: StandingsLine[];
-} & Required<Omit<StandingsTablesProps, "standings" | "week">> &
-  Pick<StandingsTablesProps, "week">) {
+} & Required<Omit<StandingsTablesProps, "standings" | "at">> &
+  Pick<StandingsTablesProps, "at">) {
   // The order reveals results, so hidden divisions list alphabetically, by
   // the name each row shows.
   const ordered = showSpoilers
@@ -110,7 +110,7 @@ function DivisionTable({
               <th scope="row" className="py-2 pr-2 pl-1 text-left font-normal">
                 {/* The overlay makes the whole row one target and ring. */}
                 <Link
-                  href={teamPath(team.abbreviation, week)}
+                  href={teamPath(team.abbreviation, at)}
                   className="text-ink focus-visible:after:outline-accent-strong flex items-center gap-2 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2"
                 >
                   <TeamLogo team={team} />
@@ -148,7 +148,7 @@ export function StandingsTables({
   highlighted = NOTHING,
   favorites = NOTHING,
   onPoint = () => undefined,
-  week,
+  at,
 }: StandingsTablesProps) {
   return (
     <div className="grid grid-cols-2 gap-x-6">
@@ -167,7 +167,7 @@ export function StandingsTables({
               highlighted={highlighted}
               favorites={favorites}
               onPoint={onPoint}
-              week={week}
+              at={at}
             />
           ))}
         </div>

@@ -3,6 +3,7 @@
 import { Redacted } from "~/components/common/Redacted";
 import { SiteHeader } from "~/components/layout/SiteHeader";
 import { FavoriteStar } from "~/components/team/FavoriteStar";
+import { FeedLink } from "~/components/team/FeedLink";
 import { TeamLogo } from "~/components/team/TeamLogo";
 import { formatRecord, type TeamRecord } from "~/lib/schedule";
 import { type PartialWeek } from "~/hooks/useSpoilers";
@@ -23,7 +24,7 @@ interface AppHeaderProps {
   onCatchUp: (week: number) => void;
 }
 
-/** The site bar with the team's mark, name, record and favorite star. */
+/** The site bar with the team's mark, name, record, favorite star and feed. */
 export function AppHeader({
   team,
   record,
@@ -57,7 +58,11 @@ export function AppHeader({
           <span className="sr-only">Record </span>
           {record ? formatRecord(record) : <Redacted chars={3} />}
         </span>
-        <FavoriteStar abbreviation={team.abbreviation} />
+        {/* Apart enough that the two hit areas meet but do not overlap. */}
+        <span className="flex shrink-0 items-center gap-4">
+          <FavoriteStar abbreviation={team.abbreviation} />
+          <FeedLink abbreviation={team.abbreviation} />
+        </span>
       </span>
     </SiteHeader>
   );
