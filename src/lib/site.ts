@@ -2,7 +2,7 @@
 export const SITE_NAME = "Quiet Football";
 export const SITE_URL = "https://quiet-football.com";
 export const SITE_DESCRIPTION =
-  "NFL schedule, standings and play-by-play with no ads, no odds and no result shown until you ask.";
+  "NFL schedule, standings, play-by-play and game recaps with no ads, no odds and no result shown until you ask.";
 
 /** The recap feeds' own site: a page listing every team's feed. */
 export const FEEDS_SITE_URL = "https://feeds.quiet-football.com";

@@ -24,6 +24,8 @@ export interface LeagueGame {
    * game that barely turned.
    */
   homeChances?: number[];
+  /** The YouTube id of its recap, once the dataset has linked one. */
+  recap?: string;
 }
 
 const SEASON = 2026;
@@ -118,9 +120,33 @@ function probabilities(game: LeagueGame) {
   };
 }
 
+/** The recap dataset's file for the season: each game given a recap, found. */
+function recapDataset(games: LeagueGame[]) {
+  return {
+    season: SEASON,
+    games: games.flatMap((game) =>
+      game.recap
+        ? [
+            {
+              season_type: "regular",
+              week: game.week,
+              away: game.away.abbreviation,
+              home: game.home.abbreviation,
+              status: "found",
+              video: {
+                youtube_id: game.recap,
+                published_at: game.kickoff,
+              },
+            },
+          ]
+        : [],
+    ),
+  };
+}
+
 /**
- * Answers every request the pages make from `games`; anything else, the
- * recap dataset included, is a 404. Returns the fetch mock.
+ * Answers every request the pages make from `games`, the recap dataset
+ * included; anything else is a 404. Returns the fetch mock.
  */
 export function stubLeague(
   games: LeagueGame[],
@@ -129,6 +155,11 @@ export function stubLeague(
   return stubFetch((url) => {
     const query = new URL(url).searchParams;
     if (url.includes("/standings")) return standings();
+    if (url.includes("quiet-football-recap-data")) {
+      return url.endsWith(`/${SEASON}.json`)
+        ? recapDataset(games)
+        : new Response(null, { status: 404 });
+    }
     if (url.includes("/summary")) return { drives: {} };
     if (url.includes("/probabilities")) {
       const game = games.find(

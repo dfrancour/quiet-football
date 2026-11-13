@@ -5,7 +5,7 @@ import { ContactLink } from "~/components/layout/ContactLink";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
 import { standingsPath } from "~/lib/routes";
-import { AUTHOR_URL, REPO_URL, SITE_NAME } from "~/lib/site";
+import { AUTHOR_URL, FEEDS_SITE_URL, REPO_URL, SITE_NAME } from "~/lib/site";
 
 /** The GitHub mark, drawn inline so it stays the brand's own shape. */
 function GitHubMark({ className }: { className?: string }) {
@@ -26,7 +26,7 @@ function GitHubMark({ className }: { className?: string }) {
 }
 
 /**
- * What the site is and where its source lives: the mark and a tagline, two
+ * What the site is and where its source lives: the mark and a tagline, three
  * short paragraphs, and the disclaimer over the repository and contact links.
  * An ordinary page under the site's mark, named in the header as the feeds'
  * page names itself: the mark, a slash, then "About".
@@ -77,6 +77,18 @@ export function About() {
             An NFL season browser for anyone watching on their own time. Pick a
             week, catch up at your own pace, and watch a game play by play
             without being told how it ends.
+          </p>
+          <p>
+            Every game&rsquo;s recap is linked minutes after the NFL posts it,
+            with no thumbnail or title to give the result away. Follow a
+            team&rsquo;s in{" "}
+            <a
+              href={FEEDS_SITE_URL}
+              className="text-ink decoration-edge-strong hover:decoration-ink-muted underline underline-offset-2 transition-colors"
+            >
+              your feed reader
+            </a>{" "}
+            and each one reaches you as it lands.
           </p>
           <p>
             It is a static site. Your browser reads ESPN&rsquo;s public

@@ -51,9 +51,12 @@ const nothingFound = { season: 2026, games: [] };
 describe("useRecaps", () => {
   it("reads the season's file from the dataset and keys each recap by game", async () => {
     const fetchMock = stubFetch(() => dataset);
-    const { result } = renderHook(() => useRecaps(season, REGISTRY, selected), {
-      wrapper: queryWrapper(),
-    });
+    const { result } = renderHook(
+      () => useRecaps(season, REGISTRY, [selected]),
+      {
+        wrapper: queryWrapper(),
+      },
+    );
     await waitFor(() =>
       expect(result.current.recaps[GAME_ID]).toEqual({
         youtubeId: "GP9zR_SKRr0",
@@ -64,7 +67,7 @@ describe("useRecaps", () => {
 
   it("has no recaps while the dataset cannot be read", async () => {
     stubFetch(() => new Response(null, { status: 404 }));
-    const { result } = renderHook(() => useRecaps(season, REGISTRY, null), {
+    const { result } = renderHook(() => useRecaps(season, REGISTRY, []), {
       wrapper: queryWrapper(),
     });
     await new Promise((done) => setTimeout(done, 20));
@@ -96,18 +99,28 @@ describe("useRecaps", () => {
     );
   });
 
-  it("polls only while the selected game is final, recent and still unlinked", async () => {
+  it("asks nothing until a game it is drawn beside is final", async () => {
+    const fetchMock = stubFetch(() => dataset);
+    renderHook(
+      () => useRecaps(season, REGISTRY, [{ ...selected, status: "scheduled" }]),
+      { wrapper: queryWrapper() },
+    );
+    await new Promise((done) => setTimeout(done, 20));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("polls only while a game it is drawn beside is final, recent and still unlinked", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.parse("2026-10-11T22:00:00Z"));
     const fetchMock = stubFetch(() => nothingFound);
     const { rerender } = renderHook(
-      ({ game }) => useRecaps(season, REGISTRY, game),
-      { wrapper: queryWrapper(), initialProps: { game: selected } },
+      ({ games }) => useRecaps(season, REGISTRY, games),
+      { wrapper: queryWrapper(), initialProps: { games: [selected] } },
     );
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
     // A game from weeks ago is not waited on.
-    rerender({ game: { ...OTHER, kickoff: "2026-09-13T17:00:00.000Z" } });
+    rerender({ games: [{ ...OTHER, kickoff: "2026-09-13T17:00:00.000Z" }] });
     await new Promise((done) => setTimeout(done, 20));
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -116,9 +129,12 @@ describe("useRecaps", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.parse("2026-10-11T22:00:00Z"));
     const fetchMock = stubFetch(() => dataset);
-    const { result } = renderHook(() => useRecaps(season, REGISTRY, selected), {
-      wrapper: queryWrapper(),
-    });
+    const { result } = renderHook(
+      () => useRecaps(season, REGISTRY, [selected]),
+      {
+        wrapper: queryWrapper(),
+      },
+    );
     await waitFor(() => expect(result.current.recaps[GAME_ID]).toBeDefined());
     await new Promise((done) => setTimeout(done, 20));
     expect(fetchMock).toHaveBeenCalledTimes(1);

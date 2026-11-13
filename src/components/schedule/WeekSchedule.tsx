@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Redacted } from "~/components/common/Redacted";
 import { CoveredTeam } from "~/components/playoffs/CoveredTeam";
+import { RecapLink } from "~/components/recap/RecapLink";
 import { WeekChooser, WeekStepper } from "~/components/schedule/WeekChooser";
 import { InterestingMark } from "~/components/score/InterestingMark";
 import { TeamLogo } from "~/components/team/TeamLogo";
@@ -17,6 +18,7 @@ import {
   formatTime,
 } from "~/lib/dates";
 import { type GateGame } from "~/lib/playoffs";
+import { findRecap, type Recap, type RecapsFile } from "~/lib/recaps";
 import { teamPath } from "~/lib/routes";
 import {
   formatRecord,
@@ -51,6 +53,8 @@ interface WeekScheduleProps {
   isOpen: (gate: readonly GateGame[]) => boolean;
   /** Finished games worth watching, marked beside Final; empty while marks are off. */
   interesting: ReadonlySet<string>;
+  /** Each game's recap, linked beside Final once the dataset has it. */
+  recaps: RecapsFile;
   /** The records a game may show beside its teams; null for none. */
   recordsFor: (game: WeekGame) => { away: TeamRecord; home: TeamRecord } | null;
   /** Teams pointed at elsewhere on the page; their games light up. */
@@ -99,7 +103,7 @@ function byDayAndSlot(games: WeekGame[], timeZone: string): Day[] {
 /**
  * What a row says in its last column: the network, the game's own clock, or
  * Final, however far the viewer has watched, marked if it was worth
- * watching.
+ * watching and led by its recap once there is one.
  */
 function Status({
   game,
@@ -107,12 +111,14 @@ function Status({
   board,
   revealed,
   interesting,
+  recap,
 }: {
   game: WeekGame;
   phase: GamePhase | null;
   board: BoardGame | undefined;
   revealed: boolean;
   interesting: boolean;
+  recap: Recap | null;
 }) {
   // A game held back to match a broadcast reads as that broadcast has it.
   const broadcastClock = useBroadcastClock(
@@ -133,6 +139,7 @@ function Status({
     // "Final/OT" says the game was close, so it waits for the result too.
     return (
       <span className="text-ink-faint inline-flex items-center gap-1">
+        {recap && <RecapLink recap={recap} size="row" />}
         {interesting && <InterestingMark />}
         {revealed && board?.completed ? board.detail : "Final"}
       </span>
@@ -277,6 +284,7 @@ function CoveredRow({
           board={undefined}
           revealed={false}
           interesting={false}
+          recap={null}
         />
       </td>
     </tr>
@@ -291,6 +299,7 @@ function GameRow({
   board,
   revealed,
   interesting,
+  recap,
   records,
   season,
   totalWeeks,
@@ -305,6 +314,7 @@ function GameRow({
   board: BoardGame | undefined;
   revealed: boolean;
   interesting: boolean;
+  recap: Recap | null;
   records: { away: TeamRecord; home: TeamRecord } | null;
   season: number;
   totalWeeks: number;
@@ -375,6 +385,7 @@ function GameRow({
           board={board}
           revealed={revealed}
           interesting={interesting}
+          recap={recap}
         />
       </td>
     </tr>
@@ -398,6 +409,7 @@ export function WeekSchedule({
   isCaughtUpLive,
   isOpen,
   interesting,
+  recaps,
   recordsFor,
   highlighted,
   favorites,
@@ -500,6 +512,7 @@ export function WeekSchedule({
                           ))
                       }
                       interesting={interesting.has(game.gameId)}
+                      recap={findRecap(recaps, game.gameId)}
                       records={recordsFor(game)}
                       season={season}
                       totalWeeks={totalWeeks}

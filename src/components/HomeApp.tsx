@@ -17,6 +17,7 @@ import {
   useTeams,
   type SeasonData,
 } from "~/hooks/useLeague";
+import { useRecaps } from "~/hooks/useRecaps";
 import { revealClass, useRevealed } from "~/hooks/useRevealed";
 import { useSeasonSpoilers } from "~/hooks/useSpoilers";
 import { buildBracket } from "~/lib/playoffs";
@@ -154,17 +155,20 @@ function HomeView({ registry, data }: HomeViewProps) {
   );
   // Only the week shown is marked, and a covered matchup says nothing.
   const { isOpen, recordsAt } = spoilers;
-  const finishedGameIds = useMemo(
+  const finishedGames = useMemo(
     () =>
-      games
-        .filter(
-          (game) =>
-            game.week === week && game.status === "final" && isOpen(game.gate),
-        )
-        .map((game) => game.gameId),
+      games.filter(
+        (game) =>
+          game.week === week && game.status === "final" && isOpen(game.gate),
+      ),
     [games, week, isOpen],
   );
+  const finishedGameIds = useMemo(
+    () => finishedGames.map((game) => game.gameId),
+    [finishedGames],
+  );
   const interesting = useInterestingGames(season, finishedGameIds);
+  const recaps = useRecaps(seasonFile, registry, finishedGames);
   const recordsFor = useCallback(
     (game: WeekGame) => weekGameRecords(seasonFile, game, recordsAt(game)),
     [seasonFile, recordsAt],
@@ -235,6 +239,7 @@ function HomeView({ registry, data }: HomeViewProps) {
             isCaughtUpLive={spoilers.isCaughtUpLive}
             isOpen={isOpen}
             interesting={interesting}
+            recaps={recaps}
             recordsFor={recordsFor}
             highlighted={highlighted}
             favorites={favorites}

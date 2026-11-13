@@ -20,6 +20,9 @@ describe("About", () => {
       screen.getByRole("link", { name: "contact@quiet-football.com" }),
     ).toHaveAttribute("href", "mailto:contact@quiet-football.com");
     expect(screen.getByText(/not affiliated with/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "your feed reader" }),
+    ).toHaveAttribute("href", "https://feeds.quiet-football.com");
   });
 
   it("is named in the header after the site's mark, with nothing to close", () => {

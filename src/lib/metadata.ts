@@ -70,7 +70,7 @@ export function teamMetadata(abbreviation: string): Metadata {
   const name = teamName(abbreviation);
   return pageMetadata({
     title: `${name} | ${SITE_NAME}`,
-    description: `${name} schedule, record, and play-by-play with no ads, no odds, and no result shown until you ask.`,
+    description: `${name} schedule, record, play-by-play and game recaps with no ads, no odds and no result shown until you ask.`,
     path: teamPath(abbreviation),
     feed: { url: teamFeedUrl(abbreviation), title: `${name} recaps` },
   });

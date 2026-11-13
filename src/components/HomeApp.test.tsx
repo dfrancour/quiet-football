@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomeApp } from "~/components/HomeApp";
 import { markIntroduced, resetIntroducedCache } from "~/lib/first-run";
@@ -48,6 +48,7 @@ const GAMES: LeagueGame[] = [
     score: [27, 23],
     // Back and forth, Green Bay's chance swinging all afternoon.
     homeChances: [0.55, 0.9, 0.2, 0.85, 0.15, 0.8, 0.1, 0.7, 0],
+    recap: "GP9zR_SKRr0",
   },
   {
     id: "w3b",
@@ -139,6 +140,33 @@ describe("HomeApp", () => {
       .filter((url) => url.includes("/probabilities"));
     expect(asked).toHaveLength(2);
     expect(asked.every((url) => /\/events\/w3[ab]\//.test(url))).toBe(true);
+  });
+
+  it("links the shown week's recaps beside Final, reading the dataset only for a finished game", async () => {
+    const { fetchMock } = await renderLeague();
+    const askedForRecaps = () =>
+      fetchMock.mock.calls.filter(([url]) =>
+        requestUrl(url).includes("quiet-football-recap-data"),
+      );
+    // Week 4 has nothing finished, so nothing is asked.
+    expect(askedForRecaps()).toEqual([]);
+
+    fireEvent.click(within(schedule()).getByRole("button", { name: "Week 3" }));
+    const recap = await within(schedule()).findByRole("link", {
+      name: "Watch recap on YouTube",
+    });
+    expect(recap).toHaveAttribute(
+      "href",
+      "https://www.youtube.com/watch?v=GP9zR_SKRr0",
+    );
+    expect(recap.closest("tr")).toHaveTextContent("GB");
+    // Only the game the dataset has linked carries one.
+    expect(
+      within(schedule()).getAllByRole("link", {
+        name: "Watch recap on YouTube",
+      }),
+    ).toHaveLength(1);
+    expect(askedForRecaps()).toHaveLength(1);
   });
 
   it("opens on the week after the one caught up through, its scores covered", async () => {

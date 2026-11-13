@@ -294,7 +294,9 @@ There is no team switcher; teams are picked from the standings.
 ### About page
 
 `/about` (`About`, `src/components/layout/About.tsx`) says in a few lines
-what the site is, that it is independent of the NFL and ESPN, and links to the repository
+what the site is, that each game's recap is linked as soon as it is posted
+and can be followed in a feed reader (linking the feeds' page), that it is
+independent of the NFL and ESPN, and links to the repository
 (`REPO_URL`) under the GitHub mark, as quietly as a recap link. Before it,
 dfrancour.dev (`AUTHOR_URL`) under the DF avatar (`public/dfrancour.png`), the
 favicon Derek's other sites share. After it,
@@ -347,7 +349,9 @@ may be wrong. Narrower than the tree, the bracket scrolls sideways
 within itself, never vertically.
 
 Hovering or focusing a game highlights its teams in the standings, and
-hovering a team highlights its game. The schedule opens on the current week —
+hovering a team highlights its game. A finished game's recap, once linked,
+is an icon before its Final (see "Recaps come from the recap dataset"). The
+schedule opens on the current week —
 the one holding the next game ESPN has not settled — and the chooser changes
 weeks in place, not by route. The shown week's scores and clocks come from its
 own `WeekBoard`. Each side of a game links to that team's page on the game's
@@ -593,7 +597,8 @@ matching rules, their corpus of real titles, and the corrections a person
 made. A wrong or missing recap is fixed there, not here.
 
 `recapDatasetQuery` reads the season's file from the dataset's repository
-(`<url>/<season>.json`, `src/lib/recap-dataset.ts`), once a visit. `recapsFromDataset()` keys each `found` game by the game in the
+(`<url>/<season>.json`, `src/lib/recap-dataset.ts`), once a visit, and only
+once a game a page would draw a recap beside is final. `recapsFromDataset()` keys each `found` game by the game in the
 same week between the same two teams, whichever is home. The dataset numbers
 the postseason as the app does (Wild Card is week 19 of an 18-week season),
 so playoff games join the same way; keep the two in step. Preseason games,
@@ -606,11 +611,15 @@ never shows one.
 
 A final game's panel carries `RecapLink` in its top row, beside the
 full-screen control: a YouTube icon, out to YouTube since the NFL blocks
-embedding, drawn only once the dataset has linked a recap. Until then there is
-nothing, not a search. The NFL posts a recap soon after a game and the
-dataset is updated often, so while the selected game is final and still
+embedding, drawn only once the dataset has linked a recap. The league's week
+carries the same icon, row-sized, before each finished game's Final, so the
+week says which recaps are up without a visit to each team. Until then there
+is nothing, not a search. The NFL posts a recap soon after a game and the
+dataset is updated often, so while a game it is drawn beside (the selected
+game, or a finished game of the league's shown week) is final and still
 unlinked `useRecaps` re-reads the file on a schedule that backs off from
-when the game went final (`recapsPollMs`, from `scoreConfig.recapsPoll`):
+when the game went final (`recapsPollMs`, from `scoreConfig.recapsPoll`),
+the soonest any of them asks:
 every five minutes for the first hours (GitHub caches the file for five),
 every half hour through the first day, every two hours to three days, then
 never. When it went final is the moment a scoreboard poll first saw it
@@ -769,7 +778,8 @@ every game in the gate is shown — caught up through, or seen to the end
 Caught up through a round, the next one's matchups show:
 
 - the week view and bracket draw both teams with `CoveredTeam` and link,
-  highlight and tint nothing (the favorite's tint would name a team)
+  highlight and tint nothing (the favorite's tint would name a team), and
+  the week view links no recap (the video's title names both teams)
 - the bracket covers the top seed's bye with the Wild Card round
 - a team page leaves the game out of its schedule altogether, since a row
   says the team got there, and never opens on it, whatever the URL says

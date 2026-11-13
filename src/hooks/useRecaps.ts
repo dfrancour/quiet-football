@@ -39,29 +39,36 @@ interface Watched {
 }
 
 /**
- * A season's recap links from football-recaps-data, keyed by game. Read
- * once a visit, and while the selected game is final and still unlinked,
- * read again on `recapsPollMs`'s schedule from when the game ended: the NFL
- * posts a recap soon after and the dataset is updated often, so the first
- * hours are watched closely and the window closes after a few days. A game
- * under way, an old one, or the offseason asks nothing.
+ * A season's recap links from football-recaps-data, keyed by game, for the
+ * games a page draws a recap beside: a team page's selected game, or the
+ * finished games of the league's shown week. Read once a visit, and only
+ * once one of them is final; while one is final and still unlinked, read
+ * again on `recapsPollMs`'s schedule from when it ended, the soonest any of
+ * them asks: the NFL posts a recap soon after and the dataset is updated
+ * often, so the first hours are watched closely and the window closes after
+ * a few days. A game under way, an old one, or the offseason asks nothing.
  */
 export function useRecaps(
   season: SeasonFile,
   registry: TeamRegistry,
-  selected: Watched | null,
+  watched: readonly Watched[],
 ): RecapsFile {
+  const finals = watched.filter((game) => game.status === "final");
   const { data } = useQuery({
     ...recapDatasetQuery(season.season),
+    enabled: finals.length > 0,
     refetchInterval: (query) => {
-      if (selected === null || selected.status !== "final") return false;
       const dataset = query.state.data;
-      if (dataset && hasRecap(dataset, season, registry, selected.gameId)) {
-        return false;
-      }
-      return recapsPollMs(
-        Date.now() - gameEndedAt(selected.gameId, selected.kickoff),
-      );
+      const waits = finals
+        .filter(
+          (game) =>
+            !dataset || !hasRecap(dataset, season, registry, game.gameId),
+        )
+        .map((game) =>
+          recapsPollMs(Date.now() - gameEndedAt(game.gameId, game.kickoff)),
+        )
+        .filter((wait) => wait !== false);
+      return waits.length > 0 ? Math.min(...waits) : false;
     },
   });
 

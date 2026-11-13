@@ -166,7 +166,11 @@ function TeamView({ registry, data, team }: TeamViewProps) {
     selectedBye !== null ? null : (picked?.gameId ?? openingGameId);
   const selectedGame =
     schedule.games.find((game) => game.gameId === selectedGameId) ?? null;
-  const recaps = useRecaps(seasonFile, registry, selectedGame);
+  const recaps = useRecaps(
+    seasonFile,
+    registry,
+    selectedGame ? [selectedGame] : [],
+  );
   // Records reveal games the viewer did not uncover.
   const records = useMemo(
     () =>

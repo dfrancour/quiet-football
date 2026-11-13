@@ -3,6 +3,7 @@ import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WeekSchedule } from "~/components/schedule/WeekSchedule";
 import { type GateGame } from "~/lib/playoffs";
+import { type RecapsFile } from "~/lib/recaps";
 import { type BoardGame } from "~/lib/score.schema";
 import { TEAMS } from "~/lib/test-utils/fixtures";
 import { getWatchProgress, recordWatchProgress } from "~/lib/watch-progress";
@@ -73,6 +74,7 @@ function renderSchedule(
     onPoint = () => undefined,
     isOpen = () => true,
     interesting = new Set<string>() as ReadonlySet<string>,
+    recaps = { season: 2026, recaps: {} } as RecapsFile,
   }: {
     games?: WeekGame[];
     board?: readonly BoardGame[];
@@ -82,6 +84,7 @@ function renderSchedule(
     onPoint?: (teamIds: readonly string[]) => void;
     isOpen?: (gate: readonly GateGame[]) => boolean;
     interesting?: ReadonlySet<string>;
+    recaps?: RecapsFile;
   } = {},
 ) {
   // The page owns the week, as the home page does.
@@ -103,6 +106,7 @@ function renderSchedule(
         }
         isOpen={isOpen}
         interesting={interesting}
+        recaps={recaps}
         recordsFor={(game) =>
           revealed
             ? { away: game.away.recordAfter, home: game.home.recordAfter }
@@ -208,6 +212,29 @@ describe("WeekSchedule", () => {
     // A game still to come has no mark, whatever it is given.
     fireEvent.click(screen.getByRole("button", { name: "Week 6" }));
     expect(screen.queryByText("Interesting game")).not.toBeInTheDocument();
+  });
+
+  it("links a finished game's recap beside Final, its result still covered", () => {
+    renderSchedule(false, {
+      recaps: {
+        season: 2026,
+        recaps: {
+          [played.gameId]: { youtubeId: "GP9zR_SKRr0" },
+          [next.gameId]: { youtubeId: "dQw4w9WgXcQ" },
+        },
+      },
+    });
+    const row = gameRow();
+    expect(
+      within(row).getByRole("link", { name: "Watch recap on YouTube" }),
+    ).toHaveAttribute("href", "https://www.youtube.com/watch?v=GP9zR_SKRr0");
+    expect(within(row).getByText("Final")).toBeInTheDocument();
+    expect(hidden()).toHaveLength(2);
+    // A game still to come has no recap, whatever it is given.
+    fireEvent.click(screen.getByRole("button", { name: "Week 6" }));
+    expect(
+      screen.queryByRole("link", { name: "Watch recap on YouTube" }),
+    ).not.toBeInTheDocument();
   });
 
   it("marks nothing while marks are off", () => {
@@ -364,6 +391,11 @@ describe("WeekSchedule", () => {
         isOpen: (gate) => !gate.some((entry) => entry.gameId === played.gameId),
         favorites: new Set([TEAMS.MIN.teamId]),
         interesting: new Set([wildCard.gameId]),
+        // The video's title would name both teams.
+        recaps: {
+          season: 2026,
+          recaps: { [wildCard.gameId]: { youtubeId: "GP9zR_SKRr0" } },
+        },
         onPoint,
       });
       const row = gameRow();
