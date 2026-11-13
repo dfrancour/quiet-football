@@ -80,15 +80,14 @@ export function About() {
           </p>
           <p>
             Every game&rsquo;s recap is linked minutes after the NFL posts it,
-            with no thumbnail or title to give the result away. Follow a
-            team&rsquo;s in{" "}
+            with no thumbnail or title to give the result away. Subscribe to{" "}
             <a
               href={FEEDS_SITE_URL}
               className="text-ink decoration-edge-strong hover:decoration-ink-muted underline underline-offset-2 transition-colors"
             >
-              your feed reader
+              your team&rsquo;s recaps
             </a>{" "}
-            and each one reaches you as it lands.
+            in a feed reader to hear about each one as it&rsquo;s posted.
           </p>
           <p>
             It is a static site. Your browser reads ESPN&rsquo;s public

@@ -21,7 +21,7 @@ describe("About", () => {
     ).toHaveAttribute("href", "mailto:contact@quiet-football.com");
     expect(screen.getByText(/not affiliated with/)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "your feed reader" }),
+      screen.getByRole("link", { name: "your team’s recaps" }),
     ).toHaveAttribute("href", "https://feeds.quiet-football.com");
   });
 
