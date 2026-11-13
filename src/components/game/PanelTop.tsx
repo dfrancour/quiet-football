@@ -100,19 +100,23 @@ export function Eyebrow({
       <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
         {children}
       </div>
-      {recap && <RecapLink recap={recap} />}
-      {onToggleExpanded && (
-        <button
-          type="button"
-          onClick={onToggleExpanded}
-          className={control({ shape: "glyph" })}
-          aria-label={label}
-          aria-pressed={expanded}
-          title={expanded ? `${label} (Esc)` : label}
-        >
-          <Icon className="size-4" aria-hidden />
-        </button>
-      )}
+      {/* Apart enough that the two filled boxes stand 4px apart, as the
+          header's do. */}
+      <span className="flex shrink-0 items-center gap-5 empty:hidden">
+        {recap && <RecapLink recap={recap} />}
+        {onToggleExpanded && (
+          <button
+            type="button"
+            onClick={onToggleExpanded}
+            className={control({ shape: "icon" })}
+            aria-label={label}
+            aria-pressed={expanded}
+            title={expanded ? `${label} (Esc)` : label}
+          >
+            <Icon className="size-4" aria-hidden />
+          </button>
+        )}
+      </span>
     </div>
   );
 }

@@ -286,13 +286,15 @@ function TeamView({ registry, data, team }: TeamViewProps) {
           "grid gap-x-8 gap-y-6",
           watching
             ? "min-h-0 flex-1 grid-rows-[minmax(0,1fr)]"
-            : "items-start md:min-h-0 md:flex-1 md:grid-rows-[minmax(0,1fr)]",
+            : // Lifted by the game panel's top inset, so the panel and the
+              // schedule beside it, inset to match, stand where they would.
+              "items-start md:-mt-2 md:min-h-0 md:flex-1 md:grid-rows-[minmax(0,1fr)]",
           !bare && "md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]",
           revealClass(revealed),
         )}
       >
         {!bare && (
-          <div className="border-edge hidden md:flex md:max-h-full md:flex-col md:border-r md:pr-5">
+          <div className="border-edge hidden md:flex md:max-h-full md:flex-col md:border-r md:pt-2 md:pr-5">
             <ScheduleSelector
               schedule={schedule}
               selectedGameId={selectedGameId}

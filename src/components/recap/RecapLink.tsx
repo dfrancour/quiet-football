@@ -12,10 +12,20 @@ const SIZES: Record<RecapLinkSize, { link: string; px: number; icon: string }> =
     // The artwork sits inside its box where the full-screen arrows reach the
     // corners, so it is drawn a step larger, with less padding, to read the
     // same size in the same hit area.
-    panel: { link: "-m-2 p-1.5", px: 20, icon: "size-5" },
+    // Filled when hovered, as the full-screen control beside it is.
+    panel: {
+      link: "hover:bg-surface-raised -m-2 p-1.5",
+      px: 20,
+      icon: "size-5",
+    },
     // Sized to the row's text, its hit area reaching past it without
-    // making the row taller.
-    row: { link: "-my-2 inline-flex p-2", px: 16, icon: "size-4" },
+    // making the row taller. A row pointed at is already raised, so it
+    // fills as the row's team cells do.
+    row: {
+      link: "hover:bg-surface-sunken -my-2 inline-flex p-2",
+      px: 16,
+      icon: "size-4",
+    },
   };
 
 /**

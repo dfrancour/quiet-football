@@ -8,11 +8,13 @@ export type ControlTone = "faint" | "muted" | "accent";
  *
  * - `glyph`: an icon or a label whose hit area reaches 8px past it on every
  *   side without taking the room, so it sits in a line of text
+ * - `icon`: a glyph filled when hovered, so it reads as the header's boxes
+ *   do where there is no room for a box (a game panel's top row)
  * - `text`: a line of words whose hit area reaches 8px above and below
  * - `box`: a box of its own, filled when hovered: `size` square, or as wide
  *   as its words when `fit`
  */
-export type ControlShape = "glyph" | "text" | "box";
+export type ControlShape = "glyph" | "icon" | "text" | "box";
 
 const TONE: Record<ControlTone, string> = {
   faint: "text-ink-faint hover:text-ink-muted",
@@ -22,6 +24,7 @@ const TONE: Record<ControlTone, string> = {
 
 const SHAPE: Record<ControlShape, string> = {
   glyph: "-m-2 shrink-0 rounded-md p-2",
+  icon: "hover:bg-surface-raised -m-2 shrink-0 rounded-md p-2",
   text: "-my-2 inline-flex items-center gap-1.5 py-2 whitespace-nowrap",
   box: "hover:bg-surface-raised inline-flex shrink-0 items-center justify-center rounded-md select-none",
 };

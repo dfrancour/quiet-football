@@ -924,8 +924,9 @@ background, since the status bar is translucent and the page scrolls under it.
 - **Controls** take their classes from `control()`
   (`src/components/common/control.ts`): a tone at rest (faint, muted,
   accent), a step brighter hovered and faded disabled, and a shape: a
-  `glyph` whose hit area reaches past it without taking room, a line of
-  `text`, or a `box` of its own (32, 36 or 44px). Add only what it leaves
+  `glyph` whose hit area reaches past it without taking room, an `icon`
+  (a glyph filled when hovered, as a box is, where there is no room for a
+  box), a line of `text`, or a `box` of its own (32, 36 or 44px). Add only what it leaves
   open (text size, weight, layout); `cn` does not merge, so a colour,
   padding or size added to it is settled by the stylesheet's order, not
   the call. A row that is selected (a schedule row, a play, a week) draws

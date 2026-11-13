@@ -218,8 +218,12 @@ function Panel({
   children: ReactNode;
 }) {
   // The inset holds the top row's oversized hit areas (8px past their glyphs)
-  // inside the column, which scrolls sideways if anything pokes out.
-  return <section className={cn("px-2", className)}>{children}</section>;
+  // inside the column, which scrolls sideways if anything pokes out and,
+  // from md up, clips what pokes above it. The page lifts the column by as
+  // much (`TeamApp`), so the inset moves nothing.
+  return (
+    <section className={cn("px-2 md:pt-2", className)}>{children}</section>
+  );
 }
 
 /**
