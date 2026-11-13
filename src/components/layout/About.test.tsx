@@ -1,8 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { About } from "~/components/layout/About";
 import { AUTHOR_URL, REPO_URL } from "~/lib/site";
-import { router } from "~/lib/test-utils/setup";
 
 describe("About", () => {
   it("leads home and links out to the author and the source", () => {
@@ -23,14 +22,11 @@ describe("About", () => {
     expect(screen.getByText(/not affiliated with/)).toBeInTheDocument();
   });
 
-  it("closes back to the league, in place of itself, by its control or Escape", () => {
+  it("is named in the header after the site's mark, with nothing to close", () => {
     render(<About />);
-    // A link, so it closes without a script too.
-    expect(screen.getByRole("link", { name: "Close" })).toHaveAttribute(
-      "href",
-      "/",
+    expect(screen.getByRole("banner")).toHaveTextContent(
+      "Quiet Football/About",
     );
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(router.replace).toHaveBeenCalledWith("/");
+    expect(screen.queryByRole("link", { name: "Close" })).toBeNull();
   });
 });

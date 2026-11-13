@@ -272,8 +272,8 @@ the league and team pages) keeps that frame rather than draw a season it
 has no styles for. Every inline SVG in a prerendered page carries `width`,
 `height` and, if it is filled, `fill` attributes matching its classes: any
 CSS outranks them, but without CSS an SVG with only a `viewBox` fills the
-page's width, in black. The About page needs no script: its close is a
-link.
+page's width, in black. The About page needs no script: its way back is
+the site's mark.
 
 ### Header
 
@@ -299,11 +299,9 @@ favicon Derek's other sites share. After it,
 `ContactLink` gives the site's email: the address is kept in two halves
 (`CONTACT_USER`, `CONTACT_HOST`) and joined only after hydration, so the
 prerendered HTML reads "Email" with no `href` and carries no address for a
-harvester to lift. It holds no season data. A page of its own, so it can be
-linked, it still opens and closes like a panel: its one header control is a
-close (X) where the league page's About control sits, and it or Escape
-returns to the league with `router.replace`, so the browser's back never
-lands on About again. Keep it brief.
+harvester to lift. It holds no season data. It is an ordinary page, its
+header as the recap feeds' page has it: the site's mark (with the back
+chevron on a phone), a slash and "About", and no controls. Keep it brief.
 
 ### Home page
 

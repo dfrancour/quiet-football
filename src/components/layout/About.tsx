@@ -1,11 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
-import { control } from "~/components/common/control";
 import { ContactLink } from "~/components/layout/ContactLink";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
@@ -33,36 +28,20 @@ function GitHubMark({ className }: { className?: string }) {
 /**
  * What the site is and where its source lives: the mark and a tagline, two
  * short paragraphs, and the disclaimer over the repository and contact links.
- *
- * A page of its own, so it can be linked, but it opens and closes like a
- * panel over the league: the close control sits where the league page's
- * About control does, and it or Escape goes back to the league in place of
- * this page, so the browser's back never lands here again.
+ * An ordinary page under the site's mark, named in the header as the feeds'
+ * page names itself: the mark, a slash, then "About".
  */
 export function About() {
-  const router = useRouter();
-  const close = useCallback(() => router.replace(standingsPath()), [router]);
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [close]);
-
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col px-4 py-6">
-      <header className="flex min-h-8 items-center justify-between gap-3">
-        <SiteMark href={standingsPath()} />
-        <Link
-          href={standingsPath()}
-          replace
-          aria-label="Close"
-          title="Close (Esc)"
-          className={control({ shape: "box", size: 8 })}
-        >
-          <X className="size-4" aria-hidden />
-        </Link>
+      <header className="flex min-h-8 items-center gap-3">
+        <SiteMark href={standingsPath()} back />
+        <span className="text-ink-faint shrink-0" aria-hidden>
+          /
+        </span>
+        <span className="text-ink text-sm font-semibold tracking-tight">
+          About
+        </span>
       </header>
 
       <article className="flex flex-col">
