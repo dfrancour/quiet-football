@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { useBrowserValue } from "~/hooks/useBrowserValue";
-import { AboutLink } from "~/components/layout/SiteHeader";
+import { SiteLinks } from "~/components/layout/SiteHeader";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { FootballMark } from "~/components/score/Football";
 import { WeekLoadError } from "~/hooks/useLeague";
@@ -25,7 +25,10 @@ const TOO_OLD = "This browser is too old to show the season.";
 
 interface FrameProps {
   busy?: boolean;
-  /** Whether the page the frame stands in for offers About (the league does). */
+  /**
+   * Whether the page the frame stands in for offers the feeds and About
+   * (the league does).
+   */
   about?: boolean;
   children: ReactNode;
 }
@@ -43,7 +46,11 @@ function Frame({ busy = false, about = true, children }: FrameProps) {
     >
       <header className="flex min-h-8 items-center justify-between gap-3">
         <SiteMark href={standingsPath()} />
-        {about && <AboutLink />}
+        {about && (
+          <div className="flex items-center gap-1">
+            <SiteLinks />
+          </div>
+        )}
       </header>
       <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-24 text-center">
         {children}

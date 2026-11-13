@@ -280,7 +280,9 @@ link.
 Every page shares `SiteHeader`: the site's mark (the possession football, as
 in the favicon) and name on the left, linking home; at the right, in the same
 place on every page, where the viewer is caught up to and, on the league
-page only, a circled i to `/about` (`AboutLink`), the same size. A team
+page only, the site's own links (`SiteLinks`), the same size: an RSS mark
+out to the recap feeds' page (`FEEDS_SITE_URL`), then a circled i to
+`/about`. A team
 page's `AppHeader` adds the team's logo, name, record, a favorite star and,
 beside it, the team's Atom feed of recaps (`FeedLink`, `teamFeedUrl()`,
 served off the site at `FEEDS_URL`); below `sm` the team takes a row of its

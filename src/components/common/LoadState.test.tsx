@@ -20,6 +20,9 @@ describe("Loading", () => {
       screen.getByRole("link", { name: "Quiet Football" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "About" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Recap feeds" }),
+    ).toBeInTheDocument();
   });
 
   it("says what it is waiting on only once the wait is long", () => {

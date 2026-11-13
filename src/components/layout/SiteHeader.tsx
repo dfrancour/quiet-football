@@ -1,6 +1,6 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { Info, Rss } from "lucide-react";
 import { type ReactNode } from "react";
 import { type PartialWeek } from "~/hooks/useSpoilers";
 import { CaughtUp } from "~/components/common/CaughtUp";
@@ -8,12 +8,43 @@ import { control } from "~/components/common/control";
 import Link from "next/link";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { aboutPath, standingsPath } from "~/lib/routes";
+import { FEEDS_SITE_URL } from "~/lib/site";
+
+/**
+ * The site's own links, as the league page offers them: the recap feeds'
+ * page, then About.
+ */
+export function SiteLinks() {
+  return (
+    <>
+      <FeedsLink />
+      <AboutLink />
+    </>
+  );
+}
+
+/**
+ * The recap feeds' page: every team's feed for a reader. It is the site's
+ * own, with its mark leading back here, so it opens in place.
+ */
+function FeedsLink() {
+  return (
+    <a
+      href={FEEDS_SITE_URL}
+      aria-label="Recap feeds"
+      title="Recap feeds"
+      className={control({ shape: "box", size: 8 })}
+    >
+      <Rss className="size-4" aria-hidden />
+    </a>
+  );
+}
 
 /**
  * The way to `/about`: a circled i, drawn and sized like the spoiler control
  * beside it so the two read as one group of quiet controls.
  */
-export function AboutLink() {
+function AboutLink() {
   return (
     <Link
       href={aboutPath()}
@@ -40,7 +71,7 @@ interface SiteHeaderProps {
   /** The week in progress, if the strip is to offer it. */
   partial: PartialWeek | null;
   onCatchUp: (week: number) => void;
-  /** Whether the way to About is offered; only the league page does. */
+  /** Whether the feeds and About are offered; only the league page does. */
   about?: boolean;
   /** Shown after the site's name, e.g. a team. */
   children?: ReactNode;
@@ -49,8 +80,9 @@ interface SiteHeaderProps {
 /**
  * The bar every page shares: the site's name (linking home), the page's
  * subject, and the controls at the right: where the viewer is in the season
- * and, on the league page, the way to About. On a phone a subject takes a
- * row of its own beneath, so the controls stay top right on every page.
+ * and, on the league page, the recap feeds and the way to About. On a phone
+ * a subject takes a row of its own beneath, so the controls stay top right
+ * on every page.
  */
 export function SiteHeader({
   through,
@@ -85,7 +117,7 @@ export function SiteHeader({
       )}
 
       <div className="order-2 ml-auto flex items-center gap-1 sm:order-3">
-        {about && <AboutLink />}
+        {about && <SiteLinks />}
         <CaughtUp
           through={through}
           showAll={showAll}

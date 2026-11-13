@@ -60,6 +60,10 @@ describe("SiteHeader", () => {
       "href",
       "/about",
     );
+    expect(screen.getByRole("link", { name: "Recap feeds" })).toHaveAttribute(
+      "href",
+      "https://feeds.quiet-football.com",
+    );
   });
 
   it("opens the season, filled through the week caught up through", () => {
