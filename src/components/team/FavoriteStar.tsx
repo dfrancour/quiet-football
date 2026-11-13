@@ -1,7 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { control } from "~/components/common/control";
+import { HeaderControl } from "~/components/common/HeaderControl";
 import { useFavorites } from "~/hooks/useFavorites";
 import { setFavorite } from "~/lib/favorite";
 
@@ -9,22 +9,14 @@ import { setFavorite } from "~/lib/favorite";
 export function FavoriteStar({ abbreviation }: { abbreviation: string }) {
   const favorite = useFavorites().includes(abbreviation.toUpperCase());
   return (
-    <button
-      type="button"
-      aria-label="Favorite team"
-      aria-pressed={favorite}
+    <HeaderControl
+      label="Favorite team"
+      icon={Star}
       onClick={() => setFavorite(abbreviation, !favorite)}
+      pressed={favorite}
+      filled={favorite}
       // On, it rests a step up, where hovering takes it.
-      className={control({
-        tone: favorite ? "muted" : "faint",
-        shape: "glyph",
-      })}
-    >
-      <Star
-        className="size-4"
-        fill={favorite ? "currentColor" : "none"}
-        aria-hidden
-      />
-    </button>
+      tone={favorite ? "muted" : "faint"}
+    />
   );
 }

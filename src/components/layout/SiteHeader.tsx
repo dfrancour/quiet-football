@@ -4,56 +4,22 @@ import { Info, Rss } from "lucide-react";
 import { type ReactNode } from "react";
 import { type PartialWeek } from "~/hooks/useSpoilers";
 import { CaughtUp } from "~/components/common/CaughtUp";
-import { control } from "~/components/common/control";
-import Link from "next/link";
+import { HeaderControl } from "~/components/common/HeaderControl";
 import { SiteMark } from "~/components/layout/SiteMark";
 import { aboutPath, standingsPath } from "~/lib/routes";
 import { FEEDS_SITE_URL } from "~/lib/site";
 
 /**
  * The site's own links, as the league page offers them: the recap feeds'
- * page, then About.
+ * page, then About. The feeds' page is the site's own, its mark leading
+ * back here, so it opens in place.
  */
 export function SiteLinks() {
   return (
     <>
-      <FeedsLink />
-      <AboutLink />
+      <HeaderControl label="Recap feeds" icon={Rss} href={FEEDS_SITE_URL} />
+      <HeaderControl label="About" icon={Info} href={aboutPath()} />
     </>
-  );
-}
-
-/**
- * The recap feeds' page: every team's feed for a reader. It is the site's
- * own, with its mark leading back here, so it opens in place.
- */
-function FeedsLink() {
-  return (
-    <a
-      href={FEEDS_SITE_URL}
-      aria-label="Recap feeds"
-      title="Recap feeds"
-      className={control({ shape: "box", size: 8 })}
-    >
-      <Rss className="size-4" aria-hidden />
-    </a>
-  );
-}
-
-/**
- * The way to `/about`: a circled i, drawn and sized like the spoiler control
- * beside it so the two read as one group of quiet controls.
- */
-function AboutLink() {
-  return (
-    <Link
-      href={aboutPath()}
-      aria-label="About"
-      title="About"
-      className={control({ shape: "box", size: 8 })}
-    >
-      <Info className="size-4" aria-hidden />
-    </Link>
   );
 }
 

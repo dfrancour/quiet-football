@@ -58,8 +58,8 @@ export function AppHeader({
           <span className="sr-only">Record </span>
           {record ? formatRecord(record) : <Redacted chars={3} />}
         </span>
-        {/* Apart enough that the two hit areas meet but do not overlap. */}
-        <span className="flex shrink-0 items-center gap-4">
+        {/* Spaced as the league page's feeds and About controls are. */}
+        <span className="flex shrink-0 items-center gap-1">
           <FavoriteStar abbreviation={team.abbreviation} />
           <FeedLink abbreviation={team.abbreviation} />
         </span>

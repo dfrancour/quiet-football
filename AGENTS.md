@@ -285,8 +285,10 @@ out to the recap feeds' page (`FEEDS_SITE_URL`), then a circled i to
 `/about`. A team
 page's `AppHeader` adds the team's logo, name, record, a favorite star and,
 beside it, the team's Atom feed of recaps (`FeedLink`, `teamFeedUrl()`,
-served off the site at `FEEDS_URL`); below `sm` the team takes a row of its
-own beneath the mark and controls.
+served off the site at `FEEDS_URL`); below `sm` the team takes a row of
+its own beneath the mark and controls. Every icon control in the header,
+the league's links and the team's star and feed, is a `HeaderControl`
+(`src/components/common/HeaderControl.tsx`), so none drifts from the rest.
 There is no team switcher; teams are picked from the standings.
 
 ### About page
